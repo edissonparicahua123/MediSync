@@ -1,0 +1,152 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: medisync-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-medisync}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medisync_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-medisync}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - medisync-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medisync"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: medisync-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - medisync-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend - NestJS
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: medisync-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${SERVER_PORT:-3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-medisync}:${POSTGRES_PASSWORD:-medisync_secure_password}@postgres:5432/${POSTGRES_DB:-medisync}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+      AI_SERVICE_URL: http://ai:8000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    ports:
+      - "${SERVER_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+      - uploads:/app/uploads
+    networks:
+      - medisync-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server.rule=Host(`api.medisync.local`)"
+      - "traefik.http.services.server.loadbalancer.server.port=3000"
+
+  # AI Service - FastAPI
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: medisync-ai
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: 1
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${AI_PORT:-8000}:8000"
+    volumes:
+      - ./ai:/app
+      - ai_models:/app/models
+    networks:
+      - medisync-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ai.rule=Host(`ai.medisync.local`)"
+      - "traefik.http.services.ai.loadbalancer.server.port=8000"
+
+  # Frontend - React + Vite
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: development
+    container_name: medisync-client
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_AI_URL: ${VITE_AI_URL:-http://localhost:8000}
+    ports:
+      - "${CLIENT_PORT:-5173}:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    networks:
+      - medisync-network
+    depends_on:
+      - server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.client.rule=Host(`medisync.local`)"
+      - "traefik.http.services.client.loadbalancer.server.port=5173"
+
+  # Traefik Reverse Proxy
+  traefik:
+    image: traefik:v2.10
+    container_name: medisync-traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - medisync-network
+
+networks:
+  medisync-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads:
+  ai_models:

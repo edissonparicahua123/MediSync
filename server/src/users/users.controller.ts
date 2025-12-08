@@ -1,0 +1,58 @@
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    UseGuards,
+    Query,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { UsersService } from './users.service';
+import { CreateUserDto, UpdateUserDto } from './dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+@ApiTags('Users')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('users')
+export class UsersController {
+    constructor(private readonly usersService: UsersService) { }
+
+    @Post()
+    @ApiOperation({ summary: 'Create new user' })
+    create(@Body() createUserDto: CreateUserDto) {
+        return this.usersService.create(createUserDto);
+    }
+
+    @Get()
+    @ApiOperation({ summary: 'Get all users' })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
+    findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+        return this.usersService.findAll(
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 20,
+        );
+    }
+
+    @Get(':id')
+    @ApiOperation({ summary: 'Get user by ID' })
+    findOne(@Param('id') id: string) {
+        return this.usersService.findOne(id);
+    }
+
+    @Patch(':id')
+    @ApiOperation({ summary: 'Update user' })
+    update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+        return this.usersService.update(id, updateUserDto);
+    }
+
+    @Delete(':id')
+    @ApiOperation({ summary: 'Delete user (soft delete)' })
+    remove(@Param('id') id: string) {
+        return this.usersService.remove(id);
+    }
+}

@@ -1,0 +1,69 @@
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+import { Logger } from '@nestjs/common';
+
+async function bootstrap() {
+    const app = await NestFactory.create(AppModule, {
+        logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    });
+
+    const logger = new Logger('Bootstrap');
+
+    // Global prefix
+    app.setGlobalPrefix('api/v1');
+
+    // CORS configuration
+    app.enableCors({
+        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        credentials: true,
+    });
+
+    // Global validation pipe
+    app.useGlobalPipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+            transformOptions: {
+                enableImplicitConversion: true,
+            },
+        }),
+    );
+
+    // Swagger documentation
+    const config = new DocumentBuilder()
+        .setTitle('MediSync Enterprise API')
+        .setDescription('Comprehensive Hospital Management System API')
+        .setVersion('1.0')
+        .addBearerAuth()
+        .addTag('Authentication', 'User authentication and authorization')
+        .addTag('Users', 'User management')
+        .addTag('Patients', 'Patient management')
+        .addTag('Doctors', 'Doctor management')
+        .addTag('Appointments', 'Appointment scheduling and management')
+        .addTag('Pharmacy', 'Pharmacy and medication management')
+        .addTag('Laboratory', 'Laboratory orders and results')
+        .addTag('Billing', 'Invoicing and payments')
+        .addTag('Notifications', 'Notification management')
+        .addTag('Attendance', 'Staff attendance tracking')
+        .addTag('Reports', 'Reports and analytics')
+        .addTag('AI', 'AI-powered features')
+        .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+        customSiteTitle: 'MediSync API Docs',
+        customCss: '.swagger-ui .topbar { display: none }',
+    });
+
+    const port = process.env.PORT || 3000;
+    await app.listen(port);
+
+    logger.log(`🚀 Application is running on: http://localhost:${port}`);
+    logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+    logger.log(`🏥 MediSync Enterprise Backend Started Successfully`);
+}
+
+bootstrap();
