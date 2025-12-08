@@ -39,6 +39,10 @@ model User {
   notifications Notification[]
   attendances   Attendance[]
   createdFiles  FileStorage[]
+  
+  // Messages
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 
   @@index([email])
   @@index([roleId])
@@ -122,6 +126,7 @@ model Patient {
   labOrders       LabOrder[]
   invoices        Invoice[]
   files           FileStorage[]
+  bed             BedStatus?
 
   @@index([firstName, lastName])
   @@index([phone])
@@ -552,4 +557,99 @@ model FileStorage {
   @@index([patientId])
   @@index([category])
   @@map("file_storage")
+}
+
+// ============================================
+// HR MODULE - EMPLOYEE MANAGEMENT
+// ============================================
+
+model Employee {
+  id               String    @id @default(uuid())
+  name             String
+  role             String
+  department       String
+  email            String    @unique
+  phone            String?
+  salary           Decimal?  @db.Decimal(10, 2)
+  hireDate         DateTime
+  isActive         Boolean   @default(true)
+  address          String?
+  emergencyContact String?
+  emergencyPhone   String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  @@index([email])
+  @@index([department])
+  @@index([role])
+  @@map("employees")
+}
+
+// ============================================
+// EMERGENCY MODULE - BED MANAGEMENT
+// ============================================
+
+model BedStatus {
+  id          String    @id @default(uuid())
+  bedNumber   String    @unique
+  ward        String
+  floor       Int?
+  status      String    @default("AVAILABLE")
+  patientId   String?   @unique
+  patient     Patient?  @relation(fields: [patientId], references: [id])
+  assignedAt  DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([ward])
+  @@index([status])
+  @@map("bed_statuses")
+}
+
+// ============================================
+// ADMIN MODULE - SYSTEM CONFIGURATION
+// ============================================
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  serviceName String   @unique
+  price       Decimal  @db.Decimal(10, 2)
+  category    String
+  isActive    Boolean  @default(true)
+  description String?
+  duration    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@map("system_configs")
+}
+
+// ============================================
+// MESSAGES MODULE - INTERNAL MESSAGING
+// ============================================
+
+model Message {
+  id         String    @id @default(uuid())
+  fromUserId String
+  fromUser   User      @relation("SentMessages", fields: [fromUserId], references: [id])
+  toUserId   String
+  toUser     User      @relation("ReceivedMessages", fields: [toUserId], references: [id])
+  subject    String?
+  content    String
+  isRead     Boolean   @default(false)
+  readAt     DateTime?
+  priority   String    @default("NORMAL")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("messages")
 }

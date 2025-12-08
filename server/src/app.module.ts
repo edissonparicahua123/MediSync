@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { PatientsModule } from './patients/patients.module';
 import { DoctorsModule } from './doctors/doctors.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { AiModule } from './ai/ai.module';
 import { PharmacyModule } from './pharmacy/pharmacy.module';
 import { LaboratoryModule } from './laboratory/laboratory.module';
 import { BillingModule } from './billing/billing.module';
@@ -15,7 +16,11 @@ import { AttendanceModule } from './attendance/attendance.module';
 import { ReportsModule } from './reports/reports.module';
 import { AuditModule } from './audit/audit.module';
 import { FilesModule } from './files/files.module';
-import { AiModule } from './ai/ai.module';
+import { HRModule } from './hr/hr.module';
+import { EmergencyModule } from './emergency/emergency.module';
+import { AdminModule } from './admin/admin.module';
+import { MessagesModule } from './messages/messages.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -50,6 +55,13 @@ import { HealthController } from './health/health.controller';
         AuditModule,
         FilesModule,
         AiModule,
+
+        // New modules
+        HRModule,
+        EmergencyModule,
+        AdminModule,
+        MessagesModule,
+        AnalyticsModule,
     ],
     controllers: [HealthController],
 })

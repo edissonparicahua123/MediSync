@@ -12,6 +12,11 @@ import {
     Brain,
     Settings,
     Activity,
+    UserCog,
+    AlertTriangle,
+    Sliders,
+    MessageSquare,
+    BarChart3,
 } from 'lucide-react'
 
 const menuItems = [
@@ -19,11 +24,16 @@ const menuItems = [
     { icon: Users, label: 'Patients', path: '/patients' },
     { icon: Stethoscope, label: 'Doctors', path: '/doctors' },
     { icon: Calendar, label: 'Appointments', path: '/appointments' },
+    { icon: UserCog, label: 'HR', path: '/hr' },
+    { icon: AlertTriangle, label: 'Emergency', path: '/emergency' },
     { icon: Pill, label: 'Pharmacy', path: '/pharmacy' },
     { icon: FlaskConical, label: 'Laboratory', path: '/laboratory' },
     { icon: Receipt, label: 'Billing', path: '/billing' },
     { icon: FileText, label: 'Reports', path: '/reports' },
+    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
     { icon: Brain, label: 'AI Features', path: '/ai' },
+    { icon: MessageSquare, label: 'Messages', path: '/messages' },
+    { icon: Sliders, label: 'Admin', path: '/admin' },
     { icon: Settings, label: 'Settings', path: '/settings' },
 ]
 

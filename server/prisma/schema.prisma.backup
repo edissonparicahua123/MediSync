@@ -1,0 +1,655 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTHENTICATION & AUTHORIZATION
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  // User can be a doctor
+  doctor Doctor?
+
+  // Activity tracking
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  attendances   Attendance[]
+  createdFiles  FileStorage[]
+  
+  // Messages
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  @@index([email])
+  @@index([roleId])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  resource    String // e.g., "patients", "appointments"
+  action      String // e.g., "create", "read", "update", "delete"
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  roles RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// PATIENTS
+// ============================================
+
+model Patient {
+  id              String    @id @default(uuid())
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  gender          String // MALE, FEMALE, OTHER
+  bloodType       String?
+  phone           String
+  email           String?
+  address         String?
+  city            String?
+  state           String?
+  zipCode         String?
+  emergencyContact String?
+  emergencyPhone  String?
+  insuranceNumber String?
+  insuranceProvider String?
+  allergies       String?
+  chronicConditions String?
+  notes           String?
+  status          String    @default("ACTIVE") // ACTIVE, INACTIVE, DECEASED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  appointments    Appointment[]
+  medicalRecords  MedicalRecord[]
+  labOrders       LabOrder[]
+  invoices        Invoice[]
+  files           FileStorage[]
+  bed             BedStatus?
+
+  @@index([firstName, lastName])
+  @@index([phone])
+  @@index([email])
+  @@map("patients")
+}
+
+// ============================================
+// DOCTORS & SPECIALTIES
+// ============================================
+
+model Specialty {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  doctors Doctor[]
+
+  @@map("specialties")
+}
+
+model Doctor {
+  id              String   @id @default(uuid())
+  licenseNumber   String   @unique
+  specialization  String?
+  yearsExperience Int?
+  consultationFee Decimal  @default(0) @db.Decimal(10, 2)
+  bio             String?
+  isAvailable     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  userId      String     @unique
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialtyId String?
+  specialty   Specialty? @relation(fields: [specialtyId], references: [id])
+
+  appointments   Appointment[]
+  schedules      DoctorSchedule[]
+  medicalRecords MedicalRecord[]
+
+  @@index([licenseNumber])
+  @@map("doctors")
+}
+
+model DoctorSchedule {
+  id        String   @id @default(uuid())
+  dayOfWeek Int // 0 = Sunday, 6 = Saturday
+  startTime String // HH:mm format
+  endTime   String // HH:mm format
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  doctorId String
+  doctor   Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@map("doctor_schedules")
+}
+
+// ============================================
+// APPOINTMENTS
+// ============================================
+
+model Appointment {
+  id              String    @id @default(uuid())
+  appointmentDate DateTime
+  startTime       String // HH:mm format
+  endTime         String? // HH:mm format
+  reason          String
+  symptoms        String?
+  status          String    @default("SCHEDULED") // SCHEDULED, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
+  priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  triageScore     Int? // AI-generated triage score
+  triageNotes     String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  // Relations
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+  doctorId  String
+  doctor    Doctor  @relation(fields: [doctorId], references: [id])
+
+  history        AppointmentHistory[]
+  medicalRecords MedicalRecord[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([appointmentDate])
+  @@index([status])
+  @@map("appointments")
+}
+
+model AppointmentHistory {
+  id        String   @id @default(uuid())
+  status    String
+  notes     String?
+  changedBy String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId])
+  @@map("appointment_history")
+}
+
+// ============================================
+// MEDICAL RECORDS
+// ============================================
+
+model MedicalRecord {
+  id                String   @id @default(uuid())
+  visitDate         DateTime
+  chiefComplaint    String
+  diagnosis         String
+  treatment         String?
+  prescriptions     String?
+  vitalSigns        Json? // { temperature, bloodPressure, heartRate, respiratoryRate, oxygenSaturation }
+  labResults        String?
+  notes             String?
+  followUpDate      DateTime?
+  aiSummary         String? // AI-generated summary
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  patientId     String
+  patient       Patient      @relation(fields: [patientId], references: [id])
+  doctorId      String
+  doctor        Doctor       @relation(fields: [doctorId], references: [id])
+  appointmentId String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([visitDate])
+  @@map("medical_records")
+}
+
+// ============================================
+// PHARMACY
+// ============================================
+
+model Medication {
+  id          String    @id @default(uuid())
+  name        String
+  genericName String?
+  category    String?
+  description String?
+  dosageForm  String? // tablet, capsule, syrup, injection
+  strength    String?
+  manufacturer String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  stock     PharmacyStock[]
+  movements PharmacyMovement[]
+
+  @@index([name])
+  @@map("medications")
+}
+
+model PharmacyStock {
+  id              String   @id @default(uuid())
+  quantity        Int      @default(0)
+  minStockLevel   Int      @default(10)
+  maxStockLevel   Int      @default(1000)
+  unitPrice       Decimal  @db.Decimal(10, 2)
+  sellingPrice    Decimal  @db.Decimal(10, 2)
+  expirationDate  DateTime?
+  batchNumber     String?
+  location        String? // shelf/bin location
+  lastRestockDate DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  medicationId String
+  medication   Medication @relation(fields: [medicationId], references: [id])
+
+  @@index([medicationId])
+  @@index([quantity])
+  @@map("pharmacy_stock")
+}
+
+model PharmacyMovement {
+  id            String   @id @default(uuid())
+  movementType  String // IN, OUT, ADJUSTMENT, EXPIRED, DAMAGED
+  quantity      Int
+  reason        String?
+  referenceNumber String?
+  performedBy   String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  medicationId String
+  medication   Medication @relation(fields: [medicationId], references: [id])
+
+  @@index([medicationId])
+  @@index([movementType])
+  @@index([createdAt])
+  @@map("pharmacy_movements")
+}
+
+// ============================================
+// LABORATORY
+// ============================================
+
+model LabOrder {
+  id          String    @id @default(uuid())
+  orderNumber String    @unique
+  testType    String
+  testName    String
+  priority    String    @default("NORMAL") // ROUTINE, URGENT, STAT
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  sampleType  String? // blood, urine, stool, etc.
+  sampleCollectedAt DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  results LabResult[]
+
+  @@index([patientId])
+  @@index([orderNumber])
+  @@index([status])
+  @@map("lab_orders")
+}
+
+model LabResult {
+  id          String   @id @default(uuid())
+  testName    String
+  result      String
+  unit        String?
+  referenceRange String?
+  status      String   @default("PENDING") // PENDING, NORMAL, ABNORMAL, CRITICAL
+  notes       String?
+  performedBy String?
+  verifiedBy  String?
+  resultDate  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  labOrderId String
+  labOrder   LabOrder @relation(fields: [labOrderId], references: [id], onDelete: Cascade)
+
+  @@index([labOrderId])
+  @@map("lab_results")
+}
+
+// ============================================
+// BILLING & INVOICING
+// ============================================
+
+model Invoice {
+  id            String    @id @default(uuid())
+  invoiceNumber String    @unique
+  invoiceDate   DateTime  @default(now())
+  dueDate       DateTime?
+  subtotal      Decimal   @db.Decimal(10, 2)
+  tax           Decimal   @default(0) @db.Decimal(10, 2)
+  discount      Decimal   @default(0) @db.Decimal(10, 2)
+  total         Decimal   @db.Decimal(10, 2)
+  status        String    @default("PENDING") // PENDING, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@index([patientId])
+  @@index([invoiceNumber])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Decimal @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+
+  // Relations
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  paymentDate   DateTime @default(now())
+  amount        Decimal  @db.Decimal(10, 2)
+  paymentMethod String // CASH, CARD, TRANSFER, INSURANCE
+  referenceNumber String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@map("payments")
+}
+
+// ============================================
+// ATTENDANCE
+// ============================================
+
+model Attendance {
+  id        String    @id @default(uuid())
+  checkIn   DateTime
+  checkOut  DateTime?
+  workHours Decimal?  @db.Decimal(5, 2)
+  status    String    @default("PRESENT") // PRESENT, LATE, ABSENT, HALF_DAY
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([checkIn])
+  @@map("attendances")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// ============================================
+// AUDIT LOGS
+// ============================================
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
+  resource  String // patients, appointments, etc.
+  resourceId String?
+  changes   Json? // before/after data
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// FILE STORAGE
+// ============================================
+
+model FileStorage {
+  id          String    @id @default(uuid())
+  fileName    String
+  originalName String
+  mimeType    String
+  size        Int
+  path        String
+  category    String? // MEDICAL_RECORD, LAB_RESULT, PRESCRIPTION, OTHER
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  uploadedById String
+  uploadedBy   User    @relation(fields: [uploadedById], references: [id])
+  patientId    String?
+  patient      Patient? @relation(fields: [patientId], references: [id])
+
+  @@index([uploadedById])
+  @@index([patientId])
+  @@index([category])
+  @@map("file_storage")
+}
+/ /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ / /   H R   M O D U L E   -   E M P L O Y E E   M A N A G E M E N T  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ m o d e l   E m p l o y e e   {  
+     i d                     S t r i n g         @ i d   @ d e f a u l t ( u u i d ( ) )  
+     n a m e                 S t r i n g  
+     r o l e                 S t r i n g   / /   D O C T O R ,   N U R S E ,   A D M I N ,   T E C H N I C I A N ,   R E C E P T I O N I S T ,   J A N I T O R  
+     d e p a r t m e n t     S t r i n g   / /   E M E R G E N C Y ,   S U R G E R Y ,   P E D I A T R I C S ,   A D M I N I S T R A T I O N ,   e t c .  
+     e m a i l               S t r i n g         @ u n i q u e  
+     p h o n e               S t r i n g ?  
+     s a l a r y             D e c i m a l ?     @ d b . D e c i m a l ( 1 0 ,   2 )  
+     h i r e D a t e         D a t e T i m e  
+     i s A c t i v e         B o o l e a n       @ d e f a u l t ( t r u e )  
+     a d d r e s s           S t r i n g ?  
+     e m e r g e n c y C o n t a c t   S t r i n g ?  
+     e m e r g e n c y P h o n e       S t r i n g ?  
+     c r e a t e d A t       D a t e T i m e     @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t       D a t e T i m e     @ u p d a t e d A t  
+     d e l e t e d A t       D a t e T i m e ?  
+  
+     @ @ i n d e x ( [ e m a i l ] )  
+     @ @ i n d e x ( [ d e p a r t m e n t ] )  
+     @ @ i n d e x ( [ r o l e ] )  
+     @ @ m a p ( " e m p l o y e e s " )  
+ }  
+  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ / /   E M E R G E N C Y   M O D U L E   -   B E D   M A N A G E M E N T  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ m o d e l   B e d S t a t u s   {  
+     i d                     S t r i n g         @ i d   @ d e f a u l t ( u u i d ( ) )  
+     b e d N u m b e r       S t r i n g         @ u n i q u e  
+     w a r d                 S t r i n g   / /   I C U ,   E M E R G E N C Y ,   G E N E R A L ,   M A T E R N I T Y ,   P E D I A T R I C  
+     f l o o r               I n t ?  
+     s t a t u s             S t r i n g         @ d e f a u l t ( " A V A I L A B L E " )   / /   A V A I L A B L E ,   O C C U P I E D ,   M A I N T E N A N C E ,   R E S E R V E D  
+     p a t i e n t I d       S t r i n g ?       @ u n i q u e  
+     p a t i e n t           P a t i e n t ?     @ r e l a t i o n ( f i e l d s :   [ p a t i e n t I d ] ,   r e f e r e n c e s :   [ i d ] )  
+     a s s i g n e d A t     D a t e T i m e ?  
+     n o t e s               S t r i n g ?  
+     c r e a t e d A t       D a t e T i m e     @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t       D a t e T i m e     @ u p d a t e d A t  
+  
+     @ @ i n d e x ( [ w a r d ] )  
+     @ @ i n d e x ( [ s t a t u s ] )  
+     @ @ m a p ( " b e d _ s t a t u s e s " )  
+ }  
+  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ / /   A D M I N   M O D U L E   -   S Y S T E M   C O N F I G U R A T I O N  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ m o d e l   S y s t e m C o n f i g   {  
+     i d                     S t r i n g       @ i d   @ d e f a u l t ( u u i d ( ) )  
+     s e r v i c e N a m e   S t r i n g       @ u n i q u e  
+     p r i c e               D e c i m a l     @ d b . D e c i m a l ( 1 0 ,   2 )  
+     c a t e g o r y         S t r i n g   / /   C O N S U L T A T I O N ,   L A B ,   P H A R M A C Y ,   P R O C E D U R E ,   R O O M  
+     i s A c t i v e         B o o l e a n     @ d e f a u l t ( t r u e )  
+     d e s c r i p t i o n   S t r i n g ?  
+     d u r a t i o n         I n t ?   / /   D u r a t i o n   i n   m i n u t e s  
+     c r e a t e d A t       D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t       D a t e T i m e   @ u p d a t e d A t  
+  
+     @ @ i n d e x ( [ c a t e g o r y ] )  
+     @ @ i n d e x ( [ i s A c t i v e ] )  
+     @ @ m a p ( " s y s t e m _ c o n f i g s " )  
+ }  
+  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ / /   M E S S A G E S   M O D U L E   -   I N T E R N A L   M E S S A G I N G  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ m o d e l   M e s s a g e   {  
+     i d                   S t r i n g       @ i d   @ d e f a u l t ( u u i d ( ) )  
+     f r o m U s e r I d   S t r i n g  
+     f r o m U s e r       U s e r           @ r e l a t i o n ( " S e n t M e s s a g e s " ,   f i e l d s :   [ f r o m U s e r I d ] ,   r e f e r e n c e s :   [ i d ] )  
+     t o U s e r I d       S t r i n g  
+     t o U s e r           U s e r           @ r e l a t i o n ( " R e c e i v e d M e s s a g e s " ,   f i e l d s :   [ t o U s e r I d ] ,   r e f e r e n c e s :   [ i d ] )  
+     s u b j e c t         S t r i n g ?  
+     c o n t e n t         S t r i n g  
+     i s R e a d           B o o l e a n     @ d e f a u l t ( f a l s e )  
+     r e a d A t           D a t e T i m e ?  
+     p r i o r i t y       S t r i n g       @ d e f a u l t ( " N O R M A L " )   / /   L O W ,   N O R M A L ,   H I G H ,   U R G E N T  
+     c r e a t e d A t     D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t     D a t e T i m e   @ u p d a t e d A t  
+     d e l e t e d A t     D a t e T i m e ?  
+  
+     @ @ i n d e x ( [ f r o m U s e r I d ] )  
+     @ @ i n d e x ( [ t o U s e r I d ] )  
+     @ @ i n d e x ( [ i s R e a d ] )  
+     @ @ i n d e x ( [ c r e a t e d A t ] )  
+     @ @ m a p ( " m e s s a g e s " )  
+ }  
+ 

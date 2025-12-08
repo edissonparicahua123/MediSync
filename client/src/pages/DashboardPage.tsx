@@ -1,12 +1,72 @@
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, Calendar, Pill, TrendingUp } from 'lucide-react'
+import { Users, Calendar, Pill, TrendingUp, Loader2, DollarSign } from 'lucide-react'
+import { analyticsAPI, appointmentsAPI } from '@/services/api'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function DashboardPage() {
+    const [dashboard, setDashboard] = useState<any>(null)
+    const [recentAppointments, setRecentAppointments] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const { toast } = useToast()
+
+    useEffect(() => {
+        loadData()
+    }, [])
+
+    const loadData = async () => {
+        try {
+            setLoading(true)
+            const [dashboardRes, appointmentsRes] = await Promise.all([
+                analyticsAPI.getDashboard(),
+                appointmentsAPI.getAll({ limit: 5 })
+            ])
+            setDashboard(dashboardRes.data)
+            setRecentAppointments(appointmentsRes.data.data || [])
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to load dashboard',
+                variant: 'destructive',
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
+    }
+
     const stats = [
-        { title: 'Total Patients', value: '1,234', icon: Users, change: '+12%' },
-        { title: 'Appointments Today', value: '45', icon: Calendar, change: '+5%' },
-        { title: 'Medications', value: '567', icon: Pill, change: '-3%' },
-        { title: 'Revenue', value: '$12,345', icon: TrendingUp, change: '+18%' },
+        {
+            title: 'Total Patients',
+            value: dashboard?.patients?.total || 0,
+            icon: Users,
+            change: `+${dashboard?.patients?.newThisMonth || 0} this month`
+        },
+        {
+            title: 'Appointments Today',
+            value: dashboard?.todayAppointments || 0,
+            icon: Calendar,
+            change: `${dashboard?.upcomingAppointments || 0} upcoming`
+        },
+        {
+            title: 'Total Revenue',
+            value: `$${dashboard?.revenue?.totalRevenue?.toFixed(2) || '0.00'}`,
+            icon: DollarSign,
+            change: `$${dashboard?.revenue?.thisMonthRevenue?.toFixed(2) || '0.00'} this month`
+        },
+        {
+            title: 'Active Employees',
+            value: dashboard?.employees?.active || 0,
+            icon: TrendingUp,
+            change: `${dashboard?.employees?.total || 0} total`
+        },
     ]
 
     return (
@@ -32,7 +92,7 @@ export default function DashboardPage() {
                             <CardContent>
                                 <div className="text-2xl font-bold">{stat.value}</div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {stat.change} from last month
+                                    {stat.change}
                                 </p>
                             </CardContent>
                         </Card>
@@ -46,9 +106,42 @@ export default function DashboardPage() {
                         <CardTitle>Recent Appointments</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">
-                            No appointments scheduled yet.
-                        </p>
+                        {recentAppointments.length === 0 ? (
+                            <p className="text-muted-foreground">
+                                No recent appointments.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {recentAppointments.map((appointment) => (
+                                    <div
+                                        key={appointment.id}
+                                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent"
+                                    >
+                                        <div>
+                                            <p className="font-medium">
+                                                {appointment.patient?.firstName} {appointment.patient?.lastName}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {appointment.reason}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-medium">
+                                                {new Date(appointment.appointmentDate).toLocaleDateString()}
+                                            </p>
+                                            <span className={`text-xs px-2 py-1 rounded ${appointment.status === 'CONFIRMED'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : appointment.status === 'SCHEDULED'
+                                                        ? 'bg-blue-100 text-blue-800'
+                                                        : 'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {appointment.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -57,15 +150,18 @@ export default function DashboardPage() {
                         <CardTitle>Quick Actions</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                            • Create new patient record
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                            • Schedule appointment
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                            • Generate report
-                        </p>
+                        <button className="w-full text-left p-3 hover:bg-accent rounded-lg transition-colors">
+                            <p className="font-medium">Create new patient record</p>
+                            <p className="text-sm text-muted-foreground">Add a new patient to the system</p>
+                        </button>
+                        <button className="w-full text-left p-3 hover:bg-accent rounded-lg transition-colors">
+                            <p className="font-medium">Schedule appointment</p>
+                            <p className="text-sm text-muted-foreground">Book a new appointment</p>
+                        </button>
+                        <button className="w-full text-left p-3 hover:bg-accent rounded-lg transition-colors">
+                            <p className="font-medium">Generate report</p>
+                            <p className="text-sm text-muted-foreground">Create analytics reports</p>
+                        </button>
                     </CardContent>
                 </Card>
             </div>
