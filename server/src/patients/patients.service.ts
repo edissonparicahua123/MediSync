@@ -119,7 +119,7 @@ export class PatientsService {
             where: { patientId: id },
             orderBy: { visitDate: 'desc' },
             include: {
-                doctor: { include: { user: true, specialty: true } },
+                doctor: { include: { user: true } },
             },
         });
     }

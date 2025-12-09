@@ -1,9 +1,30 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Stethoscope, Plus, Search, Loader2, Edit, Trash2 } from 'lucide-react'
-import { doctorsAPI } from '@/services/api'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table'
+import {
+    Stethoscope,
+    Plus,
+    Search,
+    Loader2,
+    Edit,
+    Trash2,
+    Eye,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    Phone,
+} from 'lucide-react'
+import { doctorsAPI, appointmentsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import DoctorModal from '@/components/modals/DoctorModal'
 import {
@@ -16,10 +37,13 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { format, isToday } from 'date-fns'
 
 export default function DoctorsPage() {
+    const navigate = useNavigate()
     const [searchTerm, setSearchTerm] = useState('')
     const [doctors, setDoctors] = useState<any[]>([])
+    const [appointments, setAppointments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [modalOpen, setModalOpen] = useState(false)
     const [selectedDoctor, setSelectedDoctor] = useState<any>(null)
@@ -33,8 +57,12 @@ export default function DoctorsPage() {
     const loadData = async () => {
         try {
             setLoading(true)
-            const response = await doctorsAPI.getAll()
-            setDoctors(response.data.data || [])
+            const [doctorsRes, appointmentsRes] = await Promise.all([
+                doctorsAPI.getAll(),
+                appointmentsAPI.getAll().catch(() => ({ data: { data: [] } })),
+            ])
+            setDoctors(doctorsRes.data.data || [])
+            setAppointments(appointmentsRes.data?.data || [])
         } catch (error: any) {
             toast({
                 title: 'Error',
@@ -66,140 +94,230 @@ export default function DoctorsPage() {
         }
     }
 
-    const filteredDoctors = doctors.filter(doc =>
-        doc.user?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.user?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.specialization?.toLowerCase().includes(searchTerm.toLowerCase())
+    const handleEdit = (doctor: any) => {
+        setSelectedDoctor(doctor)
+        setModalOpen(true)
+    }
+
+    const handleAdd = () => {
+        setSelectedDoctor(null)
+        setModalOpen(true)
+    }
+
+    const handleSuccess = () => {
+        loadData()
+        setModalOpen(false)
+    }
+
+    const handleViewProfile = (doctorId: string) => {
+        navigate(`/doctors/${doctorId}`)
+    }
+
+    // Calcular pacientes atendidos hoy por doctor
+    const getPatientsToday = (doctorId: string) => {
+        return appointments.filter((apt: any) => {
+            try {
+                return apt.doctorId === doctorId &&
+                    isToday(new Date(apt.appointmentDate)) &&
+                    apt.status === 'COMPLETED'
+            } catch {
+                return false
+            }
+        }).length
+    }
+
+    // Obtener estado del doctor
+    const getDoctorStatus = (doctor: any) => {
+        const todayAppointments = appointments.filter((apt: any) => {
+            try {
+                return apt.doctorId === doctor.id && isToday(new Date(apt.appointmentDate))
+            } catch {
+                return false
+            }
+        })
+
+        const activeAppointments = todayAppointments.filter((apt: any) =>
+            apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED'
+        )
+
+        if (!doctor.isAvailable) return { status: 'OFFLINE', color: 'text-gray-500', bgColor: 'bg-gray-100' }
+        if (activeAppointments.length > 0) return { status: 'BUSY', color: 'text-orange-500', bgColor: 'bg-orange-100' }
+        return { status: 'AVAILABLE', color: 'text-green-500', bgColor: 'bg-green-100' }
+    }
+
+    const filteredDoctors = doctors.filter((doctor: any) =>
+        `${doctor.user?.firstName} ${doctor.user?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doctor.specialization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doctor.licenseNumber?.includes(searchTerm)
     )
 
     if (loading) {
         return (
             <div className="flex items-center justify-center h-96">
-                <Loader2 className="h-8 w-8 animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
     }
 
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-6">
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <Stethoscope className="h-8 w-8" />
-                        Doctors
-                    </h1>
-                    <p className="text-muted-foreground mt-1">Manage medical staff and specialists</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Doctors</h1>
+                    <p className="text-muted-foreground">
+                        Manage medical staff and schedules • {filteredDoctors.length} total
+                    </p>
                 </div>
-                <Button onClick={() => {
-                    setSelectedDoctor(null)
-                    setModalOpen(true)
-                }}>
+                <Button onClick={handleAdd}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Doctor
+                    New Doctor
                 </Button>
             </div>
 
-            <Card className="p-6">
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search doctors by name or specialization..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
+            {/* Search Bar */}
+            <Card className="p-4">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by name, specialty, or license number..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                    />
                 </div>
+            </Card>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b">
-                                <th className="text-left p-3">Name</th>
-                                <th className="text-left p-3">Specialization</th>
-                                <th className="text-left p-3">Contact</th>
-                                <th className="text-left p-3">License</th>
-                                <th className="text-left p-3">Experience</th>
-                                <th className="text-left p-3">Fee</th>
-                                <th className="text-left p-3">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredDoctors.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="text-center p-8 text-muted-foreground">
-                                        No doctors found
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredDoctors.map((doctor) => (
-                                    <tr key={doctor.id} className="border-b hover:bg-accent">
-                                        <td className="p-3 font-medium">
-                                            Dr. {doctor.user?.firstName} {doctor.user?.lastName}
-                                        </td>
-                                        <td className="p-3">
-                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                                                {doctor.specialization}
+            {/* Doctors Table */}
+            <Card>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Photo</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Specialty</TableHead>
+                            <TableHead>Schedule</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Patients Today</TableHead>
+                            <TableHead>Extension</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredDoctors.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                                    No doctors found
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            filteredDoctors.map((doctor: any) => {
+                                const statusInfo = getDoctorStatus(doctor)
+                                const patientsToday = getPatientsToday(doctor.id)
+
+                                return (
+                                    <TableRow key={doctor.id} className="hover:bg-accent/50">
+                                        <TableCell>
+                                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-semibold">
+                                                {doctor.user?.firstName?.[0]}{doctor.user?.lastName?.[0]}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            <div>
+                                                <p>Dr. {doctor.user?.firstName} {doctor.user?.lastName}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    License: {doctor.licenseNumber}
+                                                </p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                                {doctor.specialization || 'General'}
                                             </span>
-                                        </td>
-                                        <td className="p-3 text-sm">
-                                            <div>{doctor.user?.email}</div>
-                                            <div className="text-muted-foreground">{doctor.user?.phone}</div>
-                                        </td>
-                                        <td className="p-3 text-sm font-mono">{doctor.licenseNumber}</td>
-                                        <td className="p-3 text-sm">{doctor.yearsExperience} years</td>
-                                        <td className="p-3 text-sm">${Number(doctor.consultationFee).toFixed(2)}</td>
-                                        <td className="p-3">
-                                            <div className="flex gap-2">
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="text-sm">
+                                                <p>Mon-Fri</p>
+                                                <p className="text-xs text-muted-foreground">8:00 AM - 5:00 PM</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {statusInfo.status === 'AVAILABLE' && <CheckCircle2 className={`h-4 w-4 ${statusInfo.color}`} />}
+                                                {statusInfo.status === 'BUSY' && <Clock className={`h-4 w-4 ${statusInfo.color}`} />}
+                                                {statusInfo.status === 'OFFLINE' && <XCircle className={`h-4 w-4 ${statusInfo.color}`} />}
+                                                <span className={`text-xs px-2 py-1 rounded-full ${statusInfo.bgColor} ${statusInfo.color}`}>
+                                                    {statusInfo.status}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <span className="text-sm font-semibold text-primary">{patientsToday}</span>
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">patients</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1 text-sm">
+                                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                                <span>{doctor.user?.phone || 'N/A'}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-2">
                                                 <Button
                                                     variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => {
-                                                        setSelectedDoctor(doctor)
-                                                        setModalOpen(true)
-                                                    }}
+                                                    size="sm"
+                                                    onClick={() => handleViewProfile(doctor.id)}
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleEdit(doctor)}
                                                 >
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
-                                                    size="icon"
-                                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                    size="sm"
                                                     onClick={() => setDeleteId(doctor.id)}
                                                 >
-                                                    <Trash2 className="h-4 w-4" />
+                                                    <Trash2 className="h-4 w-4 text-red-500" />
                                                 </Button>
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })
+                        )}
+                    </TableBody>
+                </Table>
             </Card>
 
+            {/* Modal */}
             <DoctorModal
                 open={modalOpen}
-                onOpenChange={setModalOpen}
+                onClose={() => setModalOpen(false)}
                 doctor={selectedDoctor}
-                onSuccess={loadData}
+                onSuccess={handleSuccess}
             />
 
+            {/* Delete Dialog */}
             <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the doctor profile.
+                            This action cannot be undone. This will permanently delete the doctor record.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
-                            Delete
-                        </AlertDialogAction>
+                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

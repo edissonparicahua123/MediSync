@@ -13,8 +13,6 @@ export class DoctorsService {
                 where: { deletedAt: null },
                 include: {
                     user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, avatar: true } },
-                    specialty: true,
-                    schedules: true,
                 },
                 skip,
                 take: limit,
@@ -34,8 +32,6 @@ export class DoctorsService {
             where: { id },
             include: {
                 user: true,
-                specialty: true,
-                schedules: true,
                 appointments: {
                     take: 20,
                     orderBy: { appointmentDate: 'desc' },
@@ -74,7 +70,7 @@ export class DoctorsService {
                     userId: existingUser.id,
                     ...doctorData,
                 },
-                include: { user: true, specialty: true },
+                include: { user: true },
             });
         }
 

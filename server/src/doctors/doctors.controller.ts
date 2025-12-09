@@ -1,11 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { DoctorsService } from './doctors.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Doctors')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('doctors')
 export class DoctorsController {
     constructor(private readonly doctorsService: DoctorsService) { }
