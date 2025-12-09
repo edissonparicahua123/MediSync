@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { UserCog, Plus, Search, Loader2 } from 'lucide-react'
+import { UserCog, Plus, Search, Loader2, Edit } from 'lucide-react'
 import { hrAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
+import EmployeeModal from '@/components/modals/EmployeeModal'
 
 export default function HRPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [employees, setEmployees] = useState<any[]>([])
     const [stats, setStats] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const [modalOpen, setModalOpen] = useState(false)
+    const [selectedEmployee, setSelectedEmployee] = useState<any>(null)
     const { toast } = useToast()
 
     useEffect(() => {
@@ -60,7 +63,7 @@ export default function HRPage() {
                     </h1>
                     <p className="text-muted-foreground mt-1">Manage employees and staff</p>
                 </div>
-                <Button>
+                <Button onClick={() => setModalOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Employee
                 </Button>
@@ -133,7 +136,16 @@ export default function HRPage() {
                                             </span>
                                         </td>
                                         <td className="p-3">
-                                            <Button variant="outline" size="sm">Edit</Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setSelectedEmployee(employee)
+                                                    setModalOpen(true)
+                                                }}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))
@@ -142,6 +154,13 @@ export default function HRPage() {
                     </table>
                 </div>
             </Card>
+
+            <EmployeeModal
+                open={modalOpen}
+                onOpenChange={setModalOpen}
+                employee={selectedEmployee}
+                onSuccess={loadData}
+            />
         </div>
     )
 }

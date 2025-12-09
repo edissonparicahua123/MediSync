@@ -130,4 +130,25 @@ export class AppointmentsService {
 
         return updated;
     }
+    async update(id: string, data: any) {
+        // Separate symptoms/triage data if we want to re-run AI, 
+        // strictly speaking simple update might not re-trigger AI for stability unless requested.
+        // For now, basic field update.
+
+        return this.prisma.appointment.update({
+            where: { id },
+            data,
+            include: {
+                patient: true,
+                doctor: { include: { user: true, specialty: true } },
+            },
+        });
+    }
+
+    async remove(id: string) {
+        return this.prisma.appointment.update({
+            where: { id },
+            data: { deletedAt: new Date() },
+        });
+    }
 }

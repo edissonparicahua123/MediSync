@@ -363,6 +363,7 @@ model LabOrder {
   notes       String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   // Relations
   patientId String
@@ -415,6 +416,7 @@ model Invoice {
   notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
   // Relations
   patientId String

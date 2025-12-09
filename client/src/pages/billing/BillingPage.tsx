@@ -2,15 +2,29 @@ import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Receipt, Plus, Search, Loader2, DollarSign } from 'lucide-react'
+import { Receipt, Plus, Search, Loader2, DollarSign, Edit, Trash2 } from 'lucide-react'
 import { billingAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
+import InvoiceModal from '@/components/modals/InvoiceModal'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function BillingPage() {
     const [invoices, setInvoices] = useState<any[]>([])
     const [stats, setStats] = useState<any>(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [loading, setLoading] = useState(true)
+    const [modalOpen, setModalOpen] = useState(false)
+    const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
+    const [deleteId, setDeleteId] = useState<string | null>(null)
     const { toast } = useToast()
 
     useEffect(() => {
@@ -34,6 +48,26 @@ export default function BillingPage() {
             })
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        if (!deleteId) return
+        try {
+            await billingAPI.deleteInvoice(deleteId)
+            toast({
+                title: 'Success',
+                description: 'Invoice deleted successfully',
+            })
+            loadData()
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete invoice',
+                variant: 'destructive',
+            })
+        } finally {
+            setDeleteId(null)
         }
     }
 
@@ -61,7 +95,10 @@ export default function BillingPage() {
                     </h1>
                     <p className="text-muted-foreground mt-1">Invoices and payments</p>
                 </div>
-                <Button>
+                <Button onClick={() => {
+                    setSelectedInvoice(null)
+                    setModalOpen(true)
+                }}>
                     <Plus className="h-4 w-4 mr-2" />
                     New Invoice
                 </Button>
@@ -156,23 +193,42 @@ export default function BillingPage() {
                                             {invoice.patient?.firstName} {invoice.patient?.lastName}
                                         </td>
                                         <td className="p-3 font-semibold">
-                                            ${invoice.totalAmount?.toFixed(2)}
+                                            ${Number(invoice.total || 0).toFixed(2)}
                                         </td>
                                         <td className="p-3">
-                                            {new Date(invoice.issueDate).toLocaleDateString()}
+                                            {new Date(invoice.invoiceDate).toLocaleDateString()}
                                         </td>
                                         <td className="p-3">
                                             <span className={`px-2 py-1 rounded text-xs ${invoice.status === 'PAID'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : invoice.status === 'OVERDUE'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-orange-100 text-orange-800'
+                                                ? 'bg-green-100 text-green-800'
+                                                : invoice.status === 'OVERDUE'
+                                                    ? 'bg-red-100 text-red-800'
+                                                    : 'bg-orange-100 text-orange-800'
                                                 }`}>
                                                 {invoice.status}
                                             </span>
                                         </td>
                                         <td className="p-3">
-                                            <Button variant="outline" size="sm">View</Button>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setSelectedInvoice(invoice)
+                                                        setModalOpen(true)
+                                                    }}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={() => setDeleteId(invoice.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -181,6 +237,30 @@ export default function BillingPage() {
                     </table>
                 </div>
             </Card>
+
+            <InvoiceModal
+                open={modalOpen}
+                onOpenChange={setModalOpen}
+                invoice={selectedInvoice}
+                onSuccess={loadData}
+            />
+
+            <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the invoice.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

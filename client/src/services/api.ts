@@ -162,6 +162,7 @@ export const laboratoryAPI = {
     updateOrder: (id: string, data: any) => api.patch(`/laboratory/orders/${id}`, data),
     updateStatus: (id: string, status: string, results?: any) =>
         api.patch(`/laboratory/orders/${id}/status`, { status, results }),
+    deleteOrder: (id: string) => api.delete(`/laboratory/orders/${id}`),
     getTests: () => api.get('/laboratory/tests'),
 }
 
@@ -175,6 +176,7 @@ export const billingAPI = {
     updateInvoice: (id: string, data: any) => api.patch(`/billing/invoices/${id}`, data),
     updateStatus: (id: string, status: string) =>
         api.patch(`/billing/invoices/${id}/status`, { status }),
+    deleteInvoice: (id: string) => api.delete(`/billing/invoices/${id}`),
     getStats: () => api.get('/billing/stats'),
 }
 

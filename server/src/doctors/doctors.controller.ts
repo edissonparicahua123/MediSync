@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { DoctorsService } from './doctors.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -25,5 +25,23 @@ export class DoctorsController {
     @ApiOperation({ summary: 'Get doctor by ID' })
     findOne(@Param('id') id: string) {
         return this.doctorsService.findOne(id);
+    }
+
+    @Post()
+    @ApiOperation({ summary: 'Create doctor' })
+    create(@Body() data: any) {
+        return this.doctorsService.create(data);
+    }
+
+    @Patch(':id')
+    @ApiOperation({ summary: 'Update doctor' })
+    update(@Param('id') id: string, @Body() data: any) {
+        return this.doctorsService.update(id, data);
+    }
+
+    @Delete(':id')
+    @ApiOperation({ summary: 'Delete doctor' })
+    remove(@Param('id') id: string) {
+        return this.doctorsService.remove(id);
     }
 }

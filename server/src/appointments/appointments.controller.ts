@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Delete, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -43,5 +43,17 @@ export class AppointmentsController {
     @ApiOperation({ summary: 'Update appointment status' })
     updateStatus(@Param('id') id: string, @Body() body: { status: string; notes?: string }) {
         return this.appointmentsService.updateStatus(id, body.status, body.notes);
+    }
+
+    @Patch(':id')
+    @ApiOperation({ summary: 'Update appointment' })
+    update(@Param('id') id: string, @Body() data: any) {
+        return this.appointmentsService.update(id, data);
+    }
+
+    @Delete(':id')
+    @ApiOperation({ summary: 'Delete appointment' })
+    remove(@Param('id') id: string) {
+        return this.appointmentsService.remove(id);
     }
 }
