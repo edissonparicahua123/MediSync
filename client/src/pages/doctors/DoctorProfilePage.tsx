@@ -106,27 +106,27 @@ export default function DoctorProfilePage() {
     if (!doctor) {
         return (
             <div className="flex flex-col items-center justify-center h-96 space-y-4">
-                <p className="text-muted-foreground">Doctor not found</p>
+                <p className="text-muted-foreground">Doctor no encontrado</p>
                 <Button onClick={() => navigate('/doctors')}>
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Doctors
+                    Volver a Doctores
                 </Button>
             </div>
         )
     }
 
     const getStatusBadge = () => {
-        const activeToday = todayAppointments.filter(apt =>
+        const activeToday = todayAppointments.filter((apt: any) =>
             apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED'
         ).length
 
         if (!doctor.isAvailable) {
-            return { text: 'OFFLINE', color: 'bg-gray-100 text-gray-800', icon: XCircle }
+            return { text: 'NO DISPONIBLE', color: 'bg-gray-100 text-gray-800', icon: XCircle }
         }
         if (activeToday > 0) {
-            return { text: 'BUSY', color: 'bg-orange-100 text-orange-800', icon: Clock }
+            return { text: 'OCUPADO', color: 'bg-orange-100 text-orange-800', icon: Clock }
         }
-        return { text: 'AVAILABLE', color: 'bg-green-100 text-green-800', icon: CheckCircle2 }
+        return { text: 'DISPONIBLE', color: 'bg-green-100 text-green-800', icon: CheckCircle2 }
     }
 
     const statusBadge = getStatusBadge()
@@ -139,21 +139,21 @@ export default function DoctorProfilePage() {
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" onClick={() => navigate('/doctors')}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back
+                        Volver
                     </Button>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">
                             Dr. {doctor.user?.firstName} {doctor.user?.lastName}
                         </h1>
                         <p className="text-muted-foreground">
-                            {doctor.specialization || 'General Practitioner'} • License: {doctor.licenseNumber}
+                            {doctor.specialization || 'Médico General'} • Licencia: {doctor.licenseNumber}
                         </p>
                     </div>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline">
                         <Edit className="h-4 w-4 mr-2" />
-                        Edit Profile
+                        Editar Perfil
                     </Button>
                 </div>
             </div>
@@ -180,28 +180,28 @@ export default function DoctorProfilePage() {
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                                    <span>Office 301, 3rd Floor</span>
+                                    <span>Oficina 301, 3er Piso</span>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Specialty</p>
+                                    <p className="text-xs text-muted-foreground">Especialidad</p>
                                     <p className="font-medium">{doctor.specialization || 'General'}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">License Number</p>
+                                    <p className="text-xs text-muted-foreground">Número de Licencia</p>
                                     <p className="font-medium">{doctor.licenseNumber}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Experience</p>
-                                    <p className="font-medium">{doctor.yearsOfExperience || 5} years</p>
+                                    <p className="text-xs text-muted-foreground">Experiencia</p>
+                                    <p className="font-medium">{doctor.yearsOfExperience || 5} años</p>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <p className="text-xs text-muted-foreground">Estado</p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <StatusIcon className="h-4 w-4" />
                                         <span className={`text-xs px-2 py-1 rounded-full ${statusBadge.color}`}>
@@ -210,8 +210,8 @@ export default function DoctorProfilePage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Patients Today</p>
-                                    <p className="font-medium text-2xl">{todayAppointments.filter(a => a.status === 'COMPLETED').length}</p>
+                                    <p className="text-xs text-muted-foreground">Pacientes Hoy</p>
+                                    <p className="font-medium text-2xl">{todayAppointments.filter((a: any) => a.status === 'COMPLETED').length}</p>
                                 </div>
                             </div>
                         </div>
@@ -223,29 +223,29 @@ export default function DoctorProfilePage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Appointments</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total de Citas</CardTitle>
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{doctorAppointments.length}</div>
-                        <p className="text-xs text-muted-foreground">{completedAppointments} completed</p>
+                        <p className="text-xs text-muted-foreground">{completedAppointments} completadas</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
+                        <CardTitle className="text-sm font-medium">Próximas</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{upcomingAppointments}</div>
-                        <p className="text-xs text-muted-foreground">Scheduled appointments</p>
+                        <p className="text-xs text-muted-foreground">Citas programadas</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Cancellation Rate</CardTitle>
+                        <CardTitle className="text-sm font-medium">Tasa de Cancelación</CardTitle>
                         <XCircle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -254,7 +254,7 @@ export default function DoctorProfilePage() {
                                 ? ((cancelledAppointments / doctorAppointments.length) * 100).toFixed(1)
                                 : 0}%
                         </div>
-                        <p className="text-xs text-muted-foreground">{cancelledAppointments} cancelled</p>
+                        <p className="text-xs text-muted-foreground">{cancelledAppointments} canceladas</p>
                     </CardContent>
                 </Card>
             </div>
@@ -268,31 +268,31 @@ export default function DoctorProfilePage() {
                     </TabsTrigger>
                     <TabsTrigger value="schedule">
                         <Calendar className="h-4 w-4 mr-2" />
-                        Schedule
+                        Horario
                     </TabsTrigger>
                     <TabsTrigger value="calendar">
                         <Calendar className="h-4 w-4 mr-2" />
-                        Calendar
+                        Calendario
                     </TabsTrigger>
                     <TabsTrigger value="today">
                         <Clock className="h-4 w-4 mr-2" />
-                        Today
+                        Hoy
                     </TabsTrigger>
                     <TabsTrigger value="statistics">
                         <BarChart3 className="h-4 w-4 mr-2" />
-                        Statistics
+                        Estadísticas
                     </TabsTrigger>
                     <TabsTrigger value="specialties">
                         <Award className="h-4 w-4 mr-2" />
-                        Specialties
+                        Especialidades
                     </TabsTrigger>
                     <TabsTrigger value="documents">
                         <FileText className="h-4 w-4 mr-2" />
-                        Documents
+                        Documentos
                     </TabsTrigger>
                     <TabsTrigger value="hours">
                         <Clock className="h-4 w-4 mr-2" />
-                        Hours
+                        Horas
                     </TabsTrigger>
                 </TabsList>
 
@@ -301,16 +301,16 @@ export default function DoctorProfilePage() {
                     <div className="grid gap-4 md:grid-cols-2">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Personal Information</CardTitle>
+                                <CardTitle>Información Personal</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-sm text-muted-foreground">First Name</p>
+                                        <p className="text-sm text-muted-foreground">Nombre</p>
                                         <p className="font-medium">{doctor.user?.firstName}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Last Name</p>
+                                        <p className="text-sm text-muted-foreground">Apellido</p>
                                         <p className="font-medium">{doctor.user?.lastName}</p>
                                     </div>
                                     <div>
@@ -318,7 +318,7 @@ export default function DoctorProfilePage() {
                                         <p className="font-medium">{doctor.user?.email}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-muted-foreground">Phone</p>
+                                        <p className="text-sm text-muted-foreground">Teléfono</p>
                                         <p className="font-medium">{doctor.user?.phone || 'N/A'}</p>
                                     </div>
                                 </div>
@@ -327,20 +327,20 @@ export default function DoctorProfilePage() {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>Professional Details</CardTitle>
+                                <CardTitle>Detalles Profesionales</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Specialization</p>
-                                    <p className="font-medium">{doctor.specialization || 'General Practitioner'}</p>
+                                    <p className="text-sm text-muted-foreground">Especialización</p>
+                                    <p className="font-medium">{doctor.specialization || 'Médico General'}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">License Number</p>
+                                    <p className="text-sm text-muted-foreground">Número de Licencia</p>
                                     <p className="font-medium">{doctor.licenseNumber}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Years of Experience</p>
-                                    <p className="font-medium">{doctor.yearsOfExperience || 5} years</p>
+                                    <p className="text-sm text-muted-foreground">Años de Experiencia</p>
+                                    <p className="font-medium">{doctor.yearsOfExperience || 5} años</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -351,8 +351,8 @@ export default function DoctorProfilePage() {
                 <TabsContent value="schedule">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Weekly Schedule</CardTitle>
-                            <CardDescription>Appointments distribution this week</CardDescription>
+                            <CardTitle>Horario Semanal</CardTitle>
+                            <CardDescription>Distribución de citas esta semana</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ResponsiveContainer width="100%" height={300}>
@@ -362,7 +362,7 @@ export default function DoctorProfilePage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Bar dataKey="appointments" fill="#3b82f6" name="Appointments" />
+                                    <Bar dataKey="appointments" fill="#3b82f6" name="Citas" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -382,14 +382,14 @@ export default function DoctorProfilePage() {
                 <TabsContent value="today">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Today's Appointments ({todayAppointments.length})</CardTitle>
+                            <CardTitle>Citas de Hoy ({todayAppointments.length})</CardTitle>
                             <CardDescription>{format(new Date(), 'EEEE, MMMM dd, yyyy')}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
                                 {todayAppointments.length === 0 ? (
                                     <p className="text-sm text-muted-foreground text-center py-8">
-                                        No appointments scheduled for today
+                                        No hay citas programadas para hoy
                                     </p>
                                 ) : (
                                     todayAppointments.map((apt: any) => (
@@ -399,13 +399,19 @@ export default function DoctorProfilePage() {
                                                     <p className="font-medium">
                                                         {format(new Date(apt.appointmentDate), 'HH:mm')} - {apt.patient?.firstName} {apt.patient?.lastName}
                                                     </p>
-                                                    <p className="text-sm text-muted-foreground">{apt.reason || 'General Checkup'}</p>
+                                                    <p className="text-sm text-muted-foreground">{apt.reason || 'Chequeo General'}</p>
                                                 </div>
                                                 <span className={`text-xs px-2 py-1 rounded-full ${apt.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
                                                     apt.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
                                                         'bg-gray-100 text-gray-800'
                                                     }`}>
-                                                    {apt.status}
+                                                    {({
+                                                        'SCHEDULED': 'PROGRAMADA',
+                                                        'CONFIRMED': 'CONFIRMADA',
+                                                        'COMPLETED': 'COMPLETADA',
+                                                        'CANCELLED': 'CANCELADA',
+                                                        'NO_SHOW': 'NO ASISTIÓ'
+                                                    } as Record<string, string>)[apt.status] || apt.status}
                                                 </span>
                                             </div>
                                         </div>
@@ -420,8 +426,8 @@ export default function DoctorProfilePage() {
                 <TabsContent value="statistics">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Performance Statistics</CardTitle>
-                            <CardDescription>Patient volume over the last 6 months</CardDescription>
+                            <CardTitle>Estadísticas de Rendimiento</CardTitle>
+                            <CardDescription>Volumen de pacientes en los últimos 6 meses</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ResponsiveContainer width="100%" height={300}>
@@ -442,15 +448,15 @@ export default function DoctorProfilePage() {
                 <TabsContent value="specialties">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Specialties & Certifications</CardTitle>
+                            <CardTitle>Especialidades y Certificaciones</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-3 p-3 border rounded-lg">
                                     <Award className="h-5 w-5 text-blue-500" />
                                     <div>
-                                        <p className="font-medium">{doctor.specialization || 'General Medicine'}</p>
-                                        <p className="text-sm text-muted-foreground">Primary Specialty</p>
+                                        <p className="font-medium">{doctor.specialization || 'Medicina General'}</p>
+                                        <p className="text-sm text-muted-foreground">Especialidad Primaria</p>
                                     </div>
                                 </div>
                             </div>
@@ -462,10 +468,10 @@ export default function DoctorProfilePage() {
                 <TabsContent value="documents">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Documents & Contracts</CardTitle>
+                            <CardTitle>Documentos y Contratos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">No documents available</p>
+                            <p className="text-sm text-muted-foreground">No hay documentos disponibles</p>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -474,23 +480,23 @@ export default function DoctorProfilePage() {
                 <TabsContent value="hours">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Working Hours</CardTitle>
+                            <CardTitle>Horas de Trabajo</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
+                                {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'].map(day => (
                                     <div key={day} className="flex justify-between items-center p-3 border rounded-lg">
                                         <span className="font-medium">{day}</span>
                                         <span className="text-sm text-muted-foreground">8:00 AM - 5:00 PM</span>
                                     </div>
                                 ))}
                                 <div className="flex justify-between items-center p-3 border rounded-lg bg-muted">
-                                    <span className="font-medium">Saturday</span>
-                                    <span className="text-sm text-muted-foreground">Closed</span>
+                                    <span className="font-medium">Sábado</span>
+                                    <span className="text-sm text-muted-foreground">Cerrado</span>
                                 </div>
                                 <div className="flex justify-between items-center p-3 border rounded-lg bg-muted">
-                                    <span className="font-medium">Sunday</span>
-                                    <span className="text-sm text-muted-foreground">Closed</span>
+                                    <span className="font-medium">Domingo</span>
+                                    <span className="text-sm text-muted-foreground">Cerrado</span>
                                 </div>
                             </div>
                         </CardContent>

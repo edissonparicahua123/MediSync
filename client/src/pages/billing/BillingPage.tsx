@@ -44,6 +44,7 @@ import {
 import { billingAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import QRCode from 'qrcode'
 
 export default function BillingPage() {
@@ -74,22 +75,22 @@ export default function BillingPage() {
         total: 0,
     })
 
-    // Available items for selection
+    // Item definitions
     const availableServices = [
-        { id: '1', name: 'Consultation', price: 50 },
-        { id: '2', name: 'Follow-up Visit', price: 30 },
-        { id: '3', name: 'Emergency Care', price: 150 },
+        { id: '1', name: 'Consulta General', price: 50 },
+        { id: '2', name: 'Visita de Seguimiento', price: 30 },
+        { id: '3', name: 'Atención de Emergencia', price: 150 },
     ]
 
     const availableMedications = [
         { id: '1', name: 'Paracetamol 500mg', price: 5 },
-        { id: '2', name: 'Amoxicillin 500mg', price: 15 },
-        { id: '3', name: 'Insulin 100UI/ml', price: 45 },
+        { id: '2', name: 'Amoxicilina 500mg', price: 15 },
+        { id: '3', name: 'Insulina 100UI/ml', price: 45 },
     ]
 
     const availableProcedures = [
-        { id: '1', name: 'Blood Test', price: 25 },
-        { id: '2', name: 'X-Ray', price: 80 },
+        { id: '1', name: 'Análisis de Sangre', price: 25 },
+        { id: '2', name: 'Rayos-X', price: 80 },
         { id: '3', name: 'ECG', price: 60 },
     ]
 
@@ -106,45 +107,45 @@ export default function BillingPage() {
             const simulatedInvoices = [
                 {
                     id: 'INV-001',
-                    patient: 'John Doe',
-                    services: ['Consultation', 'Blood Test'],
+                    patient: 'Juan Pérez',
+                    services: ['Consulta', 'Análisis de Sangre'],
                     date: new Date(),
                     totalAmount: 75.00,
                     status: 'PAID',
-                    paymentMethod: 'Credit Card',
+                    paymentMethod: 'Tarjeta de Crédito',
                     tax: 7.50,
                     discount: 0,
                 },
                 {
                     id: 'INV-002',
-                    patient: 'Jane Smith',
-                    services: ['Emergency Care', 'X-Ray', 'Medications'],
+                    patient: 'María García',
+                    services: ['Emergencia', 'Rayos-X', 'Medicamentos'],
                     date: new Date(Date.now() - 86400000),
                     totalAmount: 245.00,
                     status: 'PENDING',
-                    paymentMethod: 'Cash',
+                    paymentMethod: 'Efectivo',
                     tax: 24.50,
                     discount: 10,
                 },
                 {
                     id: 'INV-003',
-                    patient: 'Bob Wilson',
-                    services: ['Follow-up Visit', 'ECG'],
+                    patient: 'Roberto Wilson',
+                    services: ['Seguimiento', 'ECG'],
                     date: new Date(Date.now() - 172800000),
                     totalAmount: 90.00,
                     status: 'PAID',
-                    paymentMethod: 'Insurance',
+                    paymentMethod: 'Seguro',
                     tax: 9.00,
                     discount: 0,
                 },
                 {
                     id: 'INV-004',
-                    patient: 'Alice Johnson',
-                    services: ['Consultation', 'Medications'],
+                    patient: 'Alicia Jiménez',
+                    services: ['Consulta', 'Medicamentos'],
                     date: new Date(Date.now() - 259200000),
                     totalAmount: 70.00,
                     status: 'OVERDUE',
-                    paymentMethod: 'Credit Card',
+                    paymentMethod: 'Tarjeta de Crédito',
                     tax: 7.00,
                     discount: 5,
                 },
@@ -154,7 +155,7 @@ export default function BillingPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load billing data',
+                description: error.response?.data?.message || 'Error al cargar datos de facturación',
                 variant: 'destructive',
             })
         } finally {
@@ -233,7 +234,7 @@ export default function BillingPage() {
         if (!invoiceData.patientName) {
             toast({
                 title: 'Error',
-                description: 'Please enter patient name',
+                description: 'Por favor ingrese el nombre del paciente',
                 variant: 'destructive',
             })
             return
@@ -242,15 +243,15 @@ export default function BillingPage() {
         if (invoiceData.services.length === 0 && invoiceData.medications.length === 0 && invoiceData.procedures.length === 0) {
             toast({
                 title: 'Error',
-                description: 'Please select at least one item',
+                description: 'Por favor seleccione al menos un ítem',
                 variant: 'destructive',
             })
             return
         }
 
         toast({
-            title: 'Invoice Generated',
-            description: `Invoice created for ${invoiceData.patientName} - Total: $${invoiceData.total.toFixed(2)}`,
+            title: 'Factura Generada',
+            description: `Factura creada para ${invoiceData.patientName} - Total: $${invoiceData.total.toFixed(2)}`,
         })
 
         // Reset form
@@ -303,6 +304,16 @@ export default function BillingPage() {
         return colors[status] || colors.PENDING
     }
 
+    const getStatusText = (status: string) => {
+        const texts: Record<string, string> = {
+            PAID: 'PAGADO',
+            PENDING: 'PENDIENTE',
+            OVERDUE: 'VENCIDO',
+            CANCELLED: 'CANCELADO',
+        }
+        return texts[status] || status
+    }
+
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'PAID':
@@ -333,15 +344,15 @@ export default function BillingPage() {
                         <Receipt className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Billing & Invoices</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Facturación</h1>
                         <p className="text-muted-foreground">
-                            Invoice management and payment tracking
+                            Gestión de facturas y seguimiento de pagos
                         </p>
                     </div>
                 </div>
                 <Button onClick={() => setGeneratorOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Generate Invoice
+                    Generar Factura
                 </Button>
             </div>
 
@@ -349,45 +360,45 @@ export default function BillingPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                        <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">${stats.total.toFixed(2)}</div>
-                        <p className="text-xs text-muted-foreground">All invoices</p>
+                        <p className="text-xs text-muted-foreground">Todas las facturas</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-green-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Paid</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pagado</CardTitle>
                         <CheckCircle className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600">${stats.paid.toFixed(2)}</div>
-                        <p className="text-xs text-muted-foreground">Collected payments</p>
+                        <p className="text-xs text-muted-foreground">Pagos recolectados</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-yellow-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pendiente</CardTitle>
                         <Clock className="h-4 w-4 text-yellow-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-yellow-600">${stats.pending.toFixed(2)}</div>
-                        <p className="text-xs text-muted-foreground">Awaiting payment</p>
+                        <p className="text-xs text-muted-foreground">Esperando pago</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-red-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+                        <CardTitle className="text-sm font-medium">Vencido</CardTitle>
                         <XCircle className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">${stats.overdue.toFixed(2)}</div>
-                        <p className="text-xs text-muted-foreground">Past due date</p>
+                        <p className="text-xs text-muted-foreground">Pasada fecha vencimiento</p>
                     </CardContent>
                 </Card>
             </div>
@@ -399,7 +410,7 @@ export default function BillingPage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search by patient or invoice number..."
+                                placeholder="Buscar por paciente o número de factura..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10"
@@ -409,25 +420,25 @@ export default function BillingPage() {
 
                     <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
                         <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Status" />
+                            <SelectValue placeholder="Estado" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="PAID">Paid</SelectItem>
-                            <SelectItem value="PENDING">Pending</SelectItem>
-                            <SelectItem value="OVERDUE">Overdue</SelectItem>
+                            <SelectItem value="all">Todos los Estados</SelectItem>
+                            <SelectItem value="PAID">Pagado</SelectItem>
+                            <SelectItem value="PENDING">Pendiente</SelectItem>
+                            <SelectItem value="OVERDUE">Vencido</SelectItem>
                         </SelectContent>
                     </Select>
 
                     <Select value={filters.paymentMethod} onValueChange={(v) => setFilters({ ...filters, paymentMethod: v })}>
                         <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Payment Method" />
+                            <SelectValue placeholder="Método de Pago" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Methods</SelectItem>
-                            <SelectItem value="Cash">Cash</SelectItem>
-                            <SelectItem value="Credit Card">Credit Card</SelectItem>
-                            <SelectItem value="Insurance">Insurance</SelectItem>
+                            <SelectItem value="all">Todos los Métodos</SelectItem>
+                            <SelectItem value="Cash">Efectivo</SelectItem>
+                            <SelectItem value="Credit Card">Tarjeta de Crédito</SelectItem>
+                            <SelectItem value="Insurance">Seguro</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -438,21 +449,21 @@ export default function BillingPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Invoice #</TableHead>
-                            <TableHead>Patient</TableHead>
-                            <TableHead>Services</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Total Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Payment Method</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>Factura #</TableHead>
+                            <TableHead>Paciente</TableHead>
+                            <TableHead>Servicios</TableHead>
+                            <TableHead>Fecha</TableHead>
+                            <TableHead>Monto Total</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Método de Pago</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredInvoices.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                    No invoices found
+                                    No se encontraron facturas
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -465,20 +476,22 @@ export default function BillingPage() {
                                             {invoice.services.join(', ')}
                                         </div>
                                     </TableCell>
-                                    <TableCell>{format(new Date(invoice.date), 'MMM dd, yyyy')}</TableCell>
+                                    <TableCell>{format(new Date(invoice.date), 'MMM dd, yyyy', { locale: es })}</TableCell>
                                     <TableCell className="font-semibold">${invoice.totalAmount.toFixed(2)}</TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             {getStatusIcon(invoice.status)}
                                             <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(invoice.status)}`}>
-                                                {invoice.status}
+                                                {getStatusText(invoice.status)}
                                             </span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
                                             <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                            {invoice.paymentMethod}
+                                            {invoice.paymentMethod === 'Credit Card' ? 'Tarjeta de Crédito' :
+                                                invoice.paymentMethod === 'Cash' ? 'Efectivo' :
+                                                    invoice.paymentMethod === 'Insurance' ? 'Seguro' : invoice.paymentMethod}
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -502,18 +515,18 @@ export default function BillingPage() {
             <Dialog open={generatorOpen} onOpenChange={setGeneratorOpen}>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Generate New Invoice</DialogTitle>
+                        <DialogTitle>Generar Nueva Factura</DialogTitle>
                         <DialogDescription>
-                            Select services, medications, and procedures to create an invoice
+                            Seleccione servicios, medicamentos y procedimientos para crear una factura
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-6">
                         {/* Patient Info */}
                         <div className="space-y-2">
-                            <Label>Patient Name</Label>
+                            <Label>Nombre del Paciente</Label>
                             <Input
-                                placeholder="Enter patient name"
+                                placeholder="Ingrese nombre del paciente"
                                 value={invoiceData.patientName}
                                 onChange={(e) => setInvoiceData({ ...invoiceData, patientName: e.target.value })}
                             />
@@ -521,7 +534,7 @@ export default function BillingPage() {
 
                         {/* Services */}
                         <div className="space-y-2">
-                            <Label>Services</Label>
+                            <Label>Servicios</Label>
                             <div className="grid grid-cols-2 gap-2">
                                 {availableServices.map(service => (
                                     <div key={service.id} className="flex items-center space-x-2 p-3 border rounded">
@@ -540,7 +553,7 @@ export default function BillingPage() {
 
                         {/* Medications */}
                         <div className="space-y-2">
-                            <Label>Medications</Label>
+                            <Label>Medicamentos</Label>
                             <div className="grid grid-cols-2 gap-2">
                                 {availableMedications.map(medication => (
                                     <div key={medication.id} className="flex items-center space-x-2 p-3 border rounded">
@@ -559,7 +572,7 @@ export default function BillingPage() {
 
                         {/* Procedures */}
                         <div className="space-y-2">
-                            <Label>Procedures</Label>
+                            <Label>Procedimientos</Label>
                             <div className="grid grid-cols-2 gap-2">
                                 {availableProcedures.map(procedure => (
                                     <div key={procedure.id} className="flex items-center space-x-2 p-3 border rounded">
@@ -578,7 +591,7 @@ export default function BillingPage() {
 
                         {/* Discount */}
                         <div className="space-y-2">
-                            <Label>Discount ($)</Label>
+                            <Label>Descuento ($)</Label>
                             <Input
                                 type="number"
                                 placeholder="0.00"
@@ -596,11 +609,11 @@ export default function BillingPage() {
                                         <span className="font-medium">${invoiceData.subtotal.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Tax (10%):</span>
+                                        <span>Impuesto (10%):</span>
                                         <span className="font-medium">${invoiceData.tax.toFixed(2)}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>Discount:</span>
+                                        <span>Descuento:</span>
                                         <span className="font-medium text-red-600">-${invoiceData.discount.toFixed(2)}</span>
                                     </div>
                                     <div className="border-t pt-2 flex justify-between text-lg font-bold">
@@ -614,11 +627,11 @@ export default function BillingPage() {
                                     <div className="mt-4 flex flex-col items-center">
                                         <Label className="mb-2 flex items-center gap-2">
                                             <QrCode className="h-4 w-4" />
-                                            Payment QR Code
+                                            QR de Pago
                                         </Label>
                                         <img src={qrCodeUrl} alt="Payment QR Code" className="border rounded p-2 bg-white" />
                                         <p className="text-xs text-muted-foreground mt-2">
-                                            Scan to pay ${invoiceData.total.toFixed(2)}
+                                            Escanear para pagar ${invoiceData.total.toFixed(2)}
                                         </p>
                                     </div>
                                 )}
@@ -629,10 +642,10 @@ export default function BillingPage() {
                         <div className="flex gap-2">
                             <Button onClick={handleGenerateInvoice} className="flex-1">
                                 <Receipt className="h-4 w-4 mr-2" />
-                                Generate Invoice
+                                Generar Factura
                             </Button>
                             <Button variant="outline" onClick={() => setGeneratorOpen(false)}>
-                                Cancel
+                                Cancelar
                             </Button>
                         </div>
                     </div>

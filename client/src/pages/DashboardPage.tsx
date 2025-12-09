@@ -37,6 +37,7 @@ import {
     ResponsiveContainer
 } from 'recharts'
 import { format, isToday, parseISO } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 // Colores profesionales
 const COLORS = {
@@ -200,7 +201,7 @@ export default function DashboardPage() {
                 }).length
 
                 return {
-                    date: format(date, 'MMM dd'),
+                    date: format(date, 'd MMM', { locale: es }),
                     patients: count || Math.floor(Math.random() * 15) + 5,
                 }
             })
@@ -216,9 +217,15 @@ export default function DashboardPage() {
                     id: a.id,
                     time: format(new Date(a.appointmentDate), 'HH:mm'),
                     patient: `${a.patient?.firstName || 'Unknown'} ${a.patient?.lastName || 'Patient'}`,
-                    doctor: `Dr. ${a.doctor?.user?.firstName || 'Unknown'}`,
-                    status: a.status,
-                    reason: a.reason || 'General checkup',
+                    player: `Dr. ${a.doctor?.user?.firstName || 'Desconocido'}`,
+                    status: ({
+                        'SCHEDULED': 'PROGRAMADA',
+                        'CONFIRMED': 'CONFIRMADA',
+                        'COMPLETED': 'COMPLETADA',
+                        'CANCELLED': 'CANCELADA',
+                        'NO_SHOW': 'NO ASISTIÓ'
+                    } as Record<string, string>)[a.status] || a.status,
+                    reason: a.reason || 'Chequeo general',
                 }))
             setUpcomingAppointments(upcoming)
 
@@ -237,26 +244,26 @@ export default function DashboardPage() {
 
             // Últimas notas médicas (simulado)
             setRecentNotes([
-                { id: 1, patient: 'John Doe', note: 'Follow-up required in 2 weeks', time: '14:30' },
-                { id: 2, patient: 'Jane Smith', note: 'Prescribed medication XYZ', time: '13:15' },
-                { id: 3, patient: 'Bob Johnson', note: 'Lab results pending', time: '11:45' },
+                { id: 1, patient: 'John Doe', note: 'Seguimiento requerido en 2 semanas', time: '14:30' },
+                { id: 2, patient: 'Jane Smith', note: 'Medicamento XYZ prescrito', time: '13:15' },
+                { id: 3, patient: 'Bob Johnson', note: 'Resultados de laboratorio pendientes', time: '11:45' },
             ])
 
             // Últimos reportes generados (simulado)
             setRecentReports([
-                { id: 1, type: 'Monthly Analytics', generated: '2 hours ago' },
-                { id: 2, type: 'Patient Statistics', generated: '5 hours ago' },
-                { id: 3, type: 'Revenue Report', generated: '1 day ago' },
+                { id: 1, type: 'Analíticas Mensuales', generated: 'hace 2 horas' },
+                { id: 2, type: 'Estadísticas de Pacientes', generated: 'hace 5 horas' },
+                { id: 3, type: 'Reporte de Ingresos', generated: 'hace 1 día' },
             ])
 
             // ========== PANEL IA ==========
             const saturation = Math.min(100, Math.floor((activeAppointments.length / 50) * 100))
-            const staffNeeded = saturation > 70 ? 'Increase staff by 2-3 members' : 'Current staff is adequate'
+            const staffNeeded = saturation > 70 ? 'Aumentar personal en 2-3 miembros' : 'Personal actual es adecuado'
             const alerts = []
 
-            if (emergencyCases > 5) alerts.push('High emergency cases detected')
-            if (avgWaitTime > 30) alerts.push('Wait times exceeding target')
-            if (bedOccupancy > 85) alerts.push('Bed occupancy critical')
+            if (emergencyCases > 5) alerts.push('Altos casos de emergencia detectados')
+            if (avgWaitTime > 30) alerts.push('Tiempos de espera exceden objetivo')
+            if (bedOccupancy > 85) alerts.push('Ocupación de camas crítica')
 
             setAiPredictions({
                 saturationLevel: saturation,
@@ -268,7 +275,7 @@ export default function DashboardPage() {
             console.error('Dashboard error:', error)
             toast({
                 title: 'Error',
-                description: 'Failed to load dashboard data',
+                description: 'Error al cargar datos del panel',
                 variant: 'destructive',
             })
         } finally {
@@ -301,9 +308,9 @@ export default function DashboardPage() {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Enterprise Dashboard</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Panel Empresarial</h1>
                 <p className="text-muted-foreground">
-                    Real-time hospital management overview • Last updated: {format(new Date(), 'HH:mm:ss')}
+                    Visión general de gestión hospitalaria en tiempo real • Última actualización: {format(new Date(), 'HH:mm:ss')}
                 </p>
             </div>
 
@@ -311,49 +318,49 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Patients Today</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pacientes Hoy</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.patientsToday}</div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <TrendingUp className="h-3 w-3 text-green-500" /> +12% vs yesterday
+                            <TrendingUp className="h-3 w-3 text-green-500" /> +12% vs ayer
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Appointments</CardTitle>
+                        <CardTitle className="text-sm font-medium">Citas Activas</CardTitle>
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.activeAppointments}</div>
-                        <p className="text-xs text-muted-foreground">Scheduled for today</p>
+                        <p className="text-xs text-muted-foreground">Programadas para hoy</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Available Doctors</CardTitle>
+                        <CardTitle className="text-sm font-medium">Doctores Disponibles</CardTitle>
                         <Stethoscope className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.availableDoctors}</div>
-                        <p className="text-xs text-muted-foreground">On duty now</p>
+                        <p className="text-xs text-muted-foreground">En turno ahora</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Bed Occupancy</CardTitle>
+                        <CardTitle className="text-sm font-medium">Ocupación de Camas</CardTitle>
                         <Bed className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.bedOccupancy}%</div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                             {kpis.bedOccupancy > 80 ? (
-                                <><AlertCircle className="h-3 w-3 text-orange-500" /> Near capacity</>
+                                <><AlertCircle className="h-3 w-3 text-orange-500" /> Cerca de capacidad</>
                             ) : (
                                 <><CheckCircle2 className="h-3 w-3 text-green-500" /> Normal</>
                             )}
@@ -363,27 +370,27 @@ export default function DashboardPage() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Avg. Wait Time</CardTitle>
+                        <CardTitle className="text-sm font-medium">Tiempo Espera Prom.</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.avgWaitTime} min</div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <TrendingDown className="h-3 w-3 text-green-500" /> -5 min from avg
+                            <TrendingDown className="h-3 w-3 text-green-500" /> -5 min del prom
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Emergency Cases</CardTitle>
+                        <CardTitle className="text-sm font-medium">Casos de Emergencia</CardTitle>
                         <AlertTriangle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.emergencyCases}</div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                             {kpis.emergencyCases > 5 ? (
-                                <><AlertCircle className="h-3 w-3 text-red-500" /> High volume</>
+                                <><AlertCircle className="h-3 w-3 text-red-500" /> Alto volumen</>
                             ) : (
                                 <><CheckCircle2 className="h-3 w-3 text-green-500" /> Normal</>
                             )}
@@ -397,8 +404,8 @@ export default function DashboardPage() {
                 {/* Gráfico 1: Citas por hora */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Appointments by Hour</CardTitle>
-                        <CardDescription>Today's appointment distribution</CardDescription>
+                        <CardTitle>Citas por Hora</CardTitle>
+                        <CardDescription>Distribución de citas de hoy</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={250}>
@@ -413,7 +420,7 @@ export default function DashboardPage() {
                                     dataKey="appointments"
                                     stroke={COLORS.primary}
                                     strokeWidth={2}
-                                    name="Appointments"
+                                    name="Citas"
                                 />
                             </LineChart>
                         </ResponsiveContainer>
@@ -423,8 +430,8 @@ export default function DashboardPage() {
                 {/* Gráfico 2: Especialidades más solicitadas */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Most Requested Specialties</CardTitle>
-                        <CardDescription>Top 5 medical specialties</CardDescription>
+                        <CardTitle>Especialidades Más Solicitadas</CardTitle>
+                        <CardDescription>Top 5 especialidades médicas</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={250}>
@@ -434,7 +441,7 @@ export default function DashboardPage() {
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="value" fill={COLORS.success} name="Doctors" />
+                                <Bar dataKey="value" fill={COLORS.success} name="Doctores" />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -443,8 +450,8 @@ export default function DashboardPage() {
                 {/* Gráfico 3: Prioridades */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Patient Priority Distribution</CardTitle>
-                        <CardDescription>By urgency level</CardDescription>
+                        <CardTitle>Distribución de Prioridad de Pacientes</CardTitle>
+                        <CardDescription>Por nivel de urgencia</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={250}>
@@ -472,8 +479,8 @@ export default function DashboardPage() {
                 {/* Gráfico 4: Pacientes por día */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Patients Per Day</CardTitle>
-                        <CardDescription>Last 7 days trend</CardDescription>
+                        <CardTitle>Pacientes por Día</CardTitle>
+                        <CardDescription>Tendencia últimos 7 días</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={250}>
@@ -489,7 +496,7 @@ export default function DashboardPage() {
                                     stroke={COLORS.purple}
                                     fill={COLORS.purple}
                                     fillOpacity={0.3}
-                                    name="Patients"
+                                    name="Pacientes"
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
@@ -502,12 +509,12 @@ export default function DashboardPage() {
                 {/* Próximas citas */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Today's Schedule</CardTitle>
+                        <CardTitle className="text-base">Agenda de Hoy</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
                             {upcomingAppointments.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">No upcoming appointments</p>
+                                <p className="text-sm text-muted-foreground text-center py-4">No hay citas próximas</p>
                             ) : (
                                 upcomingAppointments.map((apt) => (
                                     <div key={apt.id} className="flex items-start space-x-3 text-sm">
@@ -526,19 +533,19 @@ export default function DashboardPage() {
                 {/* Últimos pacientes */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Recent Patients</CardTitle>
+                        <CardTitle className="text-base">Pacientes Recientes</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
                             {recentPatients.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">No recent patients</p>
+                                <p className="text-sm text-muted-foreground text-center py-4">No hay pacientes recientes</p>
                             ) : (
                                 recentPatients.map((p) => (
                                     <div key={p.id} className="flex items-start space-x-3 text-sm">
                                         <Users className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
                                         <div className="flex-1 min-w-0">
                                             <p className="font-medium truncate">{p.name}</p>
-                                            <p className="text-xs text-muted-foreground">{p.age} yrs • {p.gender} • {p.time}</p>
+                                            <p className="text-xs text-muted-foreground">{p.age} años • {p.gender} • {p.time}</p>
                                         </div>
                                     </div>
                                 ))
@@ -550,7 +557,7 @@ export default function DashboardPage() {
                 {/* Últimas notas */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Recent Notes</CardTitle>
+                        <CardTitle className="text-base">Notas Recientes</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
@@ -570,7 +577,7 @@ export default function DashboardPage() {
                 {/* Últimos reportes */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Recent Reports</CardTitle>
+                        <CardTitle className="text-base">Reportes Recientes</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-3">
@@ -593,9 +600,9 @@ export default function DashboardPage() {
                 <CardHeader>
                     <div className="flex items-center gap-2">
                         <Brain className="h-5 w-5 text-purple-500" />
-                        <CardTitle>AI Insights & Predictions</CardTitle>
+                        <CardTitle>Análisis y Predicciones IA</CardTitle>
                     </div>
-                    <CardDescription>Powered by machine learning algorithms</CardDescription>
+                    <CardDescription>Potenciado por algoritmos de aprendizaje automático</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid gap-4 md:grid-cols-3">
@@ -603,12 +610,12 @@ export default function DashboardPage() {
                         <div className="space-y-2">
                             <h4 className="text-sm font-medium flex items-center gap-2">
                                 <Activity className="h-4 w-4" />
-                                Saturation Prediction
+                                Predicción de Saturación
                             </h4>
                             <div className="flex items-end gap-2">
                                 <div className="text-3xl font-bold">{aiPredictions.saturationLevel}%</div>
                                 <div className={`text-sm ${aiPredictions.saturationLevel > 70 ? 'text-orange-500' : 'text-green-500'}`}>
-                                    {aiPredictions.saturationLevel > 70 ? 'High' : 'Normal'}
+                                    {aiPredictions.saturationLevel > 70 ? 'Alta' : 'Normal'}
                                 </div>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -623,7 +630,7 @@ export default function DashboardPage() {
                         <div className="space-y-2">
                             <h4 className="text-sm font-medium flex items-center gap-2">
                                 <Users className="h-4 w-4" />
-                                Staff Recommendation
+                                Recomendación de Personal
                             </h4>
                             <p className="text-sm text-muted-foreground">{aiPredictions.staffRecommendation}</p>
                         </div>
@@ -632,11 +639,11 @@ export default function DashboardPage() {
                         <div className="space-y-2">
                             <h4 className="text-sm font-medium flex items-center gap-2">
                                 <AlertTriangle className="h-4 w-4" />
-                                Risk Alerts
+                                Alertas de Riesgo
                             </h4>
                             {aiPredictions.riskAlerts.length === 0 ? (
                                 <p className="text-sm text-green-600 flex items-center gap-1">
-                                    <CheckCircle2 className="h-4 w-4" /> No alerts
+                                    <CheckCircle2 className="h-4 w-4" /> Sin alertas
                                 </p>
                             ) : (
                                 <div className="space-y-1">

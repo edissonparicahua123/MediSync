@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import {
     Dialog,
     DialogContent,
@@ -36,14 +37,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils'
 
 const appointmentSchema = z.object({
-    patientId: z.string().min(1, 'Patient is required'),
-    doctorId: z.string().min(1, 'Doctor is required'),
+    patientId: z.string().min(1, 'El paciente es requerido'),
+    doctorId: z.string().min(1, 'El doctor es requerido'),
     appointmentDate: z.date({
-        required_error: "Date is required",
+        required_error: "La fecha es requerida",
     }),
-    time: z.string().min(1, 'Time is required'),
-    type: z.string().min(1, 'Type is required'),
-    reason: z.string().min(1, 'Reason is required'),
+    time: z.string().min(1, 'La hora es requerida'),
+    type: z.string().min(1, 'El tipo es requerido'),
+    reason: z.string().min(1, 'El motivo es requerido'),
     symptoms: z.string().optional(),
     status: z.string().default('SCHEDULED'),
 })
@@ -123,7 +124,7 @@ export default function AppointmentModal({
             console.error('Failed to load resources', error)
             toast({
                 title: 'Error',
-                description: 'Failed to load patients or doctors',
+                description: 'Error al cargar pacientes o doctores',
                 variant: 'destructive',
             })
         } finally {
@@ -146,14 +147,14 @@ export default function AppointmentModal({
             if (appointment) {
                 await appointmentsAPI.update(appointment.id, payload)
                 toast({
-                    title: 'Success',
-                    description: 'Appointment updated successfully',
+                    title: 'Éxito',
+                    description: 'Cita actualizada correctamente',
                 })
             } else {
                 await appointmentsAPI.create(payload)
                 toast({
-                    title: 'Success',
-                    description: 'Appointment scheduled successfully',
+                    title: 'Éxito',
+                    description: 'Cita programada correctamente',
                 })
             }
             onSuccess()
@@ -161,7 +162,7 @@ export default function AppointmentModal({
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Something went wrong',
+                description: error.response?.data?.message || 'Algo salió mal',
                 variant: 'destructive',
             })
         }
@@ -171,11 +172,11 @@ export default function AppointmentModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{appointment ? 'Edit Appointment' : 'Schedule Appointment'}</DialogTitle>
+                    <DialogTitle>{appointment ? 'Editar Cita' : 'Programar Cita'}</DialogTitle>
                     <DialogDescription>
                         {appointment
-                            ? 'Update appointment details.'
-                            : 'Create a new appointment. AI triage will analyze symptoms.'}
+                            ? 'Actualizar detalles de la cita.'
+                            : 'Crear una nueva cita. El triaje AI analizará los síntomas.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -188,11 +189,11 @@ export default function AppointmentModal({
                                 name="patientId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Patient</FormLabel>
+                                        <FormLabel>Paciente</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select patient" />
+                                                    <SelectValue placeholder="Seleccionar paciente" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
@@ -217,7 +218,7 @@ export default function AppointmentModal({
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select doctor" />
+                                                    <SelectValue placeholder="Seleccionar doctor" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
@@ -238,7 +239,7 @@ export default function AppointmentModal({
                                 name="appointmentDate"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <FormLabel>Date</FormLabel>
+                                        <FormLabel>Fecha</FormLabel>
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <FormControl>
@@ -250,9 +251,9 @@ export default function AppointmentModal({
                                                         )}
                                                     >
                                                         {field.value ? (
-                                                            format(field.value, "PPP")
+                                                            format(field.value, "PPP", { locale: es })
                                                         ) : (
-                                                            <span>Pick a date</span>
+                                                            <span>Elegir fecha</span>
                                                         )}
                                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                     </Button>
@@ -280,7 +281,7 @@ export default function AppointmentModal({
                                 name="time"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Time</FormLabel>
+                                        <FormLabel>Hora</FormLabel>
                                         <FormControl>
                                             <Input type="time" {...field} />
                                         </FormControl>
@@ -294,19 +295,19 @@ export default function AppointmentModal({
                                 name="type"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Type</FormLabel>
+                                        <FormLabel>Tipo</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select type" />
+                                                    <SelectValue placeholder="Seleccionar tipo" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="CHECKUP">General Checkup</SelectItem>
-                                                <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
-                                                <SelectItem value="EMERGENCY">Emergency</SelectItem>
-                                                <SelectItem value="CONSULTATION">Consultation</SelectItem>
-                                                <SelectItem value="SURGERY">Surgery</SelectItem>
+                                                <SelectItem value="CHECKUP">Chequeo General</SelectItem>
+                                                <SelectItem value="FOLLOW_UP">Seguimiento</SelectItem>
+                                                <SelectItem value="EMERGENCY">Emergencia</SelectItem>
+                                                <SelectItem value="CONSULTATION">Consulta</SelectItem>
+                                                <SelectItem value="SURGERY">Cirugía</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -319,19 +320,19 @@ export default function AppointmentModal({
                                 name="status"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Status</FormLabel>
+                                        <FormLabel>Estado</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Status" />
+                                                    <SelectValue placeholder="Estado" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                                                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                                                <SelectItem value="COMPLETED">Completed</SelectItem>
-                                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                                                <SelectItem value="NO_SHOW">No Show</SelectItem>
+                                                <SelectItem value="SCHEDULED">Programada</SelectItem>
+                                                <SelectItem value="CONFIRMED">Confirmada</SelectItem>
+                                                <SelectItem value="COMPLETED">Completada</SelectItem>
+                                                <SelectItem value="CANCELLED">Cancelada</SelectItem>
+                                                <SelectItem value="NO_SHOW">No Asistió</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -344,9 +345,9 @@ export default function AppointmentModal({
                                 name="reason"
                                 render={({ field }) => (
                                     <FormItem className="md:col-span-2">
-                                        <FormLabel>Reason for Visit</FormLabel>
+                                        <FormLabel>Motivo de la Visita</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g. Annual physical, Headache, etc." {...field} />
+                                            <Input placeholder="Ej. Chequeo anual, Dolor de cabeza, etc." {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -358,10 +359,10 @@ export default function AppointmentModal({
                                 name="symptoms"
                                 render={({ field }) => (
                                     <FormItem className="md:col-span-2">
-                                        <FormLabel>Symptoms (AI Triage)</FormLabel>
+                                        <FormLabel>Síntomas (Triaje AI)</FormLabel>
                                         <FormControl>
                                             <Textarea
-                                                placeholder="Describe symptoms for AI analysis..."
+                                                placeholder="Describa los síntomas para análisis AI..."
                                                 className="resize-none"
                                                 {...field}
                                             />
@@ -378,13 +379,13 @@ export default function AppointmentModal({
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
                             >
-                                Cancel
+                                Cancelar
                             </Button>
                             <Button type="submit" disabled={form.formState.isSubmitting || loadingResources}>
                                 {form.formState.isSubmitting && (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 )}
-                                {appointment ? 'Save Changes' : 'Schedule'}
+                                {appointment ? 'Guardar Cambios' : 'Programar'}
                             </Button>
                         </div>
                     </form>

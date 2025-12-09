@@ -60,7 +60,7 @@ export default function MessagesPage() {
                     id: '1',
                     name: 'Dr. John Smith',
                     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-                    lastMessage: 'The patient needs immediate attention',
+                    lastMessage: 'El paciente necesita atención inmediata',
                     lastMessageTime: new Date(Date.now() - 300000),
                     unreadCount: 2,
                     isOnline: true,
@@ -68,9 +68,9 @@ export default function MessagesPage() {
                 },
                 {
                     id: '2',
-                    name: 'Emergency Team',
+                    name: 'Equipo de Emergencia',
                     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emergency',
-                    lastMessage: 'New case in ER',
+                    lastMessage: 'Nuevo caso en Emergencias',
                     lastMessageTime: new Date(Date.now() - 600000),
                     unreadCount: 5,
                     isOnline: true,
@@ -79,9 +79,9 @@ export default function MessagesPage() {
                 },
                 {
                     id: '3',
-                    name: 'Nurse Sarah',
+                    name: 'Enfermera Sarah',
                     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-                    lastMessage: 'Medication administered',
+                    lastMessage: 'Medicamento administrado',
                     lastMessageTime: new Date(Date.now() - 1800000),
                     unreadCount: 0,
                     isOnline: false,
@@ -89,9 +89,9 @@ export default function MessagesPage() {
                 },
                 {
                     id: '4',
-                    name: 'Cardiology Department',
+                    name: 'Departamento de Cardiología',
                     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Cardio',
-                    lastMessage: 'Meeting at 3 PM',
+                    lastMessage: 'Reunión a las 3 PM',
                     lastMessageTime: new Date(Date.now() - 3600000),
                     unreadCount: 1,
                     isOnline: true,
@@ -102,7 +102,7 @@ export default function MessagesPage() {
                     id: '5',
                     name: 'Dr. Mike Williams',
                     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-                    lastMessage: 'Thanks for the update',
+                    lastMessage: 'Gracias por la actualización',
                     lastMessageTime: new Date(Date.now() - 7200000),
                     unreadCount: 0,
                     isOnline: true,
@@ -114,7 +114,7 @@ export default function MessagesPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load conversations',
+                description: error.response?.data?.message || 'Error al cargar conversaciones',
                 variant: 'destructive',
             })
         }
@@ -127,8 +127,8 @@ export default function MessagesPage() {
                 {
                     id: '1',
                     senderId: 'other',
-                    senderName: selectedConversation?.name || 'User',
-                    content: 'Hello! How are you?',
+                    senderName: selectedConversation?.name || 'Usuario',
+                    content: '¡Hola! ¿Cómo estás?',
                     timestamp: new Date(Date.now() - 3600000),
                     status: 'read',
                     type: 'text',
@@ -136,8 +136,8 @@ export default function MessagesPage() {
                 {
                     id: '2',
                     senderId: 'me',
-                    senderName: 'Me',
-                    content: 'Hi! I\'m doing well, thanks for asking.',
+                    senderName: 'Yo',
+                    content: '¡Hola! Estoy bien, gracias por preguntar.',
                     timestamp: new Date(Date.now() - 3500000),
                     status: 'read',
                     type: 'text',
@@ -145,8 +145,8 @@ export default function MessagesPage() {
                 {
                     id: '3',
                     senderId: 'other',
-                    senderName: selectedConversation?.name || 'User',
-                    content: 'I need to discuss the patient case',
+                    senderName: selectedConversation?.name || 'Usuario',
+                    content: 'Necesito discutir el caso del paciente',
                     timestamp: new Date(Date.now() - 3400000),
                     status: 'read',
                     type: 'text',
@@ -154,8 +154,8 @@ export default function MessagesPage() {
                 {
                     id: '4',
                     senderId: 'me',
-                    senderName: 'Me',
-                    content: 'Sure, let me check the records',
+                    senderName: 'Yo',
+                    content: 'Claro, déjame revisar los registros',
                     timestamp: new Date(Date.now() - 3300000),
                     status: 'read',
                     type: 'text',
@@ -163,7 +163,7 @@ export default function MessagesPage() {
                 {
                     id: '5',
                     senderId: 'other',
-                    senderName: selectedConversation?.name || 'User',
+                    senderName: selectedConversation?.name || 'Usuario',
                     content: 'patient_records.pdf',
                     timestamp: new Date(Date.now() - 1800000),
                     status: 'read',
@@ -173,8 +173,8 @@ export default function MessagesPage() {
                 {
                     id: '6',
                     senderId: 'me',
-                    senderName: 'Me',
-                    content: 'Got it, reviewing now',
+                    senderName: 'Yo',
+                    content: 'Entendido, revisando ahora',
                     timestamp: new Date(Date.now() - 600000),
                     status: 'delivered',
                     type: 'text',
@@ -182,7 +182,7 @@ export default function MessagesPage() {
                 {
                     id: '7',
                     senderId: 'me',
-                    senderName: 'Me',
+                    senderName: 'Yo',
                     content: 'xray_results.jpg',
                     timestamp: new Date(Date.now() - 300000),
                     status: 'sent',
@@ -194,7 +194,7 @@ export default function MessagesPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load messages',
+                description: error.response?.data?.message || 'Error al cargar mensajes',
                 variant: 'destructive',
             })
         }
@@ -206,7 +206,7 @@ export default function MessagesPage() {
         const newMessage = {
             id: Date.now().toString(),
             senderId: 'me',
-            senderName: 'Me',
+            senderName: 'Yo',
             content: messageInput,
             timestamp: new Date(),
             status: 'sent',
@@ -228,7 +228,7 @@ export default function MessagesPage() {
                 id: (Date.now() + 1).toString(),
                 senderId: 'other',
                 senderName: selectedConversation.name,
-                content: 'Thanks for the message! I\'ll get back to you shortly.',
+                content: '¡Gracias por el mensaje! Te responderé en breve.',
                 timestamp: new Date(),
                 status: 'read',
                 type: 'text',
@@ -237,8 +237,8 @@ export default function MessagesPage() {
         }, 2000)
 
         toast({
-            title: 'Message Sent',
-            description: 'Your message has been delivered',
+            title: 'Mensaje Enviado',
+            description: 'Tu mensaje ha sido entregado',
         })
     }
 
@@ -249,7 +249,7 @@ export default function MessagesPage() {
         const newMessage = {
             id: Date.now().toString(),
             senderId: 'me',
-            senderName: 'Me',
+            senderName: 'Yo',
             content: file.name,
             timestamp: new Date(),
             status: 'sent',
@@ -260,8 +260,8 @@ export default function MessagesPage() {
         setMessages([...messages, newMessage])
 
         toast({
-            title: 'File Uploaded',
-            description: `${file.name} has been sent`,
+            title: 'Archivo Subido',
+            description: `${file.name} ha sido enviado`,
         })
     }
 
@@ -283,9 +283,9 @@ export default function MessagesPage() {
                     <MessageSquare className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Mensajes</h1>
                     <p className="text-muted-foreground">
-                        Real-time chat with colleagues
+                        Chat en tiempo real con colegas
                     </p>
                 </div>
             </div>
@@ -295,11 +295,11 @@ export default function MessagesPage() {
                 {/* Conversations List */}
                 <Card className="col-span-4 flex flex-col">
                     <CardHeader>
-                        <CardTitle className="text-lg">Conversations</CardTitle>
+                        <CardTitle className="text-lg">Conversaciones</CardTitle>
                         <div className="relative mt-2">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search conversations..."
+                                placeholder="Buscar conversaciones..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10"
@@ -382,7 +382,7 @@ export default function MessagesPage() {
                                         <div>
                                             <h3 className="font-semibold">{selectedConversation.name}</h3>
                                             <p className="text-xs text-muted-foreground">
-                                                {selectedConversation.isOnline ? 'Online' : 'Offline'}
+                                                {selectedConversation.isOnline ? 'En línea' : 'Desconectado'}
                                             </p>
                                         </div>
                                     </div>
@@ -412,8 +412,8 @@ export default function MessagesPage() {
                                             >
                                                 <div
                                                     className={`max-w-[70%] ${message.senderId === 'me'
-                                                            ? 'bg-blue-600 text-white'
-                                                            : 'bg-gray-100'
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'bg-gray-100'
                                                         } rounded-lg p-3`}
                                                 >
                                                     {message.type === 'text' && (
@@ -486,7 +486,7 @@ export default function MessagesPage() {
                                         <Paperclip className="h-4 w-4" />
                                     </Button>
                                     <Input
-                                        placeholder="Type a message..."
+                                        placeholder="Escribe un mensaje..."
                                         value={messageInput}
                                         onChange={(e) => setMessageInput(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -502,7 +502,7 @@ export default function MessagesPage() {
                         <div className="flex-1 flex items-center justify-center text-muted-foreground">
                             <div className="text-center">
                                 <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                                <p className="text-lg">Select a conversation to start messaging</p>
+                                <p className="text-lg">Selecciona una conversación para comenzar a chatear</p>
                             </div>
                         </div>
                     )}

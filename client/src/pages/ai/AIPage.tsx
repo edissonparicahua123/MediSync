@@ -22,7 +22,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 
 export default function AIPage() {
     const [loading, setLoading] = useState(false)
-    const [activeTab, setActiveTab] = useState('triage')
+    const [activeTab, setActiveTab] = useState('triaje')
     const { toast } = useToast()
 
     // Triage State
@@ -34,7 +34,7 @@ export default function AIPage() {
     const [chatMessages, setChatMessages] = useState<any[]>([
         {
             role: 'assistant',
-            content: 'Hello! I\'m your AI Medical Assistant. How can I help you today?',
+            content: '¡Hola! Soy tu Asistente Médico IA. ¿Cómo puedo ayudarte hoy?',
             timestamp: new Date(),
         },
     ])
@@ -72,22 +72,22 @@ export default function AIPage() {
 
                 // Predicción de demanda
                 demand: [
-                    { day: 'Mon', actual: 145, predicted: 152, confidence: 85 },
-                    { day: 'Tue', actual: 168, predicted: 175, confidence: 82 },
-                    { day: 'Wed', actual: 192, predicted: 188, confidence: 88 },
-                    { day: 'Thu', actual: 178, predicted: 185, confidence: 80 },
-                    { day: 'Fri', actual: 205, predicted: 212, confidence: 86 },
-                    { day: 'Sat', actual: 120, predicted: 125, confidence: 78 },
-                    { day: 'Sun', actual: 95, predicted: 98, confidence: 75 },
+                    { day: 'Lun', actual: 145, predicted: 152, confidence: 85 },
+                    { day: 'Mar', actual: 168, predicted: 175, confidence: 82 },
+                    { day: 'Mié', actual: 192, predicted: 188, confidence: 88 },
+                    { day: 'Jue', actual: 178, predicted: 185, confidence: 80 },
+                    { day: 'Vie', actual: 205, predicted: 212, confidence: 86 },
+                    { day: 'Sáb', actual: 120, predicted: 125, confidence: 78 },
+                    { day: 'Dom', actual: 95, predicted: 98, confidence: 75 },
                 ],
 
                 // Categorización automática
                 categories: [
-                    { category: 'Cardiology', count: 45, trend: 'up', confidence: 92 },
-                    { category: 'Emergency', count: 78, trend: 'stable', confidence: 88 },
-                    { category: 'Pediatrics', count: 52, trend: 'up', confidence: 85 },
-                    { category: 'Surgery', count: 34, trend: 'down', confidence: 90 },
-                    { category: 'General', count: 120, trend: 'up', confidence: 87 },
+                    { category: 'Cardiología', count: 45, trend: 'ascendente', confidence: 92 },
+                    { category: 'Emergencia', count: 78, trend: 'estable', confidence: 88 },
+                    { category: 'Pediatría', count: 52, trend: 'ascendente', confidence: 85 },
+                    { category: 'Cirugía', count: 34, trend: 'descendente', confidence: 90 },
+                    { category: 'Medicina General', count: 120, trend: 'ascendente', confidence: 87 },
                 ],
             }
 
@@ -95,7 +95,7 @@ export default function AIPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load predictions',
+                description: error.response?.data?.message || 'Error al cargar predicciones',
                 variant: 'destructive',
             })
         } finally {
@@ -107,7 +107,7 @@ export default function AIPage() {
         if (!symptoms.trim()) {
             toast({
                 title: 'Error',
-                description: 'Please enter symptoms',
+                description: 'Por favor ingrese los síntomas',
                 variant: 'destructive',
             })
             return
@@ -120,82 +120,86 @@ export default function AIPage() {
             const priorities = [
                 {
                     level: 1,
-                    label: 'CRITICAL',
+                    label: 'CRÍTICO',
                     color: 'bg-red-600',
                     waitTime: 0,
-                    description: 'Immediate attention required',
+                    description: 'Atención inmediata requerida',
                 },
                 {
                     level: 2,
-                    label: 'URGENT',
+                    label: 'URGENTE',
                     color: 'bg-orange-600',
                     waitTime: 10,
-                    description: 'Attention needed within 10 minutes',
+                    description: 'Atención necesaria en 10 minutos',
                 },
                 {
                     level: 3,
-                    label: 'SEMI-URGENT',
+                    label: 'SEMI-URGENTE',
                     color: 'bg-yellow-600',
                     waitTime: 30,
-                    description: 'Attention needed within 30 minutes',
+                    description: 'Atención necesaria en 30 minutos',
                 },
                 {
                     level: 4,
-                    label: 'NON-URGENT',
+                    label: 'NO URGENTE',
                     color: 'bg-blue-600',
                     waitTime: 60,
-                    description: 'Can wait up to 1 hour',
+                    description: 'Puede esperar hasta 1 hora',
                 },
                 {
                     level: 5,
-                    label: 'LOW PRIORITY',
+                    label: 'BAJA PRIORIDAD',
                     color: 'bg-green-600',
                     waitTime: 120,
-                    description: 'Can wait up to 2 hours',
+                    description: 'Puede esperar hasta 2 horas',
                 },
             ]
 
-            // Análisis simple basado en palabras clave
+            // Análisis simple basado en palabras clave (Español e Inglés)
             const symptomLower = symptoms.toLowerCase()
-            let priority = priorities[3] // Default: NON-URGENT
-            let category = 'General Medicine'
-            let recommendations = []
+            let priority = priorities[3] // Default: NO URGENTE
+            let category = 'Medicina General'
+            let recommendations: string[] = []
 
-            if (symptomLower.includes('chest pain') || symptomLower.includes('heart') || symptomLower.includes('cardiac')) {
+            if (symptomLower.includes('dolor de pecho') || symptomLower.includes('corazón') || symptomLower.includes('cardiaco') || symptomLower.includes('infarto') ||
+                symptomLower.includes('chest pain') || symptomLower.includes('heart')) {
                 priority = priorities[0]
-                category = 'Cardiology - Emergency'
+                category = 'Cardiología - Emergencia'
                 recommendations = [
-                    'Immediate ECG required',
-                    'Cardiac enzyme tests',
-                    'Monitor vital signs continuously',
-                    'Prepare for possible cardiac intervention',
+                    'ECG Inmediato requerido',
+                    'Pruebas de enzimas cardíacas',
+                    'Monitorear signos vitales continuamente',
+                    'Preparar para posible intervención cardíaca',
                 ]
-            } else if (symptomLower.includes('severe') || symptomLower.includes('bleeding') || symptomLower.includes('unconscious')) {
+            } else if (symptomLower.includes('sangrado') || symptomLower.includes('inconsciente') || symptomLower.includes('grave') || symptomLower.includes('herida') ||
+                symptomLower.includes('bleeding') || symptomLower.includes('unconscious')) {
                 priority = priorities[0]
-                category = 'Emergency'
+                category = 'Emergencia'
                 recommendations = [
-                    'Immediate assessment required',
-                    'Stabilize patient',
-                    'Check vital signs',
-                    'Prepare emergency equipment',
+                    'Evaluación inmediata requerida',
+                    'Estabilizar paciente',
+                    'Revisar signos vitales',
+                    'Preparar equipo de emergencia',
                 ]
-            } else if (symptomLower.includes('fever') || symptomLower.includes('pain') || symptomLower.includes('difficulty breathing')) {
+            } else if (symptomLower.includes('fiebre') || symptomLower.includes('dolor') || symptomLower.includes('respirar') || symptomLower.includes('aire') ||
+                symptomLower.includes('fever') || symptomLower.includes('pain')) {
                 priority = priorities[1]
-                category = 'General Medicine'
+                category = 'Medicina General'
                 recommendations = [
-                    'Check temperature and vital signs',
-                    'Assess pain level',
-                    'Consider blood tests',
-                    'Monitor respiratory rate',
+                    'Revisar temperatura y signos vitales',
+                    'Evaluar nivel de dolor',
+                    'Considerar análisis de sangre',
+                    'Monitorear frecuencia respiratoria',
                 ]
-            } else if (symptomLower.includes('cough') || symptomLower.includes('cold') || symptomLower.includes('headache')) {
+            } else if (symptomLower.includes('tos') || symptomLower.includes('gripe') || symptomLower.includes('cabeza') ||
+                symptomLower.includes('cough') || symptomLower.includes('cold')) {
                 priority = priorities[2]
-                category = 'General Medicine'
+                category = 'Medicina General'
                 recommendations = [
-                    'Basic vital signs check',
-                    'Symptomatic treatment',
-                    'Patient education',
-                    'Follow-up if symptoms persist',
+                    'Revisión básica de signos vitales',
+                    'Tratamiento sintomático',
+                    'Educación del paciente',
+                    'Seguimiento si los síntomas persisten',
                 ]
             }
 
@@ -204,13 +208,13 @@ export default function AIPage() {
                 category,
                 recommendations,
                 confidence: 85 + Math.floor(Math.random() * 10),
-                analysis: `Based on the symptoms provided, the AI has categorized this case as ${priority.label} priority. The patient should be seen ${priority.waitTime === 0 ? 'immediately' : `within ${priority.waitTime} minutes`}.`,
+                analysis: `Basado en los síntomas proporcionados, la IA ha categorizado este caso como prioridad ${priority.label}. El paciente debe ser atendido ${priority.waitTime === 0 ? 'inmediatamente' : `dentro de ${priority.waitTime} minutos`}.`,
             })
 
             setAnalyzingTriage(false)
             toast({
-                title: 'Analysis Complete',
-                description: `Priority: ${priority.label}`,
+                title: 'Análisis Completo',
+                description: `Prioridad: ${priority.label}`,
             })
         }, 2000)
     }
@@ -231,11 +235,11 @@ export default function AIPage() {
         // Simular respuesta de IA
         setTimeout(() => {
             const responses = [
-                'Based on the symptoms you described, I recommend scheduling an appointment with a specialist.',
-                'That sounds like it could be related to several conditions. I suggest getting a proper examination.',
-                'For immediate relief, you can try over-the-counter medication, but please consult with a doctor if symptoms persist.',
-                'This is a common condition. I can help you understand the possible causes and treatment options.',
-                'I recommend getting lab tests done to rule out any underlying conditions.',
+                'Basado en los síntomas descritos, recomiendo agendar una cita con un especialista.',
+                'Eso suena como algo relacionado a varias condiciones. Sugiero un examen apropiado.',
+                'Para alivio inmediato, puede probar medicamentos de venta libre, pero por favor consulte con un doctor si los síntomas persisten.',
+                'Esta es una condición común. Puedo ayudarte a entender las posibles causas y opciones de tratamiento.',
+                'Recomiendo realizar pruebas de laboratorio para descartar condiciones subyacentes.',
             ]
 
             const aiMessage = {
@@ -250,8 +254,8 @@ export default function AIPage() {
     }
 
     const getCategoryTrendIcon = (trend: string) => {
-        if (trend === 'up') return <TrendingUp className="h-4 w-4 text-green-600" />
-        if (trend === 'down') return <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
+        if (trend === 'ascendente') return <TrendingUp className="h-4 w-4 text-green-600" />
+        if (trend === 'descendente') return <TrendingUp className="h-4 w-4 text-red-600 rotate-180" />
         return <Activity className="h-4 w-4 text-blue-600" />
     }
 
@@ -264,50 +268,50 @@ export default function AIPage() {
                         <Brain className="h-6 w-6 text-indigo-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">AI Medical Assistant</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Asistente Médico IA</h1>
                         <p className="text-muted-foreground">
-                            Intelligent triage, predictions, and medical chat
+                            Evaluación inteligente, predicciones y chat médico
                         </p>
                     </div>
                 </div>
                 <Badge variant="outline" className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-indigo-600" />
-                    AI Powered
+                    Potenciado por IA
                 </Badge>
             </div>
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
-                    <TabsTrigger value="triage">
+                    <TabsTrigger value="triaje">
                         <AlertTriangle className="h-4 w-4 mr-2" />
-                        Intelligent Triage
+                        Evaluación Inteligente
                     </TabsTrigger>
                     <TabsTrigger value="predictions">
                         <TrendingUp className="h-4 w-4 mr-2" />
-                        Predictions
+                        Predicciones
                     </TabsTrigger>
                     <TabsTrigger value="chat">
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Medical Chat
+                        Chat Médico
                     </TabsTrigger>
                     <TabsTrigger value="categorization">
                         <Activity className="h-4 w-4 mr-2" />
-                        Auto Categorization
+                        Categorización Auto
                     </TabsTrigger>
                 </TabsList>
 
                 {/* Intelligent Triage Tab */}
-                <TabsContent value="triage" className="mt-4">
+                <TabsContent value="triaje" className="mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Symptom Analysis</CardTitle>
-                                <CardDescription>Enter patient symptoms for AI analysis</CardDescription>
+                                <CardTitle>Análisis de Síntomas</CardTitle>
+                                <CardDescription>Ingrese los síntomas del paciente para el análisis de IA</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <Textarea
-                                    placeholder="Describe the patient's symptoms in detail..."
+                                    placeholder="Describa los síntomas del paciente en detalle..."
                                     value={symptoms}
                                     onChange={(e) => setSymptoms(e.target.value)}
                                     rows={8}
@@ -320,12 +324,12 @@ export default function AIPage() {
                                     {analyzingTriage ? (
                                         <>
                                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Analyzing...
+                                            Analizando...
                                         </>
                                     ) : (
                                         <>
                                             <Brain className="h-4 w-4 mr-2" />
-                                            Analyze with AI
+                                            Analizar con IA
                                         </>
                                     )}
                                 </Button>
@@ -334,15 +338,15 @@ export default function AIPage() {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>AI Analysis Result</CardTitle>
-                                <CardDescription>Intelligent triage recommendation</CardDescription>
+                                <CardTitle>Resultado del Análisis IA</CardTitle>
+                                <CardDescription>Recomendación de evaluación inteligente</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {triageResult ? (
                                     <div className="space-y-4">
                                         <div className="p-4 rounded-lg border-2" style={{ borderColor: triageResult.priority.color.replace('bg-', '') }}>
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="text-lg font-bold">Priority Level {triageResult.priority.level}</span>
+                                                <span className="text-lg font-bold">Nivel de Prioridad {triageResult.priority.level}</span>
                                                 <Badge className={`${triageResult.priority.color} text-white`}>
                                                     {triageResult.priority.label}
                                                 </Badge>
@@ -351,17 +355,17 @@ export default function AIPage() {
                                                 {triageResult.priority.description}
                                             </p>
                                             <p className="text-sm font-medium">
-                                                Wait Time: {triageResult.priority.waitTime === 0 ? 'IMMEDIATE' : `${triageResult.priority.waitTime} minutes`}
+                                                Tiempo de Espera: {triageResult.priority.waitTime === 0 ? 'INMEDIATO' : `${triageResult.priority.waitTime} minutos`}
                                             </p>
                                         </div>
 
                                         <div>
-                                            <p className="font-semibold mb-2">Category:</p>
+                                            <p className="font-semibold mb-2">Categoría:</p>
                                             <Badge variant="outline">{triageResult.category}</Badge>
                                         </div>
 
                                         <div>
-                                            <p className="font-semibold mb-2">AI Confidence:</p>
+                                            <p className="font-semibold mb-2">Confianza IA:</p>
                                             <div className="flex items-center gap-2">
                                                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                                                     <div
@@ -374,7 +378,7 @@ export default function AIPage() {
                                         </div>
 
                                         <div>
-                                            <p className="font-semibold mb-2">Recommendations:</p>
+                                            <p className="font-semibold mb-2">Recomendaciones:</p>
                                             <ul className="space-y-1">
                                                 {triageResult.recommendations.map((rec: string, idx: number) => (
                                                     <li key={idx} className="text-sm flex items-start gap-2">
@@ -392,7 +396,7 @@ export default function AIPage() {
                                 ) : (
                                     <div className="text-center py-12 text-muted-foreground">
                                         <Brain className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                        <p>Enter symptoms and click "Analyze with AI" to get results</p>
+                                        <p>Ingrese síntomas y haga clic en "Analizar con IA" para obtener resultados</p>
                                     </div>
                                 )}
                             </CardContent>
@@ -405,8 +409,8 @@ export default function AIPage() {
                     {/* Saturation Prediction */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Saturation Prediction</CardTitle>
-                            <CardDescription>AI-powered capacity forecasting</CardDescription>
+                            <CardTitle>Predicción de Saturación</CardTitle>
+                            <CardDescription>Pronóstico de capacidad impulsado por IA</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ResponsiveContainer width="100%" height={300}>
@@ -416,9 +420,9 @@ export default function AIPage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Line type="monotone" dataKey="current" stroke="#3b82f6" strokeWidth={2} name="Current" />
-                                    <Line type="monotone" dataKey="predicted" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="5 5" name="Predicted" />
-                                    <Line type="monotone" dataKey="capacity" stroke="#ef4444" strokeWidth={2} name="Capacity" />
+                                    <Line type="monotone" dataKey="current" stroke="#3b82f6" strokeWidth={2} name="Actual" />
+                                    <Line type="monotone" dataKey="predicted" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="5 5" name="Predicho" />
+                                    <Line type="monotone" dataKey="capacity" stroke="#ef4444" strokeWidth={2} name="Capacidad" />
                                 </LineChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -427,8 +431,8 @@ export default function AIPage() {
                     {/* Demand Prediction */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Demand Prediction</CardTitle>
-                            <CardDescription>Weekly patient volume forecasting</CardDescription>
+                            <CardTitle>Predicción de Demanda</CardTitle>
+                            <CardDescription>Pronóstico de volumen semanal de pacientes</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ResponsiveContainer width="100%" height={300}>
@@ -439,7 +443,7 @@ export default function AIPage() {
                                     <Tooltip />
                                     <Legend />
                                     <Bar dataKey="actual" fill="#10b981" name="Actual" />
-                                    <Bar dataKey="predicted" fill="#8b5cf6" name="Predicted" />
+                                    <Bar dataKey="predicted" fill="#8b5cf6" name="Predicho" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -450,8 +454,8 @@ export default function AIPage() {
                 <TabsContent value="chat" className="mt-4">
                     <Card className="h-[600px] flex flex-col">
                         <CardHeader>
-                            <CardTitle>AI Medical Chat</CardTitle>
-                            <CardDescription>Ask medical questions to the AI assistant</CardDescription>
+                            <CardTitle>Chat Médico IA</CardTitle>
+                            <CardDescription>Haga preguntas médicas al asistente de IA</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 flex flex-col">
                             <ScrollArea className="flex-1 pr-4">
@@ -463,8 +467,8 @@ export default function AIPage() {
                                         >
                                             <div
                                                 className={`max-w-[80%] p-3 rounded-lg ${message.role === 'user'
-                                                        ? 'bg-indigo-600 text-white'
-                                                        : 'bg-gray-100'
+                                                    ? 'bg-indigo-600 text-white'
+                                                    : 'bg-gray-100'
                                                     }`}
                                             >
                                                 <p className="text-sm">{message.content}</p>
@@ -485,7 +489,7 @@ export default function AIPage() {
                             </ScrollArea>
                             <div className="flex gap-2 mt-4">
                                 <Input
-                                    placeholder="Ask a medical question..."
+                                    placeholder="Haga una pregunta médica..."
                                     value={chatInput}
                                     onChange={(e) => setChatInput(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -502,8 +506,8 @@ export default function AIPage() {
                 <TabsContent value="categorization" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Automatic Case Categorization</CardTitle>
-                            <CardDescription>AI-powered case classification and trends</CardDescription>
+                            <CardTitle>Categorización Automática de Casos</CardTitle>
+                            <CardDescription>Clasificación de casos y tendencias por IA</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -515,14 +519,14 @@ export default function AIPage() {
                                                 {getCategoryTrendIcon(cat.trend)}
                                             </div>
                                             <Badge variant="outline">
-                                                {cat.confidence}% confidence
+                                                {cat.confidence}% confianza
                                             </Badge>
                                         </div>
                                         <div className="flex items-center gap-4">
                                             <div className="flex-1">
                                                 <div className="flex justify-between text-sm mb-1">
-                                                    <span>Cases: {cat.count}</span>
-                                                    <span className="text-muted-foreground">Trend: {cat.trend}</span>
+                                                    <span>Casos: {cat.count}</span>
+                                                    <span className="text-muted-foreground">Tendencia: {cat.trend}</span>
                                                 </div>
                                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                                     <div

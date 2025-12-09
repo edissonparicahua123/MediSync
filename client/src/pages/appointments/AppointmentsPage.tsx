@@ -24,6 +24,7 @@ import { appointmentsAPI, patientsAPI, doctorsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import AppointmentModal from '@/components/modals/AppointmentModal'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -75,7 +76,7 @@ export default function AppointmentsPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load appointments',
+                description: error.response?.data?.message || 'Error al cargar citas',
                 variant: 'destructive',
             })
         } finally {
@@ -88,14 +89,14 @@ export default function AppointmentsPage() {
         try {
             await appointmentsAPI.delete(deleteId)
             toast({
-                title: 'Success',
-                description: 'Appointment deleted successfully',
+                title: 'Éxito',
+                description: 'Cita eliminada correctamente',
             })
             loadData()
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to delete appointment',
+                description: error.response?.data?.message || 'Error al eliminar cita',
                 variant: 'destructive',
             })
         } finally {
@@ -174,14 +175,14 @@ export default function AppointmentsPage() {
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Citas</h1>
                     <p className="text-muted-foreground">
-                        Manage appointments and schedules • {filteredAppointments.length} total
+                        Gestiona citas y horarios • {filteredAppointments.length} total
                     </p>
                 </div>
                 <Button onClick={handleAdd}>
                     <Plus className="h-4 w-4 mr-2" />
-                    New Appointment
+                    Nueva Cita
                 </Button>
             </div>
 
@@ -193,7 +194,7 @@ export default function AppointmentsPage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search by patient, doctor, or reason..."
+                                placeholder="Buscar por paciente, doctor, o motivo..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10"
@@ -205,7 +206,7 @@ export default function AppointmentsPage() {
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
                             <Filter className="h-4 w-4 mr-2" />
-                            Filters
+                            Filtros
                         </Button>
                     </div>
                 </div>
@@ -215,15 +216,15 @@ export default function AppointmentsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">
                         <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Status" />
+                                <SelectValue placeholder="Estado" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
-                                <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                                <SelectItem value="COMPLETED">Completed</SelectItem>
-                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                                <SelectItem value="NO_SHOW">No Show</SelectItem>
+                                <SelectItem value="all">Todos los Estados</SelectItem>
+                                <SelectItem value="SCHEDULED">Programada</SelectItem>
+                                <SelectItem value="CONFIRMED">Confirmada</SelectItem>
+                                <SelectItem value="COMPLETED">Completada</SelectItem>
+                                <SelectItem value="CANCELLED">Cancelada</SelectItem>
+                                <SelectItem value="NO_SHOW">No Asistió</SelectItem>
                             </SelectContent>
                         </Select>
 
@@ -232,7 +233,7 @@ export default function AppointmentsPage() {
                                 <SelectValue placeholder="Doctor" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Doctors</SelectItem>
+                                <SelectItem value="all">Todos los Doctores</SelectItem>
                                 {doctors.map((doctor: any) => (
                                     <SelectItem key={doctor.id} value={doctor.id}>
                                         Dr. {doctor.user?.firstName} {doctor.user?.lastName}
@@ -243,13 +244,13 @@ export default function AppointmentsPage() {
 
                         <Select value={filters.priority} onValueChange={(v) => setFilters({ ...filters, priority: v })}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Priority" />
+                                <SelectValue placeholder="Prioridad" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Priorities</SelectItem>
-                                <SelectItem value="HIGH">High</SelectItem>
-                                <SelectItem value="MEDIUM">Medium</SelectItem>
-                                <SelectItem value="LOW">Low</SelectItem>
+                                <SelectItem value="all">Todas las Prioridades</SelectItem>
+                                <SelectItem value="HIGH">Alta</SelectItem>
+                                <SelectItem value="MEDIUM">Media</SelectItem>
+                                <SelectItem value="LOW">Baja</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -261,11 +262,11 @@ export default function AppointmentsPage() {
                 <TabsList>
                     <TabsTrigger value="calendar">
                         <CalendarIcon className="h-4 w-4 mr-2" />
-                        Calendar View
+                        Vista Calendario
                     </TabsTrigger>
                     <TabsTrigger value="table">
                         <TableIcon className="h-4 w-4 mr-2" />
-                        Table View
+                        Vista Tabla
                     </TabsTrigger>
                 </TabsList>
 
@@ -284,47 +285,55 @@ export default function AppointmentsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Patient</TableHead>
+                                    <TableHead>Paciente</TableHead>
                                     <TableHead>Doctor</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Time</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Reason</TableHead>
-                                    <TableHead>Priority</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Hora</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead>Motivo</TableHead>
+                                    <TableHead>Prioridad</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredAppointments.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                            No appointments found
+                                            No se encontraron citas
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     filteredAppointments.map((apt: any) => (
-                                        <TableRow key={apt.id} className="hover:bg-accent/50">
-                                            <TableCell className="font-medium">
-                                                {apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Unknown'}
+                                        <TableRow key={apt.id}>
+                                            <TableCell>
+                                                {apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Desconocido'}
                                             </TableCell>
                                             <TableCell>
-                                                {apt.doctor ? `Dr. ${apt.doctor.user?.firstName} ${apt.doctor.user?.lastName}` : 'Unknown'}
+                                                {apt.doctor ? `Dr. ${apt.doctor.user?.firstName} ${apt.doctor.user?.lastName}` : 'Desconocido'}
                                             </TableCell>
                                             <TableCell>
-                                                {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'MMM dd, yyyy') : 'N/A'}
+                                                {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'dd MMM yyyy', { locale: es }) : 'N/A'}
                                             </TableCell>
                                             <TableCell>
-                                                {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'HH:mm') : 'N/A'}
+                                                {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'HH:mm', { locale: es }) : 'N/A'}
                                             </TableCell>
                                             <TableCell>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(apt.status)}`}>
-                                                    {apt.status}
+                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(apt.status)}`}>
+                                                    {apt.status === 'SCHEDULED' && 'Programada'}
+                                                    {apt.status === 'CONFIRMED' && 'Confirmada'}
+                                                    {apt.status === 'COMPLETED' && 'Completada'}
+                                                    {apt.status === 'CANCELLED' && 'Cancelada'}
+                                                    {apt.status === 'NO_SHOW' && 'No Asistió'}
+                                                    {!['SCHEDULED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(apt.status) && apt.status}
                                                 </span>
                                             </TableCell>
-                                            <TableCell>{apt.reason || 'General Checkup'}</TableCell>
+                                            <TableCell>{apt.reason || 'Consulta General'}</TableCell>
                                             <TableCell>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${getPriorityBadge('MEDIUM')}`}>
-                                                    MEDIUM
+                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(apt.priority || 'MEDIUM')}`}>
+                                                    {apt.priority === 'HIGH' && 'Alta'}
+                                                    {apt.priority === 'MEDIUM' && 'Media'}
+                                                    {apt.priority === 'LOW' && 'Baja'}
+                                                    {(!apt.priority || !['HIGH', 'MEDIUM', 'LOW'].includes(apt.priority)) && 'Media'}
                                                 </span>
                                             </TableCell>
                                             <TableCell className="text-right">
@@ -364,7 +373,7 @@ export default function AppointmentsPage() {
             {/* Modal */}
             <AppointmentModal
                 open={modalOpen}
-                onClose={() => setModalOpen(false)}
+                onOpenChange={setModalOpen}
                 appointment={selectedAppointment}
                 onSuccess={handleSuccess}
             />
@@ -373,14 +382,14 @@ export default function AppointmentsPage() {
             <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the appointment.
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente la cita.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

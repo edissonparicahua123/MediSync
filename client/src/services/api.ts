@@ -150,6 +150,8 @@ export const pharmacyAPI = {
     getStock: (params?: any) => api.get('/pharmacy/stock', { params }),
     updateStock: (id: string, data: any) => api.patch(`/pharmacy/stock/${id}`, data),
     getLowStock: () => api.get('/pharmacy/stock/low'),
+    getOrders: (params?: any) => api.get('/pharmacy/orders', { params }),
+    getKardex: (params?: any) => api.get('/pharmacy/kardex', { params }),
 }
 
 // ============================================

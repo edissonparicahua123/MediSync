@@ -48,6 +48,7 @@ import {
 import { adminAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 export default function AdminPage() {
     const [loading, setLoading] = useState(true)
@@ -77,7 +78,7 @@ export default function AdminPage() {
                 users: [
                     {
                         id: '1',
-                        name: 'Admin User',
+                        name: 'Usuario Admin',
                         email: 'admin@medisync.com',
                         role: 'ADMIN',
                         status: 'ACTIVE',
@@ -95,7 +96,7 @@ export default function AdminPage() {
                     },
                     {
                         id: '3',
-                        name: 'Nurse Sarah',
+                        name: 'Enf. Sarah',
                         email: 'sarah@medisync.com',
                         role: 'NURSE',
                         status: 'ACTIVE',
@@ -104,7 +105,7 @@ export default function AdminPage() {
                     },
                     {
                         id: '4',
-                        name: 'Receptionist Mike',
+                        name: 'Recepción Mike',
                         email: 'mike@medisync.com',
                         role: 'RECEPTIONIST',
                         status: 'ACTIVE',
@@ -133,7 +134,7 @@ export default function AdminPage() {
                         taxRate: 10,
                         currency: 'USD',
                         invoicePrefix: 'INV',
-                        paymentMethods: ['Cash', 'Credit Card', 'Insurance'],
+                        paymentMethods: ['Efectivo', 'Tarjeta de Crédito', 'Seguro'],
                     },
                     ai: {
                         enabled: true,
@@ -181,7 +182,7 @@ export default function AdminPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load admin data',
+                description: error.response?.data?.message || 'Error al cargar datos de admin',
                 variant: 'destructive',
             })
         } finally {
@@ -191,29 +192,29 @@ export default function AdminPage() {
 
     const handleResetPassword = (userId: string) => {
         toast({
-            title: 'Password Reset',
-            description: 'Password reset email sent successfully',
+            title: 'Contraseña Restablecida',
+            description: 'Email de restablecimiento enviado exitosamente',
         })
     }
 
     const handleCreateBackup = () => {
         toast({
-            title: 'Backup Started',
-            description: 'Database backup is being created...',
+            title: 'Respaldo Iniciado',
+            description: 'La copia de seguridad se está creando...',
         })
     }
 
     const handleRestoreBackup = (backupId: string) => {
         toast({
-            title: 'Restore Initiated',
-            description: 'Database restore process started',
+            title: 'Restauración Iniciada',
+            description: 'Proceso de restauración iniciado',
         })
     }
 
     const handleSaveSettings = () => {
         toast({
-            title: 'Settings Saved',
-            description: 'System settings updated successfully',
+            title: 'Configuración Guardada',
+            description: 'Ajustes del sistema actualizados exitosamente',
         })
     }
 
@@ -253,9 +254,9 @@ export default function AdminPage() {
                         <Shield className="h-6 w-6 text-red-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">System Administration</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Administración del Sistema</h1>
                         <p className="text-muted-foreground">
-                            User management, system settings, and backups
+                            Gestión de usuarios, configuración y copias de seguridad
                         </p>
                     </div>
                 </div>
@@ -266,15 +267,15 @@ export default function AdminPage() {
                 <TabsList>
                     <TabsTrigger value="users">
                         <Users className="h-4 w-4 mr-2" />
-                        Users
+                        Usuarios
                     </TabsTrigger>
                     <TabsTrigger value="settings">
                         <Settings className="h-4 w-4 mr-2" />
-                        System Settings
+                        Configuración
                     </TabsTrigger>
                     <TabsTrigger value="backups">
                         <Database className="h-4 w-4 mr-2" />
-                        Backups
+                        Respaldos
                     </TabsTrigger>
                 </TabsList>
 
@@ -284,12 +285,12 @@ export default function AdminPage() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <CardTitle>User Management</CardTitle>
-                                    <CardDescription>Manage users, roles, and permissions</CardDescription>
+                                    <CardTitle>Gestión de Usuarios</CardTitle>
+                                    <CardDescription>Gestionar usuarios, roles y permisos</CardDescription>
                                 </div>
                                 <Button onClick={() => setUserModalOpen(true)}>
                                     <Plus className="h-4 w-4 mr-2" />
-                                    Add User
+                                    Agregar Usuario
                                 </Button>
                             </div>
                         </CardHeader>
@@ -297,12 +298,12 @@ export default function AdminPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Name</TableHead>
+                                        <TableHead>Nombre</TableHead>
                                         <TableHead>Email</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Last Login</TableHead>
-                                        <TableHead>Actions</TableHead>
+                                        <TableHead>Rol</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                        <TableHead>Último Acceso</TableHead>
+                                        <TableHead>Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -312,16 +313,25 @@ export default function AdminPage() {
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>
                                                 <span className={`text-xs px-2 py-1 rounded-full ${getRoleBadge(user.role)}`}>
-                                                    {user.role}
+                                                    {({
+                                                        'ADMIN': 'ADMIN',
+                                                        'DOCTOR': 'DOCTOR',
+                                                        'NURSE': 'ENFERMERA/O',
+                                                        'RECEPTIONIST': 'RECEPCIÓN'
+                                                    } as Record<string, string>)[user.role] || user.role}
                                                 </span>
                                             </TableCell>
                                             <TableCell>
                                                 <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(user.status)}`}>
-                                                    {user.status}
+                                                    {({
+                                                        'ACTIVE': 'ACTIVO',
+                                                        'INACTIVE': 'INACTIVO',
+                                                        'SUSPENDED': 'SUSPENDIDO'
+                                                    } as Record<string, string>)[user.status] || user.status}
                                                 </span>
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground">
-                                                {format(user.lastLogin, 'PPp')}
+                                                {format(user.lastLogin, 'PPp', { locale: es })}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
@@ -333,7 +343,7 @@ export default function AdminPage() {
                                                             setUserModalOpen(true)
                                                         }}
                                                     >
-                                                        Edit
+                                                        Editar
                                                     </Button>
                                                     <Button
                                                         variant="outline"
@@ -359,28 +369,28 @@ export default function AdminPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <ImageIcon className="h-5 w-5" />
-                                Logo & Basic Information
+                                Logo e Información Básica
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center gap-4">
                                 <img
                                     src={adminData.settings.logo}
-                                    alt="Hospital Logo"
+                                    alt="Logo del Hospital"
                                     className="w-24 h-24 rounded border"
                                 />
                                 <Button variant="outline">
                                     <Upload className="h-4 w-4 mr-2" />
-                                    Upload Logo
+                                    Subir Logo
                                 </Button>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <Label>Hospital Name</Label>
+                                    <Label>Nombre del Hospital</Label>
                                     <Input defaultValue={adminData.settings.hospitalName} />
                                 </div>
                                 <div>
-                                    <Label>Phone</Label>
+                                    <Label>Teléfono</Label>
                                     <Input defaultValue={adminData.settings.phone} />
                                 </div>
                                 <div>
@@ -388,7 +398,7 @@ export default function AdminPage() {
                                     <Input type="email" defaultValue={adminData.settings.email} />
                                 </div>
                                 <div>
-                                    <Label>Address</Label>
+                                    <Label>Dirección</Label>
                                     <Input defaultValue={adminData.settings.address} />
                                 </div>
                             </div>
@@ -400,7 +410,7 @@ export default function AdminPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Clock className="h-5 w-5" />
-                                Hospital Hours
+                                Horario de Atención
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -408,7 +418,13 @@ export default function AdminPage() {
                                 {Object.entries(adminData.settings.openingHours).map(([day, hours]: [string, any]) => (
                                     <div key={day} className="flex items-center gap-4">
                                         <div className="w-32">
-                                            <span className="font-medium capitalize">{day}</span>
+                                            <span className="font-medium capitalize">
+                                                {({
+                                                    'monday': 'Lunes', 'tuesday': 'Martes', 'wednesday': 'Miércoles',
+                                                    'thursday': 'Jueves', 'friday': 'Viernes', 'saturday': 'Sábado',
+                                                    'sunday': 'Domingo'
+                                                } as Record<string, string>)[day] || day}
+                                            </span>
                                         </div>
                                         <Switch defaultChecked={hours.enabled} />
                                         <Input
@@ -417,7 +433,7 @@ export default function AdminPage() {
                                             className="w-32"
                                             disabled={!hours.enabled}
                                         />
-                                        <span>to</span>
+                                        <span>a</span>
                                         <Input
                                             type="time"
                                             defaultValue={hours.close}
@@ -435,17 +451,17 @@ export default function AdminPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <DollarSign className="h-5 w-5" />
-                                Billing Parameters
+                                Parámetros de Facturación
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <Label>Tax Rate (%)</Label>
+                                    <Label>Tasa de Impuesto (%)</Label>
                                     <Input type="number" defaultValue={adminData.settings.billing.taxRate} />
                                 </div>
                                 <div>
-                                    <Label>Currency</Label>
+                                    <Label>Moneda</Label>
                                     <Select defaultValue={adminData.settings.billing.currency}>
                                         <SelectTrigger>
                                             <SelectValue />
@@ -458,7 +474,7 @@ export default function AdminPage() {
                                     </Select>
                                 </div>
                                 <div>
-                                    <Label>Invoice Prefix</Label>
+                                    <Label>Prefijo de Factura</Label>
                                     <Input defaultValue={adminData.settings.billing.invoicePrefix} />
                                 </div>
                             </div>
@@ -470,22 +486,22 @@ export default function AdminPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Brain className="h-5 w-5" />
-                                AI Panel Configuration
+                                Configuración de Panel IA
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium">Enable AI Features</p>
+                                    <p className="font-medium">Habilitar Funciones IA</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Activate AI-powered diagnostics and predictions
+                                        Activar diagnósticos y predicciones impulsados por IA
                                     </p>
                                 </div>
                                 <Switch defaultChecked={adminData.settings.ai.enabled} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <Label>AI Model</Label>
+                                    <Label>Modelo IA</Label>
                                     <Select defaultValue={adminData.settings.ai.model}>
                                         <SelectTrigger>
                                             <SelectValue />
@@ -498,26 +514,26 @@ export default function AdminPage() {
                                     </Select>
                                 </div>
                                 <div>
-                                    <Label>Temperature</Label>
+                                    <Label>Temperatura</Label>
                                     <Input type="number" step="0.1" defaultValue={adminData.settings.ai.temperature} />
                                 </div>
                                 <div>
-                                    <Label>Max Tokens</Label>
+                                    <Label>Máx Tokens</Label>
                                     <Input type="number" defaultValue={adminData.settings.ai.maxTokens} />
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <p className="font-medium">AI Features</p>
+                                <p className="font-medium">Funciones IA</p>
                                 <div className="flex items-center justify-between">
-                                    <span>Triage Assistant</span>
+                                    <span>Asistente de Triage</span>
                                     <Switch defaultChecked={adminData.settings.ai.features.triage} />
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span>Diagnosis Support</span>
+                                    <span>Soporte de Diagnóstico</span>
                                     <Switch defaultChecked={adminData.settings.ai.features.diagnosis} />
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span>Predictive Analytics</span>
+                                    <span>Analítica Predictiva</span>
                                     <Switch defaultChecked={adminData.settings.ai.features.predictions} />
                                 </div>
                             </div>
@@ -526,7 +542,7 @@ export default function AdminPage() {
 
                     <Button onClick={handleSaveSettings} className="w-full">
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        Save All Settings
+                        Guardar Toda la Configuración
                     </Button>
                 </TabsContent>
 
@@ -536,12 +552,12 @@ export default function AdminPage() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <CardTitle>Database Backups</CardTitle>
-                                    <CardDescription>Create and restore database backups</CardDescription>
+                                    <CardTitle>Respaldos de Base de Datos</CardTitle>
+                                    <CardDescription>Crear y restaurar copias de seguridad</CardDescription>
                                 </div>
                                 <Button onClick={handleCreateBackup}>
                                     <Database className="h-4 w-4 mr-2" />
-                                    Create Backup
+                                    Crear Respaldo
                                 </Button>
                             </div>
                         </CardHeader>
@@ -549,12 +565,12 @@ export default function AdminPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Backup Name</TableHead>
-                                        <TableHead>Type</TableHead>
-                                        <TableHead>Size</TableHead>
-                                        <TableHead>Created At</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Actions</TableHead>
+                                        <TableHead>Nombre</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Tamaño</TableHead>
+                                        <TableHead>Creado El</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                        <TableHead>Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -565,17 +581,17 @@ export default function AdminPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <span className={`text-xs px-2 py-1 rounded-full ${backup.type === 'FULL'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : 'bg-green-100 text-green-800'
+                                                    ? 'bg-blue-100 text-blue-800'
+                                                    : 'bg-green-100 text-green-800'
                                                     }`}>
-                                                    {backup.type}
+                                                    {backup.type === 'FULL' ? 'COMPLETO' : 'INCREMENTAL'}
                                                 </span>
                                             </TableCell>
                                             <TableCell>{backup.size}</TableCell>
-                                            <TableCell>{format(backup.createdAt, 'PPp')}</TableCell>
+                                            <TableCell>{format(backup.createdAt, 'PPp', { locale: es })}</TableCell>
                                             <TableCell>
                                                 <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                                                    {backup.status}
+                                                    {backup.status === 'COMPLETED' ? 'COMPLETADO' : backup.status}
                                                 </span>
                                             </TableCell>
                                             <TableCell>
@@ -586,7 +602,7 @@ export default function AdminPage() {
                                                         onClick={() => handleRestoreBackup(backup.id)}
                                                     >
                                                         <Upload className="h-4 w-4 mr-2" />
-                                                        Restore
+                                                        Restaurar
                                                     </Button>
                                                     <Button variant="outline" size="sm">
                                                         <Download className="h-4 w-4" />
@@ -606,22 +622,22 @@ export default function AdminPage() {
             <Dialog open={userModalOpen} onOpenChange={setUserModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{selectedUser ? 'Edit User' : 'Create User'}</DialogTitle>
+                        <DialogTitle>{selectedUser ? 'Editar Usuario' : 'Crear Usuario'}</DialogTitle>
                         <DialogDescription>
-                            Manage user information, role, and permissions
+                            Gestionar información del usuario, rol y permisos
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div>
-                            <Label>Name</Label>
-                            <Input placeholder="Enter name" defaultValue={selectedUser?.name} />
+                            <Label>Nombre</Label>
+                            <Input placeholder="Ingresar nombre" defaultValue={selectedUser?.name} />
                         </div>
                         <div>
                             <Label>Email</Label>
-                            <Input type="email" placeholder="Enter email" defaultValue={selectedUser?.email} />
+                            <Input type="email" placeholder="Ingresar email" defaultValue={selectedUser?.email} />
                         </div>
                         <div>
-                            <Label>Role</Label>
+                            <Label>Rol</Label>
                             <Select defaultValue={selectedUser?.role || 'RECEPTIONIST'}>
                                 <SelectTrigger>
                                     <SelectValue />
@@ -629,17 +645,25 @@ export default function AdminPage() {
                                 <SelectContent>
                                     <SelectItem value="ADMIN">Admin</SelectItem>
                                     <SelectItem value="DOCTOR">Doctor</SelectItem>
-                                    <SelectItem value="NURSE">Nurse</SelectItem>
-                                    <SelectItem value="RECEPTIONIST">Receptionist</SelectItem>
+                                    <SelectItem value="NURSE">Enfermera(o)</SelectItem>
+                                    <SelectItem value="RECEPTIONIST">Recepción</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div>
-                            <Label>Permissions</Label>
+                            <Label>Permisos</Label>
                             <div className="space-y-2 mt-2">
                                 {['PATIENTS', 'APPOINTMENTS', 'MEDICAL_RECORDS', 'BILLING', 'REPORTS'].map(perm => (
                                     <div key={perm} className="flex items-center justify-between">
-                                        <span className="text-sm">{perm.replace('_', ' ')}</span>
+                                        <span className="text-sm">
+                                            {({
+                                                'PATIENTS': 'PACIENTES',
+                                                'APPOINTMENTS': 'CITAS',
+                                                'MEDICAL_RECORDS': 'HISTORIA CLÍNICA',
+                                                'BILLING': 'FACTURACIÓN',
+                                                'REPORTS': 'REPORTES'
+                                            } as Record<string, string>)[perm] || perm}
+                                        </span>
                                         <Switch defaultChecked={selectedUser?.permissions?.includes(perm)} />
                                     </div>
                                 ))}
@@ -648,21 +672,21 @@ export default function AdminPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setUserModalOpen(false)}>
-                            Cancel
+                            Cancelar
                         </Button>
                         <Button onClick={() => {
                             toast({
-                                title: 'User Saved',
-                                description: 'User information updated successfully',
+                                title: 'Usuario Guardado',
+                                description: 'Información de usuario actualizada exitosamente',
                             })
                             setUserModalOpen(false)
                             setSelectedUser(null)
                         }}>
-                            Save User
+                            Guardar Usuario
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
-        </div>
+            </Dialog >
+        </div >
     )
 }

@@ -85,49 +85,49 @@ export default function AnalyticsPage() {
 
                 // 3. Comparación de áreas
                 areaComparison: [
-                    { area: 'Emergency', patients: 245, revenue: 125000, satisfaction: 4.2 },
-                    { area: 'Cardiology', patients: 198, revenue: 145000, satisfaction: 4.8 },
-                    { area: 'Pediatrics', patients: 312, revenue: 98000, satisfaction: 4.9 },
-                    { area: 'Surgery', patients: 156, revenue: 235000, satisfaction: 4.5 },
-                    { area: 'Radiology', patients: 289, revenue: 112000, satisfaction: 4.6 },
-                    { area: 'Laboratory', patients: 425, revenue: 78000, satisfaction: 4.7 },
+                    { area: 'Emergencia', patients: 245, revenue: 125000, satisfaction: 4.2 },
+                    { area: 'Cardiología', patients: 198, revenue: 145000, satisfaction: 4.8 },
+                    { area: 'Pediatría', patients: 312, revenue: 98000, satisfaction: 4.9 },
+                    { area: 'Cirugía', patients: 156, revenue: 235000, satisfaction: 4.5 },
+                    { area: 'Radiología', patients: 289, revenue: 112000, satisfaction: 4.6 },
+                    { area: 'Laboratorio', patients: 425, revenue: 78000, satisfaction: 4.7 },
                 ],
 
                 // 4. Ciclo de pacientes
                 patientCycle: [
-                    { stage: 'Registration', count: 1250, avgTime: 5 },
-                    { stage: 'Triage', count: 1200, avgTime: 10 },
-                    { stage: 'Consultation', count: 1150, avgTime: 25 },
-                    { stage: 'Treatment', count: 980, avgTime: 45 },
-                    { stage: 'Billing', count: 950, avgTime: 8 },
-                    { stage: 'Discharge', count: 920, avgTime: 12 },
+                    { stage: 'Registro', count: 1250, avgTime: 5 },
+                    { stage: 'Triaje', count: 1200, avgTime: 10 },
+                    { stage: 'Consulta', count: 1150, avgTime: 25 },
+                    { stage: 'Tratamiento', count: 980, avgTime: 45 },
+                    { stage: 'Facturación', count: 950, avgTime: 8 },
+                    { stage: 'Alta', count: 920, avgTime: 12 },
                 ],
 
                 // 5. Cupos vs Disponibilidad
                 capacity: [
-                    { day: 'Mon', available: 120, booked: 95, walkins: 15 },
-                    { day: 'Tue', available: 120, booked: 102, walkins: 12 },
-                    { day: 'Wed', available: 120, booked: 108, walkins: 8 },
-                    { day: 'Thu', available: 120, booked: 98, walkins: 14 },
-                    { day: 'Fri', available: 120, booked: 112, walkins: 6 },
-                    { day: 'Sat', available: 80, booked: 65, walkins: 10 },
-                    { day: 'Sun', available: 60, booked: 42, walkins: 8 },
+                    { day: 'Lun', available: 120, booked: 95, walkins: 15 },
+                    { day: 'Mar', available: 120, booked: 102, walkins: 12 },
+                    { day: 'Mié', available: 120, booked: 108, walkins: 8 },
+                    { day: 'Jue', available: 120, booked: 98, walkins: 14 },
+                    { day: 'Vie', available: 120, booked: 112, walkins: 6 },
+                    { day: 'Sáb', available: 80, booked: 65, walkins: 10 },
+                    { day: 'Dom', available: 60, booked: 42, walkins: 8 },
                 ],
 
                 // 6. Histórico de 12 meses
                 historical: [
-                    { month: 'Jan', patients: 1245, revenue: 125000, appointments: 1450 },
+                    { month: 'Ene', patients: 1245, revenue: 125000, appointments: 1450 },
                     { month: 'Feb', patients: 1298, revenue: 132000, appointments: 1520 },
                     { month: 'Mar', patients: 1356, revenue: 145000, appointments: 1680 },
-                    { month: 'Apr', patients: 1289, revenue: 138000, appointments: 1590 },
+                    { month: 'Abr', patients: 1289, revenue: 138000, appointments: 1590 },
                     { month: 'May', patients: 1423, revenue: 152000, appointments: 1720 },
                     { month: 'Jun', patients: 1467, revenue: 158000, appointments: 1780 },
                     { month: 'Jul', patients: 1512, revenue: 165000, appointments: 1850 },
-                    { month: 'Aug', patients: 1489, revenue: 162000, appointments: 1820 },
+                    { month: 'Ago', patients: 1489, revenue: 162000, appointments: 1820 },
                     { month: 'Sep', patients: 1534, revenue: 168000, appointments: 1890 },
                     { month: 'Oct', patients: 1578, revenue: 175000, appointments: 1920 },
                     { month: 'Nov', patients: 1623, revenue: 182000, appointments: 1980 },
-                    { month: 'Dec', patients: 1689, revenue: 195000, appointments: 2050 },
+                    { month: 'Dic', patients: 1689, revenue: 195000, appointments: 2050 },
                 ],
             }
 
@@ -135,7 +135,7 @@ export default function AnalyticsPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load analytics',
+                description: error.response?.data?.message || 'Error al cargar analíticas',
                 variant: 'destructive',
             })
         } finally {
@@ -145,7 +145,7 @@ export default function AnalyticsPage() {
 
     // Generar datos de heatmap
     const generateHeatmapData = () => {
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
         const data = []
 
         for (let hour = 8; hour <= 18; hour++) {
@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
                     demand += 30
                 }
                 // Menos demanda los fines de semana
-                if (day === 'Sat' || day === 'Sun') {
+                if (day === 'Sáb' || day === 'Dom') {
                     demand = Math.floor(demand * 0.6)
                 }
                 row[day] = demand
@@ -206,20 +206,20 @@ export default function AnalyticsPage() {
                         <BarChart3 className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Advanced Analytics</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Analítica Avanzada</h1>
                         <p className="text-muted-foreground">
-                            Professional insights with predictive analytics
+                            Análisis profesionales con analítica predictiva
                         </p>
                     </div>
                 </div>
                 <Select value={timeRange} onValueChange={setTimeRange}>
                     <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Time Range" />
+                        <SelectValue placeholder="Rango de Tiempo" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="7days">Last 7 Days</SelectItem>
-                        <SelectItem value="30days">Last 30 Days</SelectItem>
-                        <SelectItem value="12months">Last 12 Months</SelectItem>
+                        <SelectItem value="7days">Últimos 7 Días</SelectItem>
+                        <SelectItem value="30days">Últimos 30 Días</SelectItem>
+                        <SelectItem value="12months">Últimos 12 Meses</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -228,45 +228,45 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Pacientes</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.totalPatients.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">Last 12 months</p>
+                        <p className="text-xs text-muted-foreground">Últimos 12 meses</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                        <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">Last 12 months</p>
+                        <p className="text-xs text-muted-foreground">Últimos 12 meses</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-orange-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Avg Saturation</CardTitle>
+                        <CardTitle className="text-sm font-medium">Saturación Promedio</CardTitle>
                         <Activity className="h-4 w-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-orange-600">{stats.avgSaturation}%</div>
-                        <p className="text-xs text-muted-foreground">Current capacity usage</p>
+                        <p className="text-xs text-muted-foreground">Uso de capacidad actual</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-green-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Capacity Usage</CardTitle>
+                        <CardTitle className="text-sm font-medium">Uso de Capacidad</CardTitle>
                         <Calendar className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600">{stats.avgCapacityUsage}%</div>
-                        <p className="text-xs text-muted-foreground">Weekly average</p>
+                        <p className="text-xs text-muted-foreground">Promedio semanal</p>
                     </CardContent>
                 </Card>
             </div>
@@ -274,16 +274,16 @@ export default function AnalyticsPage() {
             {/* 1. Heatmap de horas de alta demanda */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Peak Hours Heatmap</CardTitle>
-                    <CardDescription>Patient demand by day and hour</CardDescription>
+                    <CardTitle>Mapa de Calor de Horas Pico</CardTitle>
+                    <CardDescription>Demanda de pacientes por día y hora</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr>
-                                    <th className="p-2 text-left text-sm font-medium">Hour</th>
-                                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                                    <th className="p-2 text-left text-sm font-medium">Hora</th>
+                                    {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
                                         <th key={day} className="p-2 text-center text-sm font-medium">{day}</th>
                                     ))}
                                 </tr>
@@ -292,7 +292,7 @@ export default function AnalyticsPage() {
                                 {analyticsData.heatmap.map((row: any, idx: number) => (
                                     <tr key={idx}>
                                         <td className="p-2 text-sm font-medium">{row.hour}</td>
-                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                                        {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
                                             <td key={day} className="p-1">
                                                 <div
                                                     className="h-12 w-full rounded flex items-center justify-center text-white text-sm font-semibold"
@@ -310,19 +310,19 @@ export default function AnalyticsPage() {
                     <div className="flex gap-4 mt-4 text-sm">
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded bg-green-500"></div>
-                            <span>Low (0-30)</span>
+                            <span>Baja (0-30)</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded bg-blue-500"></div>
-                            <span>Medium (30-50)</span>
+                            <span>Media (30-50)</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded bg-orange-500"></div>
-                            <span>High (50-70)</span>
+                            <span>Alta (50-70)</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-4 h-4 rounded bg-red-500"></div>
-                            <span>Critical (70+)</span>
+                            <span>Crítica (70+)</span>
                         </div>
                     </div>
                 </CardContent>
@@ -334,9 +334,9 @@ export default function AnalyticsPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-orange-600" />
-                            Saturation Prediction
+                            Predicción de Saturación
                         </CardTitle>
-                        <CardDescription>Current vs predicted capacity usage</CardDescription>
+                        <CardDescription>Uso de capacidad actual vs predicha</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
@@ -346,9 +346,9 @@ export default function AnalyticsPage() {
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="capacity" fill="#94a3b8" name="Capacity" />
-                                <Line type="monotone" dataKey="current" stroke="#3b82f6" strokeWidth={2} name="Current" />
-                                <Line type="monotone" dataKey="predicted" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" name="Predicted" />
+                                <Bar dataKey="capacity" fill="#94a3b8" name="Capacidad" />
+                                <Line type="monotone" dataKey="current" stroke="#3b82f6" strokeWidth={2} name="Actual" />
+                                <Line type="monotone" dataKey="predicted" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" name="Predicha" />
                             </ComposedChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -357,8 +357,8 @@ export default function AnalyticsPage() {
                 {/* 3. Comparación de áreas */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Area Comparison</CardTitle>
-                        <CardDescription>Performance by department</CardDescription>
+                        <CardTitle>Comparación de Áreas</CardTitle>
+                        <CardDescription>Rendimiento por departamento</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
@@ -366,8 +366,8 @@ export default function AnalyticsPage() {
                                 <PolarGrid />
                                 <PolarAngleAxis dataKey="area" />
                                 <PolarRadiusAxis />
-                                <Radar name="Patients" dataKey="patients" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
-                                <Radar name="Satisfaction" dataKey="satisfaction" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
+                                <Radar name="Pacientes" dataKey="patients" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+                                <Radar name="Satisfacción" dataKey="satisfaction" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
                                 <Tooltip />
                                 <Legend />
                             </RadarChart>
@@ -380,8 +380,8 @@ export default function AnalyticsPage() {
                 {/* 4. Ciclo de pacientes */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Patient Journey Cycle</CardTitle>
-                        <CardDescription>Patient flow through stages</CardDescription>
+                        <CardTitle>Ciclo de Viaje del Paciente</CardTitle>
+                        <CardDescription>Flujo de pacientes a través de etapas</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
@@ -391,8 +391,8 @@ export default function AnalyticsPage() {
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="count" fill="#8b5cf6" name="Patients" />
-                                <Bar dataKey="avgTime" fill="#f59e0b" name="Avg Time (min)" />
+                                <Bar dataKey="count" fill="#8b5cf6" name="Pacientes" />
+                                <Bar dataKey="avgTime" fill="#f59e0b" name="Tiempo Prom. (min)" />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -401,8 +401,8 @@ export default function AnalyticsPage() {
                 {/* 5. Cupos vs Disponibilidad */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Capacity vs Availability</CardTitle>
-                        <CardDescription>Weekly appointment slots</CardDescription>
+                        <CardTitle>Capacidad vs Disponibilidad</CardTitle>
+                        <CardDescription>Cupos de citas semanales</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
@@ -412,9 +412,9 @@ export default function AnalyticsPage() {
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="available" fill="#94a3b8" name="Available" />
-                                <Bar dataKey="booked" fill="#10b981" name="Booked" />
-                                <Bar dataKey="walkins" fill="#3b82f6" name="Walk-ins" />
+                                <Bar dataKey="available" fill="#94a3b8" name="Disponible" />
+                                <Bar dataKey="booked" fill="#10b981" name="Reservado" />
+                                <Bar dataKey="walkins" fill="#3b82f6" name="Sin Cita" />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -424,8 +424,8 @@ export default function AnalyticsPage() {
             {/* 6. Histórico de 12 meses */}
             <Card>
                 <CardHeader>
-                    <CardTitle>12-Month Historical Trends</CardTitle>
-                    <CardDescription>Comprehensive yearly overview</CardDescription>
+                    <CardTitle>Tendencias Históricas de 12 Meses</CardTitle>
+                    <CardDescription>Visión general anual completa</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={400}>
@@ -449,8 +449,8 @@ export default function AnalyticsPage() {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Area type="monotone" dataKey="patients" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPatients)" name="Patients" />
-                            <Area type="monotone" dataKey="appointments" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorAppointments)" name="Appointments" />
+                            <Area type="monotone" dataKey="patients" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPatients)" name="Pacientes" />
+                            <Area type="monotone" dataKey="appointments" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorAppointments)" name="Citas" />
                         </AreaChart>
                     </ResponsiveContainer>
 
@@ -461,7 +461,7 @@ export default function AnalyticsPage() {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} name="Revenue ($)" />
+                            <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} name="Ingresos ($)" />
                         </LineChart>
                     </ResponsiveContainer>
                 </CardContent>

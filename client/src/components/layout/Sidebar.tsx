@@ -47,25 +47,25 @@ const menuSections: MenuSection[] = [
         items: [
             {
                 icon: LayoutDashboard,
-                label: 'Dashboard',
+                label: 'Panel Principal',
                 path: '/dashboard',
                 // Todos los roles pueden ver el dashboard
             },
             {
                 icon: Users,
-                label: 'Patients',
+                label: 'Pacientes',
                 path: '/patients',
                 roles: ['ADMIN', 'DOCTOR', 'LAB', 'PHARMACY', 'RECEPTIONIST']
             },
             {
                 icon: Stethoscope,
-                label: 'Doctors',
+                label: 'Doctores',
                 path: '/doctors',
                 roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST']
             },
             {
                 icon: Calendar,
-                label: 'Appointments',
+                label: 'Citas',
                 path: '/appointments',
                 roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST']
             },
@@ -77,19 +77,19 @@ const menuSections: MenuSection[] = [
         items: [
             {
                 icon: AlertTriangle,
-                label: 'Emergency',
+                label: 'Emergencia',
                 path: '/emergency',
                 roles: ['ADMIN', 'DOCTOR']
             },
             {
                 icon: Pill,
-                label: 'Pharmacy',
+                label: 'Farmacia',
                 path: '/pharmacy',
                 roles: ['ADMIN', 'PHARMACY']
             },
             {
                 icon: FlaskConical,
-                label: 'Laboratory',
+                label: 'Laboratorio',
                 path: '/laboratory',
                 roles: ['ADMIN', 'DOCTOR', 'LAB']
             },
@@ -101,31 +101,31 @@ const menuSections: MenuSection[] = [
         items: [
             {
                 icon: Receipt,
-                label: 'Billing',
+                label: 'Facturación',
                 path: '/billing',
                 roles: ['ADMIN']
             },
             {
                 icon: FileText,
-                label: 'Reports',
+                label: 'Reportes',
                 path: '/reports',
                 roles: ['ADMIN', 'DOCTOR', 'LAB', 'PHARMACY', 'HR']
             },
             {
                 icon: BarChart3,
-                label: 'Analytics',
+                label: 'Analítica',
                 path: '/analytics',
                 roles: ['ADMIN', 'HR']
             },
             {
                 icon: UserCog,
-                label: 'HR',
+                label: 'Recursos Humanos',
                 path: '/hr',
                 roles: ['ADMIN', 'HR']
             },
             {
                 icon: Sliders,
-                label: 'Admin',
+                label: 'Sistema',
                 path: '/admin',
                 roles: ['ADMIN', 'HR']
             },
@@ -137,7 +137,7 @@ const menuSections: MenuSection[] = [
         items: [
             {
                 icon: Brain,
-                label: 'AI Features',
+                label: 'IA Médica',
                 path: '/ai',
                 roles: ['ADMIN', 'DOCTOR', 'LAB']
             },
@@ -149,7 +149,7 @@ const menuSections: MenuSection[] = [
         items: [
             {
                 icon: MessageSquare,
-                label: 'Messages',
+                label: 'Mensajes',
                 path: '/messages',
                 // Todos los roles pueden ver mensajes
             },
@@ -287,7 +287,7 @@ export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
                             )}
                         >
                             <Settings className="h-4 w-4" />
-                            <span className="text-sm font-medium">Settings</span>
+                            <span className="text-sm font-medium">Configuración</span>
                         </Link>
                     </div>
                 )}

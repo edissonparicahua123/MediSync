@@ -35,6 +35,7 @@ import {
 import { hrAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format, differenceInHours, differenceInMinutes } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
 
 export default function HRPage() {
@@ -68,45 +69,45 @@ export default function HRPage() {
                         id: '1',
                         photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
                         name: 'Dr. John Smith',
-                        area: 'Cardiology',
+                        area: 'Cardiología',
                         salary: 8500,
-                        contract: 'Full-time',
+                        contract: 'Tiempo Completo',
                         status: 'ACTIVE',
                     },
                     {
                         id: '2',
                         photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-                        name: 'Dr. Sarah Johnson',
-                        area: 'Pediatrics',
+                        name: 'Dra. Sarah Johnson',
+                        area: 'Pediatría',
                         salary: 7800,
-                        contract: 'Full-time',
+                        contract: 'Tiempo Completo',
                         status: 'ACTIVE',
                     },
                     {
                         id: '3',
                         photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-                        name: 'Nurse Mike Williams',
-                        area: 'Emergency',
+                        name: 'Enf. Mike Williams',
+                        area: 'Emergencia',
                         salary: 4500,
-                        contract: 'Full-time',
+                        contract: 'Tiempo Completo',
                         status: 'ACTIVE',
                     },
                     {
                         id: '4',
                         photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
                         name: 'Emma Brown',
-                        area: 'Administration',
+                        area: 'Administración',
                         salary: 3200,
-                        contract: 'Part-time',
+                        contract: 'Medio Tiempo',
                         status: 'ACTIVE',
                     },
                     {
                         id: '5',
                         photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
                         name: 'Dr. David Davis',
-                        area: 'Surgery',
+                        area: 'Cirugía',
                         salary: 9500,
-                        contract: 'Full-time',
+                        contract: 'Tiempo Completo',
                         status: 'VACATION',
                     },
                 ],
@@ -125,7 +126,7 @@ export default function HRPage() {
                     },
                     {
                         id: '2',
-                        employeeName: 'Dr. Sarah Johnson',
+                        employeeName: 'Dra. Sarah Johnson',
                         date: new Date(),
                         checkIn: new Date(new Date().setHours(7, 55, 0)),
                         checkOut: new Date(new Date().setHours(17, 0, 0)),
@@ -135,7 +136,7 @@ export default function HRPage() {
                     },
                     {
                         id: '3',
-                        employeeName: 'Nurse Mike Williams',
+                        employeeName: 'Enf. Mike Williams',
                         date: new Date(),
                         checkIn: new Date(new Date().setHours(8, 0, 0)),
                         checkOut: new Date(new Date().setHours(16, 0, 0)),
@@ -168,7 +169,7 @@ export default function HRPage() {
                     },
                     {
                         id: '2',
-                        employeeName: 'Dr. Sarah Johnson',
+                        employeeName: 'Dra. Sarah Johnson',
                         baseSalary: 7800,
                         pension: 1014,
                         discounts: 100,
@@ -177,7 +178,7 @@ export default function HRPage() {
                     },
                     {
                         id: '3',
-                        employeeName: 'Nurse Mike Williams',
+                        employeeName: 'Enf. Mike Williams',
                         baseSalary: 4500,
                         pension: 585,
                         discounts: 50,
@@ -200,23 +201,23 @@ export default function HRPage() {
                     {
                         id: '1',
                         employeeName: 'Dr. John Smith',
-                        day: 'Monday',
+                        day: 'Lunes',
                         shift: 'MORNING',
                         startTime: '08:00',
                         endTime: '16:00',
                     },
                     {
                         id: '2',
-                        employeeName: 'Dr. Sarah Johnson',
-                        day: 'Monday',
+                        employeeName: 'Dra. Sarah Johnson',
+                        day: 'Lunes',
                         shift: 'AFTERNOON',
                         startTime: '14:00',
                         endTime: '22:00',
                     },
                     {
                         id: '3',
-                        employeeName: 'Nurse Mike Williams',
-                        day: 'Monday',
+                        employeeName: 'Enf. Mike Williams',
+                        day: 'Lunes',
                         shift: 'NIGHT',
                         startTime: '22:00',
                         endTime: '06:00',
@@ -224,15 +225,15 @@ export default function HRPage() {
                     {
                         id: '4',
                         employeeName: 'Dr. John Smith',
-                        day: 'Tuesday',
+                        day: 'Martes',
                         shift: 'MORNING',
                         startTime: '08:00',
                         endTime: '16:00',
                     },
                     {
                         id: '5',
-                        employeeName: 'Dr. Sarah Johnson',
-                        day: 'Wednesday',
+                        employeeName: 'Dra. Sarah Johnson',
+                        day: 'Miércoles',
                         shift: 'MORNING',
                         startTime: '08:00',
                         endTime: '16:00',
@@ -244,7 +245,7 @@ export default function HRPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load HR data',
+                description: error.response?.data?.message || 'Error al cargar datos de RRHH',
                 variant: 'destructive',
             })
         } finally {
@@ -309,15 +310,15 @@ export default function HRPage() {
                         <UserCog className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Human Resources</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Recursos Humanos</h1>
                         <p className="text-muted-foreground">
-                            Employee management, attendance, payroll, and shifts
+                            Gestión de empleados, asistencia, planilla y turnos
                         </p>
                     </div>
                 </div>
                 <Button>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Employee
+                    Agregar Empleado
                 </Button>
             </div>
 
@@ -325,51 +326,51 @@ export default function HRPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Empleados</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.totalEmployees}</div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.activeEmployees} active
+                            {stats.activeEmployees} activos
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-green-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Present Today</CardTitle>
+                        <CardTitle className="text-sm font-medium">Presentes Hoy</CardTitle>
                         <CheckCircle className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600">{stats.presentToday}</div>
                         <p className="text-xs text-muted-foreground">
-                            {stats.totalEmployees - stats.presentToday} absent
+                            {stats.totalEmployees - stats.presentToday} ausentes
                         </p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-blue-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Payroll</CardTitle>
+                        <CardTitle className="text-sm font-medium">Planilla Total</CardTitle>
                         <DollarSign className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-blue-600">
                             ${stats.totalPayroll.toLocaleString()}
                         </div>
-                        <p className="text-xs text-muted-foreground">This month</p>
+                        <p className="text-xs text-muted-foreground">Este mes</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Shifts Scheduled</CardTitle>
+                        <CardTitle className="text-sm font-medium">Turnos Programados</CardTitle>
                         <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{hrData.shifts.length}</div>
-                        <p className="text-xs text-muted-foreground">This week</p>
+                        <p className="text-xs text-muted-foreground">Esta semana</p>
                     </CardContent>
                 </Card>
             </div>
@@ -379,19 +380,19 @@ export default function HRPage() {
                 <TabsList>
                     <TabsTrigger value="employees">
                         <Users className="h-4 w-4 mr-2" />
-                        Employees
+                        Empleados
                     </TabsTrigger>
                     <TabsTrigger value="attendance">
                         <Clock className="h-4 w-4 mr-2" />
-                        Attendance
+                        Asistencia
                     </TabsTrigger>
                     <TabsTrigger value="payroll">
                         <DollarSign className="h-4 w-4 mr-2" />
-                        Payroll
+                        Planilla
                     </TabsTrigger>
                     <TabsTrigger value="shifts">
                         <CalendarIcon className="h-4 w-4 mr-2" />
-                        Shifts
+                        Turnos
                     </TabsTrigger>
                 </TabsList>
 
@@ -401,13 +402,13 @@ export default function HRPage() {
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <CardTitle>Employee Directory</CardTitle>
-                                    <CardDescription>Manage employee information</CardDescription>
+                                    <CardTitle>Directorio de Empleados</CardTitle>
+                                    <CardDescription>Gestionar información de empleados</CardDescription>
                                 </div>
                                 <div className="relative w-64">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Search employees..."
+                                        placeholder="Buscar empleados..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="pl-10"
@@ -419,12 +420,12 @@ export default function HRPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Photo</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Area</TableHead>
-                                        <TableHead>Salary</TableHead>
-                                        <TableHead>Contract</TableHead>
-                                        <TableHead>Status</TableHead>
+                                        <TableHead>Foto</TableHead>
+                                        <TableHead>Nombre</TableHead>
+                                        <TableHead>Área</TableHead>
+                                        <TableHead>Salario</TableHead>
+                                        <TableHead>Contrato</TableHead>
+                                        <TableHead>Estado</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -444,7 +445,12 @@ export default function HRPage() {
                                             <TableCell>{employee.contract}</TableCell>
                                             <TableCell>
                                                 <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(employee.status)}`}>
-                                                    {employee.status}
+                                                    {({
+                                                        'ACTIVE': 'ACTIVO',
+                                                        'VACATION': 'VACACIONES',
+                                                        'SICK': 'ENFERMO',
+                                                        'INACTIVE': 'INACTIVO'
+                                                    } as Record<string, string>)[employee.status] || employee.status}
                                                 </span>
                                             </TableCell>
                                         </TableRow>
@@ -459,27 +465,27 @@ export default function HRPage() {
                 <TabsContent value="attendance" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Attendance Tracking</CardTitle>
-                            <CardDescription>Daily attendance and hours worked</CardDescription>
+                            <CardTitle>Control de Asistencia</CardTitle>
+                            <CardDescription>Asistencia diaria y horas trabajadas</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Employee</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Check In</TableHead>
-                                        <TableHead>Check Out</TableHead>
-                                        <TableHead>Hours Worked</TableHead>
-                                        <TableHead>Tardiness</TableHead>
-                                        <TableHead>Status</TableHead>
+                                        <TableHead>Empleado</TableHead>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Entrada</TableHead>
+                                        <TableHead>Salida</TableHead>
+                                        <TableHead>Horas Trab.</TableHead>
+                                        <TableHead>Tardanza</TableHead>
+                                        <TableHead>Estado</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {hrData.attendance.map((record: any) => (
                                         <TableRow key={record.id}>
                                             <TableCell className="font-medium">{record.employeeName}</TableCell>
-                                            <TableCell>{format(record.date, 'MMM dd, yyyy')}</TableCell>
+                                            <TableCell>{format(record.date, 'MMM dd, yyyy', { locale: es })}</TableCell>
                                             <TableCell>
                                                 {record.checkIn ? format(record.checkIn, 'HH:mm') : '-'}
                                             </TableCell>
@@ -501,7 +507,13 @@ export default function HRPage() {
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {getAttendanceIcon(record.status)}
-                                                    <span className="text-sm">{record.status.replace('_', ' ')}</span>
+                                                    <span className="text-sm">
+                                                        {({
+                                                            'ON_TIME': 'A TIEMPO',
+                                                            'LATE': 'TARDE',
+                                                            'ABSENT': 'AUSENTE'
+                                                        } as Record<string, string>)[record.status] || record.status}
+                                                    </span>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -510,11 +522,11 @@ export default function HRPage() {
                             </Table>
 
                             <div className="mt-6">
-                                <h3 className="font-semibold mb-4">Monthly Report</h3>
+                                <h3 className="font-semibold mb-4">Reporte Mensual</h3>
                                 <div className="grid grid-cols-3 gap-4">
                                     <Card>
                                         <CardContent className="pt-6">
-                                            <p className="text-sm text-muted-foreground">Total Hours</p>
+                                            <p className="text-sm text-muted-foreground">Horas Totales</p>
                                             <p className="text-2xl font-bold">
                                                 {hrData.attendance.reduce((sum: number, a: any) => sum + a.hoursWorked, 0)}h
                                             </p>
@@ -522,7 +534,7 @@ export default function HRPage() {
                                     </Card>
                                     <Card>
                                         <CardContent className="pt-6">
-                                            <p className="text-sm text-muted-foreground">Total Tardiness</p>
+                                            <p className="text-sm text-muted-foreground">Tardanza Total</p>
                                             <p className="text-2xl font-bold text-orange-600">
                                                 {hrData.attendance.reduce((sum: number, a: any) => sum + a.tardiness, 0)} min
                                             </p>
@@ -530,7 +542,7 @@ export default function HRPage() {
                                     </Card>
                                     <Card>
                                         <CardContent className="pt-6">
-                                            <p className="text-sm text-muted-foreground">Attendance Rate</p>
+                                            <p className="text-sm text-muted-foreground">Tasa de Asistencia</p>
                                             <p className="text-2xl font-bold text-green-600">
                                                 {Math.round((stats.presentToday / stats.totalEmployees) * 100)}%
                                             </p>
@@ -546,19 +558,19 @@ export default function HRPage() {
                 <TabsContent value="payroll" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Payroll Management</CardTitle>
-                            <CardDescription>Salary breakdown and calculations</CardDescription>
+                            <CardTitle>Gestión de Planilla</CardTitle>
+                            <CardDescription>Desglose de salarios y cálculos</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Employee</TableHead>
-                                        <TableHead>Base Salary</TableHead>
-                                        <TableHead>Pension (13%)</TableHead>
-                                        <TableHead>Discounts</TableHead>
-                                        <TableHead>Bonuses</TableHead>
-                                        <TableHead>Final Amount</TableHead>
+                                        <TableHead>Empleado</TableHead>
+                                        <TableHead>Salario Base</TableHead>
+                                        <TableHead>Pensión (13%)</TableHead>
+                                        <TableHead>Descuentos</TableHead>
+                                        <TableHead>Bonos</TableHead>
+                                        <TableHead>Monto Final</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -585,7 +597,7 @@ export default function HRPage() {
 
                             <div className="mt-6 p-4 bg-accent rounded-lg">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-lg font-semibold">Total Payroll:</span>
+                                    <span className="text-lg font-semibold">Planilla Total:</span>
                                     <span className="text-2xl font-bold text-primary">
                                         ${stats.totalPayroll.toLocaleString()}
                                     </span>
@@ -599,18 +611,18 @@ export default function HRPage() {
                 <TabsContent value="shifts" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Shift Schedule</CardTitle>
-                            <CardDescription>Weekly shift assignments</CardDescription>
+                            <CardTitle>Programación de Turnos</CardTitle>
+                            <CardDescription>Asignación semanal de turnos</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                                {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
                                     const dayShifts = hrData.shifts.filter((s: any) => s.day === day)
                                     return (
                                         <div key={day} className="border rounded-lg p-4">
                                             <h3 className="font-semibold mb-3">{day}</h3>
                                             {dayShifts.length === 0 ? (
-                                                <p className="text-sm text-muted-foreground">No shifts scheduled</p>
+                                                <p className="text-sm text-muted-foreground">Sin turnos programados</p>
                                             ) : (
                                                 <div className="grid grid-cols-3 gap-3">
                                                     {dayShifts.map((shift: any) => (
@@ -618,7 +630,11 @@ export default function HRPage() {
                                                             <div className="flex items-center justify-between mb-2">
                                                                 <span className="text-sm font-medium">{shift.employeeName}</span>
                                                                 <span className={`text-xs px-2 py-1 rounded-full ${getShiftColor(shift.shift)}`}>
-                                                                    {shift.shift}
+                                                                    {({
+                                                                        'MORNING': 'MAÑANA',
+                                                                        'AFTERNOON': 'TARDE',
+                                                                        'NIGHT': 'NOCHE'
+                                                                    } as Record<string, string>)[shift.shift] || shift.shift}
                                                                 </span>
                                                             </div>
                                                             <p className="text-xs text-muted-foreground">

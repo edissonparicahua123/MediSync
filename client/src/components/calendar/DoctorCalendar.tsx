@@ -3,7 +3,7 @@ import { Calendar, dateFnsLocalizer, View, SlotInfo } from 'react-big-calendar'
 // @ts-ignore - withDragAndDrop has type issues
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 import { format, parse, startOfWeek, getDay, addHours, setHours, setMinutes } from 'date-fns'
-import { enUS } from 'date-fns/locale'
+import { es } from 'date-fns/locale'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,7 @@ import { appointmentsAPI } from '@/services/api'
 import './DoctorCalendar.css'
 
 const locales = {
-    'en-US': enUS,
+    'es': es,
 }
 
 const localizer = dateFnsLocalizer({
@@ -33,6 +33,21 @@ interface DoctorCalendarProps {
     onRefresh: () => void
 }
 
+const messages = {
+    allDay: 'Todo el día',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    today: 'Hoy',
+    month: 'Mes',
+    week: 'Semana',
+    day: 'Día',
+    agenda: 'Agenda',
+    date: 'Fecha',
+    time: 'Hora',
+    event: 'Evento',
+    noEventsInRange: 'No hay eventos en este rango',
+}
+
 export default function DoctorCalendar({ doctorId, appointments, onRefresh }: DoctorCalendarProps) {
     const { toast } = useToast()
     const [view, setView] = useState<View>('week')
@@ -45,13 +60,13 @@ export default function DoctorCalendar({ doctorId, appointments, onRefresh }: Do
 
             return {
                 id: apt.id,
-                title: apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Unknown Patient',
+                title: apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Paciente Desconocido',
                 start,
                 end,
                 resource: {
                     patientId: apt.patientId,
-                    patientName: apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Unknown',
-                    reason: apt.reason || 'General Checkup',
+                    patientName: apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Desconocido',
+                    reason: apt.reason || 'Chequeo General',
                     status: apt.status,
                     type: 'appointment',
                 },
@@ -63,8 +78,8 @@ export default function DoctorCalendar({ doctorId, appointments, onRefresh }: Do
     const handleSelectSlot = useCallback(
         (slotInfo: SlotInfo) => {
             toast({
-                title: 'Create Appointment',
-                description: `Selected time: ${format(slotInfo.start, 'PPpp')}`,
+                title: 'Crear Cita',
+                description: `Hora seleccionada: ${format(slotInfo.start, 'PPpp', { locale: es })}`,
             })
         },
         [toast]
@@ -74,7 +89,7 @@ export default function DoctorCalendar({ doctorId, appointments, onRefresh }: Do
     const handleSelectEvent = useCallback(
         (event: any) => {
             toast({
-                title: event.title || 'Appointment',
+                title: event.title || 'Cita',
                 description: `${event.resource?.reason} - ${event.resource?.status}`,
             })
         },
@@ -91,15 +106,15 @@ export default function DoctorCalendar({ doctorId, appointments, onRefresh }: Do
                 })
 
                 toast({
-                    title: 'Appointment Moved',
-                    description: `Moved to ${format(start, 'PPpp')}`,
+                    title: 'Cita Movida',
+                    description: `Movida a ${format(start, 'PPpp', { locale: es })}`,
                 })
 
                 onRefresh()
             } catch (error: any) {
                 toast({
                     title: 'Error',
-                    description: error.response?.data?.message || 'Failed to move appointment',
+                    description: error.response?.data?.message || 'Error al mover la cita',
                     variant: 'destructive',
                 })
             }
@@ -117,15 +132,15 @@ export default function DoctorCalendar({ doctorId, appointments, onRefresh }: Do
                 })
 
                 toast({
-                    title: 'Appointment Resized',
-                    description: 'Duration changed',
+                    title: 'Cita Reprogramada',
+                    description: 'Duración actualizada',
                 })
 
                 onRefresh()
             } catch (error: any) {
                 toast({
                     title: 'Error',
-                    description: error.response?.data?.message || 'Failed to resize appointment',
+                    description: error.response?.data?.message || 'Error al reprogramar la cita',
                     variant: 'destructive',
                 })
             }
@@ -163,28 +178,28 @@ export default function DoctorCalendar({ doctorId, appointments, onRefresh }: Do
         <Card>
             <CardHeader>
                 <div className="flex justify-between items-center">
-                    <CardTitle>Schedule Calendar</CardTitle>
+                    <CardTitle>Calendario de Citas</CardTitle>
                     <div className="flex gap-2">
                         <Button
                             variant={view === 'day' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setView('day')}
                         >
-                            Day
+                            Día
                         </Button>
                         <Button
                             variant={view === 'week' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setView('week')}
                         >
-                            Week
+                            Semana
                         </Button>
                         <Button
                             variant={view === 'month' ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setView('month')}
                         >
-                            Month
+                            Mes
                         </Button>
                     </div>
                 </div>
@@ -209,6 +224,8 @@ export default function DoctorCalendar({ doctorId, appointments, onRefresh }: Do
                         min={setHours(setMinutes(new Date(), 0), 8)}
                         max={setHours(setMinutes(new Date(), 0), 18)}
                         defaultDate={new Date()}
+                        culture='es'
+                        messages={messages}
                         popup
                     />
                 </div>
@@ -217,31 +234,31 @@ export default function DoctorCalendar({ doctorId, appointments, onRefresh }: Do
                 <div className="flex gap-4 mt-4 text-sm">
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded bg-blue-500"></div>
-                        <span>Scheduled</span>
+                        <span>Programada</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded bg-green-500"></div>
-                        <span>Completed</span>
+                        <span>Completada</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded bg-red-500"></div>
-                        <span>Cancelled</span>
+                        <span>Cancelada</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded bg-gray-500"></div>
-                        <span>Blocked</span>
+                        <span>Bloqueada</span>
                     </div>
                 </div>
 
                 {/* Instructions */}
                 <div className="mt-4 p-4 bg-muted rounded-lg">
-                    <p className="text-sm font-medium mb-2">📅 Calendar Features:</p>
+                    <p className="text-sm font-medium mb-2">📅 Funciones del Calendario:</p>
                     <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• <strong>Drag & Drop:</strong> Drag appointments to move them</li>
-                        <li>• <strong>Resize:</strong> Drag edges to change duration</li>
-                        <li>• <strong>Create:</strong> Click on time slot to create appointment</li>
-                        <li>• <strong>View:</strong> Click event to see details</li>
-                        <li>• <strong>Color Coded:</strong> Blue=Scheduled, Green=Completed, Red=Cancelled</li>
+                        <li>• <strong>Arrastrar y Soltar:</strong> Arrastra citas para moverlas</li>
+                        <li>• <strong>Redimensionar:</strong> Arrastra los bordes para cambiar la duración</li>
+                        <li>• <strong>Crear:</strong> Haz clic en un espacio vacío para crear una cita</li>
+                        <li>• <strong>Ver:</strong> Haz clic en un evento para ver detalles</li>
+                        <li>• <strong>Código de Colores:</strong> Azul=Programada, Verde=Completada, Rojo=Cancelada</li>
                     </ul>
                 </div>
             </CardContent>

@@ -37,6 +37,7 @@ import {
 import PatientModal from '@/components/modals/PatientModal'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -122,14 +123,14 @@ export default function PatientsPage() {
         try {
             await patientsAPI.delete(deleteId)
             toast({
-                title: 'Success',
-                description: 'Patient deleted successfully',
+                title: 'Éxito',
+                description: 'Paciente eliminado correctamente',
             })
             refetch()
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to delete patient',
+                description: error.response?.data?.message || 'Error al eliminar paciente',
                 variant: 'destructive',
             })
         } finally {
@@ -144,24 +145,24 @@ export default function PatientsPage() {
     // Exportar funciones
     const handleExportPDF = () => {
         toast({
-            title: 'Exporting to PDF',
-            description: 'Generating PDF report...',
+            title: 'Exportar a PDF',
+            description: 'Generando reporte PDF...',
         })
         // TODO: Implementar exportación PDF
     }
 
     const handleExportExcel = () => {
         toast({
-            title: 'Exporting to Excel',
-            description: 'Generating Excel file...',
+            title: 'Exportar a Excel',
+            description: 'Generando archivo Excel...',
         })
         // TODO: Implementar exportación Excel
     }
 
     const handleImport = () => {
         toast({
-            title: 'Import Data',
-            description: 'Import functionality coming soon',
+            title: 'Importar Datos',
+            description: 'Funcionalidad de importación próximamente',
         })
         // TODO: Implementar importación
     }
@@ -207,19 +208,19 @@ export default function PatientsPage() {
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Patients</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Pacientes</h1>
                     <p className="text-muted-foreground">
-                        Manage patient records and medical history • {filteredPatients.length} total
+                        Gestionar registros de pacientes e historial médico • {filteredPatients.length} total
                     </p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={handleImport}>
                         <Upload className="h-4 w-4 mr-2" />
-                        Import
+                        Importar
                     </Button>
                     <Button onClick={handleAdd}>
                         <Plus className="h-4 w-4 mr-2" />
-                        New Patient
+                        Nuevo Paciente
                     </Button>
                 </div>
             </div>
@@ -232,7 +233,7 @@ export default function PatientsPage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search by name, email, phone, or ID..."
+                                placeholder="Buscar por nombre, correo, teléfono o ID..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10"
@@ -244,7 +245,7 @@ export default function PatientsPage() {
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
                             <Filter className="h-4 w-4 mr-2" />
-                            Filters
+                            Filtros
                         </Button>
                         <Button variant="outline" size="sm" onClick={handleExportPDF}>
                             <FileDown className="h-4 w-4 mr-2" />
@@ -256,7 +257,7 @@ export default function PatientsPage() {
                         </Button>
                         <Button variant="outline" size="sm" onClick={handlePrint}>
                             <Printer className="h-4 w-4 mr-2" />
-                            Print
+                            Imprimir
                         </Button>
                     </div>
                 </div>
@@ -266,63 +267,63 @@ export default function PatientsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4 pt-4 border-t">
                         <Select value={filters.gender} onValueChange={(v) => setFilters({ ...filters, gender: v })}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Gender" />
+                                <SelectValue placeholder="Género" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Genders</SelectItem>
-                                <SelectItem value="MALE">Male</SelectItem>
-                                <SelectItem value="FEMALE">Female</SelectItem>
-                                <SelectItem value="OTHER">Other</SelectItem>
+                                <SelectItem value="all">Todos los Géneros</SelectItem>
+                                <SelectItem value="MALE">Masculino</SelectItem>
+                                <SelectItem value="FEMALE">Femenino</SelectItem>
+                                <SelectItem value="OTHER">Otro</SelectItem>
                             </SelectContent>
                         </Select>
 
                         <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Status" />
+                                <SelectValue placeholder="Estado" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
-                                <SelectItem value="ACTIVE">Active</SelectItem>
-                                <SelectItem value="INACTIVE">Inactive</SelectItem>
-                                <SelectItem value="CRITICAL">Critical</SelectItem>
+                                <SelectItem value="all">Todos los Estados</SelectItem>
+                                <SelectItem value="ACTIVE">Activo</SelectItem>
+                                <SelectItem value="INACTIVE">Inactivo</SelectItem>
+                                <SelectItem value="CRITICAL">Crítico</SelectItem>
                             </SelectContent>
                         </Select>
 
                         <Select value={filters.priority} onValueChange={(v) => setFilters({ ...filters, priority: v })}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Priority" />
+                                <SelectValue placeholder="Prioridad" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Priorities</SelectItem>
-                                <SelectItem value="HIGH">High</SelectItem>
-                                <SelectItem value="MEDIUM">Medium</SelectItem>
-                                <SelectItem value="LOW">Low</SelectItem>
+                                <SelectItem value="all">Todas las Prioridades</SelectItem>
+                                <SelectItem value="HIGH">Alta</SelectItem>
+                                <SelectItem value="MEDIUM">Media</SelectItem>
+                                <SelectItem value="LOW">Baja</SelectItem>
                             </SelectContent>
                         </Select>
 
                         <Input
                             type="number"
-                            placeholder="Min Age"
+                            placeholder="Edad Mín"
                             value={filters.ageMin}
                             onChange={(e) => setFilters({ ...filters, ageMin: e.target.value })}
                         />
 
                         <Input
                             type="number"
-                            placeholder="Max Age"
+                            placeholder="Edad Máx"
                             value={filters.ageMax}
                             onChange={(e) => setFilters({ ...filters, ageMax: e.target.value })}
                         />
 
                         <Select value={filters.insurance} onValueChange={(v) => setFilters({ ...filters, insurance: v })}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Insurance" />
+                                <SelectValue placeholder="Seguro" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Insurance</SelectItem>
-                                <SelectItem value="private">Private</SelectItem>
-                                <SelectItem value="public">Public</SelectItem>
-                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="all">Todo Seguro</SelectItem>
+                                <SelectItem value="private">Privado</SelectItem>
+                                <SelectItem value="public">Público</SelectItem>
+                                <SelectItem value="none">Ninguno</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -334,24 +335,24 @@ export default function PatientsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Photo</TableHead>
-                            <TableHead>Full Name</TableHead>
-                            <TableHead>ID/DNI</TableHead>
-                            <TableHead>Gender</TableHead>
-                            <TableHead>Age</TableHead>
-                            <TableHead>Insurance</TableHead>
-                            <TableHead>Phone</TableHead>
-                            <TableHead>Priority</TableHead>
-                            <TableHead>Last Visit</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>Foto</TableHead>
+                            <TableHead>Nombre Completo</TableHead>
+                            <TableHead>DNI/ID</TableHead>
+                            <TableHead>Género</TableHead>
+                            <TableHead>Edad</TableHead>
+                            <TableHead>Seguro</TableHead>
+                            <TableHead>Teléfono</TableHead>
+                            <TableHead>Prioridad</TableHead>
+                            <TableHead>Última Visita</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredPatients.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                                    No patients found
+                                    No se encontraron pacientes
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -372,15 +373,19 @@ export default function PatientsPage() {
                                     <TableCell>{patient.phone || 'N/A'}</TableCell>
                                     <TableCell>
                                         <span className={`text-xs px-2 py-1 rounded-full ${getPriorityBadge('MEDIUM')}`}>
-                                            MEDIUM
+                                            MEDIA
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        {patient.createdAt ? format(new Date(patient.createdAt), 'MMM dd, yyyy') : 'N/A'}
+                                        {patient.createdAt ? format(new Date(patient.createdAt), 'MMM dd, yyyy', { locale: es }) : 'N/A'}
                                     </TableCell>
                                     <TableCell>
                                         <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(patient.status || 'ACTIVE')}`}>
-                                            {patient.status || 'ACTIVE'}
+                                            {({
+                                                'ACTIVE': 'ACTIVO',
+                                                'INACTIVE': 'INACTIVO',
+                                                'CRITICAL': 'CRÍTICO'
+                                            } as Record<string, string>)[patient.status || 'ACTIVE'] || patient.status}
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -418,7 +423,7 @@ export default function PatientsPage() {
             {/* Modal de paciente */}
             <PatientModal
                 open={modalOpen}
-                onClose={() => setModalOpen(false)}
+                onOpenChange={setModalOpen}
                 patient={selectedPatient}
                 onSuccess={handleSuccess}
             />
@@ -427,14 +432,14 @@ export default function PatientsPage() {
             <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Dtás seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the patient record.
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente el registro del paciente.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

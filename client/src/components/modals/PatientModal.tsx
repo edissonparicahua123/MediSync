@@ -33,13 +33,13 @@ import { patientsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 
 const patientSchema = z.object({
-    firstName: z.string().min(2, 'First name must be at least 2 characters'),
-    lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-    dateOfBirth: z.string().min(1, 'Date of birth is required'),
+    firstName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+    lastName: z.string().min(2, 'El apellido debe tener al menos 2 caracteres'),
+    dateOfBirth: z.string().min(1, 'La fecha de nacimiento es requerida'),
     gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
     bloodType: z.string().optional(),
-    phone: z.string().min(10, 'Phone must be at least 10 characters'),
-    email: z.string().email('Invalid email').optional().or(z.literal('')),
+    phone: z.string().min(10, 'El teléfono debe tener al menos 10 caracteres'),
+    email: z.string().email('Email inválido').optional().or(z.literal('')),
     address: z.string().optional(),
     city: z.string().optional(),
     state: z.string().optional(),
@@ -140,9 +140,9 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{patient ? 'Edit Patient' : 'Add New Patient'}</DialogTitle>
+                    <DialogTitle>{patient ? 'Editar Paciente' : 'Agregar Nuevo Paciente'}</DialogTitle>
                     <DialogDescription>
-                        {patient ? 'Update patient information' : 'Enter patient details to create a new record'}
+                        {patient ? 'Actualizar información del paciente' : 'Ingresar detalles del paciente para crear un nuevo registro'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -150,16 +150,16 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         {/* Personal Information */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Personal Information</h3>
+                            <h3 className="text-lg font-semibold">Información Personal</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="firstName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>First Name *</FormLabel>
+                                            <FormLabel>Nombre *</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="John" {...field} />
+                                                <Input placeholder="Juan" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -171,62 +171,24 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                     name="lastName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Last Name *</FormLabel>
+                                            <FormLabel>Apellido *</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Doe" {...field} />
+                                                <Input placeholder="Pérez" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-
-                                <FormField
-                                    control={form.control}
-                                    name="dateOfBirth"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Date of Birth *</FormLabel>
-                                            <FormControl>
-                                                <Input type="date" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
-                                    name="gender"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Gender *</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select gender" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="MALE">Male</SelectItem>
-                                                    <SelectItem value="FEMALE">Female</SelectItem>
-                                                    <SelectItem value="OTHER">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
                                 <FormField
                                     control={form.control}
                                     name="bloodType"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Blood Type</FormLabel>
+                                            <FormLabel>Tipo de Sangre</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Select blood type" />
+                                                        <SelectValue placeholder="Seleccionar tipo" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
@@ -249,14 +211,14 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
 
                         {/* Contact Information */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Contact Information</h3>
+                            <h3 className="text-lg font-semibold">Información de Contacto</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="phone"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Phone *</FormLabel>
+                                            <FormLabel>Teléfono *</FormLabel>
                                             <FormControl>
                                                 <Input placeholder="+1 (555) 123-4567" {...field} />
                                             </FormControl>
@@ -270,9 +232,9 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                     name="email"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Email</FormLabel>
+                                            <FormLabel>Correo Electrónico</FormLabel>
                                             <FormControl>
-                                                <Input type="email" placeholder="john.doe@example.com" {...field} />
+                                                <Input type="email" placeholder="juan.perez@ejemplo.com" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -284,9 +246,9 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                     name="address"
                                     render={({ field }) => (
                                         <FormItem className="col-span-2">
-                                            <FormLabel>Address</FormLabel>
+                                            <FormLabel>Dirección</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="123 Main St" {...field} />
+                                                <Input placeholder="Av. Principal 123" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -298,9 +260,9 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                     name="city"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>City</FormLabel>
+                                            <FormLabel>Ciudad</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="New York" {...field} />
+                                                <Input placeholder="Ciudad" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -312,9 +274,9 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                     name="state"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>State</FormLabel>
+                                            <FormLabel>Estado/Región</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="NY" {...field} />
+                                                <Input placeholder="Estado" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -325,16 +287,16 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
 
                         {/* Medical Information */}
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Medical Information</h3>
+                            <h3 className="text-lg font-semibold">Información Médica</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="allergies"
                                     render={({ field }) => (
                                         <FormItem className="col-span-2">
-                                            <FormLabel>Allergies</FormLabel>
+                                            <FormLabel>Alergias</FormLabel>
                                             <FormControl>
-                                                <Textarea placeholder="List any known allergies..." {...field} />
+                                                <Textarea placeholder="Listar alergias conocidas..." {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -346,9 +308,9 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                     name="chronicConditions"
                                     render={({ field }) => (
                                         <FormItem className="col-span-2">
-                                            <FormLabel>Chronic Conditions</FormLabel>
+                                            <FormLabel>Condiciones Crónicas</FormLabel>
                                             <FormControl>
-                                                <Textarea placeholder="List any chronic conditions..." {...field} />
+                                                <Textarea placeholder="Listar condiciones crónicas..." {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -359,16 +321,16 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                Cancel
+                                Cancelar
                             </Button>
                             <Button type="submit" disabled={loading}>
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {patient ? 'Update Patient' : 'Create Patient'}
+                                {patient ? 'Actualizar Paciente' : 'Crear Paciente'}
                             </Button>
                         </DialogFooter>
                     </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
+                </Form >
+            </DialogContent >
+        </Dialog >
     )
 }

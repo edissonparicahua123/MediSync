@@ -25,6 +25,7 @@ import {
 import { reportsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -60,39 +61,39 @@ export default function ReportsPage() {
             const simulatedData = {
                 // 1. Reporte de citas por mes
                 appointments: [
-                    { month: 'Jan', total: 145, completed: 120, cancelled: 25 },
+                    { month: 'Ene', total: 145, completed: 120, cancelled: 25 },
                     { month: 'Feb', total: 168, completed: 142, cancelled: 26 },
                     { month: 'Mar', total: 192, completed: 165, cancelled: 27 },
-                    { month: 'Apr', total: 178, completed: 155, cancelled: 23 },
+                    { month: 'Abr', total: 178, completed: 155, cancelled: 23 },
                     { month: 'May', total: 205, completed: 180, cancelled: 25 },
                     { month: 'Jun', total: 220, completed: 195, cancelled: 25 },
                 ],
 
                 // 2. Reporte de pacientes nuevos
                 newPatients: [
-                    { month: 'Jan', count: 45 },
+                    { month: 'Ene', count: 45 },
                     { month: 'Feb', count: 52 },
                     { month: 'Mar', count: 68 },
-                    { month: 'Apr', count: 55 },
+                    { month: 'Abr', count: 55 },
                     { month: 'May', count: 72 },
                     { month: 'Jun', count: 80 },
                 ],
 
                 // 3. Reporte de emergencias
                 emergencies: [
-                    { type: 'Critical', count: 45, avgTime: 5 },
-                    { type: 'Urgent', count: 120, avgTime: 15 },
-                    { type: 'Semi-Urgent', count: 200, avgTime: 30 },
-                    { type: 'Non-Urgent', count: 150, avgTime: 60 },
+                    { type: 'Crítica', count: 45, avgTime: 5 },
+                    { type: 'Urgente', count: 120, avgTime: 15 },
+                    { type: 'Semi-Urgente', count: 200, avgTime: 30 },
+                    { type: 'No Urgente', count: 150, avgTime: 60 },
                 ],
 
                 // 4. Reporte de medicamentos consumidos
                 medications: [
                     { name: 'Paracetamol', quantity: 1500, cost: 7500 },
-                    { name: 'Amoxicillin', quantity: 800, cost: 12000 },
-                    { name: 'Insulin', quantity: 300, cost: 13500 },
-                    { name: 'Ibuprofen', quantity: 1200, cost: 6000 },
-                    { name: 'Aspirin', quantity: 900, cost: 4500 },
+                    { name: 'Amoxicilina', quantity: 800, cost: 12000 },
+                    { name: 'Insulina', quantity: 300, cost: 13500 },
+                    { name: 'Ibuprofeno', quantity: 1200, cost: 6000 },
+                    { name: 'Aspirina', quantity: 900, cost: 4500 },
                 ],
 
                 // 5. Reporte económico general
@@ -102,10 +103,10 @@ export default function ReportsPage() {
                     netProfit: 165000,
                     profitMargin: 34,
                     monthlyBreakdown: [
-                        { month: 'Jan', revenue: 75000, expenses: 50000 },
+                        { month: 'Ene', revenue: 75000, expenses: 50000 },
                         { month: 'Feb', revenue: 78000, expenses: 52000 },
                         { month: 'Mar', revenue: 82000, expenses: 54000 },
-                        { month: 'Apr', revenue: 80000, expenses: 53000 },
+                        { month: 'Abr', revenue: 80000, expenses: 53000 },
                         { month: 'May', revenue: 85000, expenses: 55000 },
                         { month: 'Jun', revenue: 85000, expenses: 56000 },
                     ],
@@ -122,10 +123,10 @@ export default function ReportsPage() {
 
                 // 7. Reporte comparativo mensual
                 comparison: [
-                    { month: 'Jan', current: 75000, previous: 68000 },
+                    { month: 'Ene', current: 75000, previous: 68000 },
                     { month: 'Feb', current: 78000, previous: 72000 },
                     { month: 'Mar', current: 82000, previous: 75000 },
-                    { month: 'Apr', current: 80000, previous: 77000 },
+                    { month: 'Abr', current: 80000, previous: 77000 },
                     { month: 'May', current: 85000, previous: 79000 },
                     { month: 'Jun', current: 85000, previous: 80000 },
                 ],
@@ -133,11 +134,11 @@ export default function ReportsPage() {
                 // 8. Reporte de IA (predicciones)
                 aiPredictions: [
                     { month: 'Jul', predicted: 88000, confidence: 85 },
-                    { month: 'Aug', predicted: 92000, confidence: 82 },
+                    { month: 'Ago', predicted: 92000, confidence: 82 },
                     { month: 'Sep', predicted: 95000, confidence: 80 },
                     { month: 'Oct', predicted: 90000, confidence: 78 },
                     { month: 'Nov', predicted: 93000, confidence: 75 },
-                    { month: 'Dec', predicted: 98000, confidence: 73 },
+                    { month: 'Dic', predicted: 98000, confidence: 73 },
                 ],
             }
 
@@ -145,7 +146,7 @@ export default function ReportsPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load reports',
+                description: error.response?.data?.message || 'Error al cargar reportes',
                 variant: 'destructive',
             })
         } finally {
@@ -159,10 +160,10 @@ export default function ReportsPage() {
 
         // Header
         doc.setFontSize(20)
-        doc.text('MediSync - Medical Report', 14, 20)
+        doc.text('MediSync - Reporte Médico', 14, 20)
         doc.setFontSize(12)
-        doc.text(`Report Type: ${reportType}`, 14, 30)
-        doc.text(`Generated: ${format(new Date(), 'PPpp')}`, 14, 37)
+        doc.text(`Tipo de Reporte: ${getReportTitle(reportType)}`, 14, 30)
+        doc.text(`Generado: ${format(new Date(), 'PPpp', { locale: es })}`, 14, 37)
 
         let tableData: any[] = []
         let columns: any[] = []
@@ -170,7 +171,7 @@ export default function ReportsPage() {
         // Preparar datos según el tipo de reporte
         switch (reportType) {
             case 'appointments':
-                columns = ['Month', 'Total', 'Completed', 'Cancelled']
+                columns = ['Mes', 'Total', 'Completadas', 'Canceladas']
                 tableData = reportsData.appointments.map((item: any) => [
                     item.month,
                     item.total,
@@ -179,14 +180,14 @@ export default function ReportsPage() {
                 ])
                 break
             case 'newPatients':
-                columns = ['Month', 'New Patients']
+                columns = ['Mes', 'Nuevos Pacientes']
                 tableData = reportsData.newPatients.map((item: any) => [
                     item.month,
                     item.count,
                 ])
                 break
             case 'emergencies':
-                columns = ['Type', 'Count', 'Avg Time (min)']
+                columns = ['Tipo', 'Cantidad', 'Tiempo Prom. (min)']
                 tableData = reportsData.emergencies.map((item: any) => [
                     item.type,
                     item.count,
@@ -194,7 +195,7 @@ export default function ReportsPage() {
                 ])
                 break
             case 'medications':
-                columns = ['Medication', 'Quantity', 'Cost ($)']
+                columns = ['Medicamento', 'Cantidad', 'Costo ($)']
                 tableData = reportsData.medications.map((item: any) => [
                     item.name,
                     item.quantity,
@@ -202,7 +203,7 @@ export default function ReportsPage() {
                 ])
                 break
             case 'doctors':
-                columns = ['Doctor', 'Patients', 'Satisfaction', 'Revenue ($)']
+                columns = ['Doctor', 'Pacientes', 'Satisfacción', 'Ingresos ($)']
                 tableData = reportsData.doctors.map((item: any) => [
                     item.name,
                     item.patients,
@@ -218,11 +219,11 @@ export default function ReportsPage() {
             startY: 45,
         })
 
-        doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`)
+        doc.save(`${reportType}_reporte_${format(new Date(), 'yyyy-MM-dd')}.pdf`)
 
         toast({
-            title: 'PDF Exported',
-            description: 'Report has been exported to PDF successfully',
+            title: 'PDF Exportado',
+            description: 'El reporte ha sido exportado a PDF exitosamente',
         })
     }
 
@@ -261,15 +262,29 @@ export default function ReportsPage() {
         const ws = XLSX.utils.json_to_sheet(data)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, reportType)
-        XLSX.writeFile(wb, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
+        XLSX.writeFile(wb, `${reportType}_reporte_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
 
         toast({
-            title: 'Excel Exported',
-            description: 'Report has been exported to Excel successfully',
+            title: 'Excel Exportado',
+            description: 'El reporte ha sido exportado a Excel exitosamente',
         })
     }
 
     const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+
+    const getReportTitle = (type: string) => {
+        const titles: Record<string, string> = {
+            appointments: 'Citas por Mes',
+            newPatients: 'Nuevos Pacientes',
+            emergencies: 'Casos de Emergencia',
+            medications: 'Medicamentos Consumidos',
+            economic: 'Resumen Económico',
+            doctors: 'Rendimiento de Doctores',
+            comparison: 'Comparación Mensual',
+            aiPredictions: 'Predicciones IA',
+        }
+        return titles[type] || type
+    }
 
     if (loading) {
         return (
@@ -288,21 +303,21 @@ export default function ReportsPage() {
                         <FileText className="h-6 w-6 text-indigo-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Reportes y Analítica</h1>
                         <p className="text-muted-foreground">
-                            Comprehensive reports with PDF and Excel export
+                            Reportes completos con exportación a PDF y Excel
                         </p>
                     </div>
                 </div>
                 <Select value={dateRange} onValueChange={setDateRange}>
                     <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Date Range" />
+                        <SelectValue placeholder="Rango de Fechas" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="week">Last Week</SelectItem>
-                        <SelectItem value="month">Last Month</SelectItem>
-                        <SelectItem value="quarter">Last Quarter</SelectItem>
-                        <SelectItem value="year">Last Year</SelectItem>
+                        <SelectItem value="week">Última Semana</SelectItem>
+                        <SelectItem value="month">Último Mes</SelectItem>
+                        <SelectItem value="quarter">Último Trimestre</SelectItem>
+                        <SelectItem value="year">Último Año</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -316,7 +331,7 @@ export default function ReportsPage() {
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center gap-2">
                             <Calendar className="h-8 w-8 text-blue-600" />
-                            <p className="font-semibold">Appointments</p>
+                            <p className="font-semibold">Citas</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -328,7 +343,7 @@ export default function ReportsPage() {
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center gap-2">
                             <Users className="h-8 w-8 text-green-600" />
-                            <p className="font-semibold">New Patients</p>
+                            <p className="font-semibold">Pacientes Nuevos</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -340,7 +355,7 @@ export default function ReportsPage() {
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center gap-2">
                             <AlertTriangle className="h-8 w-8 text-red-600" />
-                            <p className="font-semibold">Emergencies</p>
+                            <p className="font-semibold">Emergencias</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -352,7 +367,7 @@ export default function ReportsPage() {
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center gap-2">
                             <Pill className="h-8 w-8 text-purple-600" />
-                            <p className="font-semibold">Medications</p>
+                            <p className="font-semibold">Medicamentos</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -364,7 +379,7 @@ export default function ReportsPage() {
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center gap-2">
                             <DollarSign className="h-8 w-8 text-green-600" />
-                            <p className="font-semibold">Economic</p>
+                            <p className="font-semibold">Económico</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -376,7 +391,7 @@ export default function ReportsPage() {
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center gap-2">
                             <TrendingUp className="h-8 w-8 text-blue-600" />
-                            <p className="font-semibold">Doctor Performance</p>
+                            <p className="font-semibold">Rendimiento Doctores</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -388,7 +403,7 @@ export default function ReportsPage() {
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center gap-2">
                             <BarChart3 className="h-8 w-8 text-orange-600" />
-                            <p className="font-semibold">Monthly Comparison</p>
+                            <p className="font-semibold">Comparativa</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -400,7 +415,7 @@ export default function ReportsPage() {
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center text-center gap-2">
                             <Brain className="h-8 w-8 text-indigo-600" />
-                            <p className="font-semibold">AI Predictions</p>
+                            <p className="font-semibold">Predicciones IA</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -412,17 +427,10 @@ export default function ReportsPage() {
                     <div className="flex justify-between items-center">
                         <div>
                             <CardTitle>
-                                {activeReport === 'appointments' && 'Appointments by Month'}
-                                {activeReport === 'newPatients' && 'New Patients Report'}
-                                {activeReport === 'emergencies' && 'Emergency Cases Report'}
-                                {activeReport === 'medications' && 'Medications Consumed'}
-                                {activeReport === 'economic' && 'Economic Overview'}
-                                {activeReport === 'doctors' && 'Doctor Performance Report'}
-                                {activeReport === 'comparison' && 'Monthly Comparison'}
-                                {activeReport === 'aiPredictions' && 'AI Predictions & Forecasting'}
+                                {getReportTitle(activeReport)}
                             </CardTitle>
                             <CardDescription>
-                                Detailed analysis and insights
+                                Análisis detallado y observaciones clave
                             </CardDescription>
                         </div>
                         <div className="flex gap-2">
@@ -446,10 +454,10 @@ export default function ReportsPage() {
                                 <XAxis dataKey="month" />
                                 <YAxis />
                                 <Tooltip />
-                                <Legend />
+                                <Legend payload={[{ value: 'Total', type: 'square', color: '#3b82f6' }, { value: 'Completadas', type: 'square', color: '#10b981' }, { value: 'Canceladas', type: 'square', color: '#ef4444' }]} />
                                 <Bar dataKey="total" fill="#3b82f6" name="Total" />
-                                <Bar dataKey="completed" fill="#10b981" name="Completed" />
-                                <Bar dataKey="cancelled" fill="#ef4444" name="Cancelled" />
+                                <Bar dataKey="completed" fill="#10b981" name="Completadas" />
+                                <Bar dataKey="cancelled" fill="#ef4444" name="Canceladas" />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
@@ -462,8 +470,8 @@ export default function ReportsPage() {
                                 <XAxis dataKey="month" />
                                 <YAxis />
                                 <Tooltip />
-                                <Legend />
-                                <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={3} name="New Patients" />
+                                <Legend payload={[{ value: 'Nuevos Pacientes', type: 'line', color: '#10b981' }]} />
+                                <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={3} name="Nuevos Pacientes" />
                             </LineChart>
                         </ResponsiveContainer>
                     )}
@@ -496,8 +504,8 @@ export default function ReportsPage() {
                                     <XAxis dataKey="type" />
                                     <YAxis />
                                     <Tooltip />
-                                    <Legend />
-                                    <Bar dataKey="avgTime" fill="#f59e0b" name="Avg Time (min)" />
+                                    <Legend payload={[{ value: 'Tiempo Prom. (min)', type: 'square', color: '#f59e0b' }]} />
+                                    <Bar dataKey="avgTime" fill="#f59e0b" name="Tiempo Prom. (min)" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -511,9 +519,9 @@ export default function ReportsPage() {
                                 <XAxis dataKey="name" />
                                 <YAxis />
                                 <Tooltip />
-                                <Legend />
-                                <Bar dataKey="quantity" fill="#8b5cf6" name="Quantity" />
-                                <Bar dataKey="cost" fill="#10b981" name="Cost ($)" />
+                                <Legend payload={[{ value: 'Cantidad', type: 'square', color: '#8b5cf6' }, { value: 'Costo ($)', type: 'square', color: '#10b981' }]} />
+                                <Bar dataKey="quantity" fill="#8b5cf6" name="Cantidad" />
+                                <Bar dataKey="cost" fill="#10b981" name="Costo ($)" />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
@@ -524,31 +532,31 @@ export default function ReportsPage() {
                             <div className="grid grid-cols-4 gap-4">
                                 <Card>
                                     <CardContent className="pt-6">
-                                        <p className="text-sm text-muted-foreground">Total Revenue</p>
+                                        <p className="text-sm text-muted-foreground">Ingresos Totales</p>
                                         <p className="text-2xl font-bold text-green-600">
-                                            ${reportsData.economic.totalRevenue.toLocaleString()}
+                                            ${reportsData.economic.totalRevenue?.toLocaleString()}
                                         </p>
                                     </CardContent>
                                 </Card>
                                 <Card>
                                     <CardContent className="pt-6">
-                                        <p className="text-sm text-muted-foreground">Total Expenses</p>
+                                        <p className="text-sm text-muted-foreground">Gastos Totales</p>
                                         <p className="text-2xl font-bold text-red-600">
-                                            ${reportsData.economic.totalExpenses.toLocaleString()}
+                                            ${reportsData.economic.totalExpenses?.toLocaleString()}
                                         </p>
                                     </CardContent>
                                 </Card>
                                 <Card>
                                     <CardContent className="pt-6">
-                                        <p className="text-sm text-muted-foreground">Net Profit</p>
+                                        <p className="text-sm text-muted-foreground">Beneficio Neto</p>
                                         <p className="text-2xl font-bold text-blue-600">
-                                            ${reportsData.economic.netProfit.toLocaleString()}
+                                            ${reportsData.economic.netProfit?.toLocaleString()}
                                         </p>
                                     </CardContent>
                                 </Card>
                                 <Card>
                                     <CardContent className="pt-6">
-                                        <p className="text-sm text-muted-foreground">Profit Margin</p>
+                                        <p className="text-sm text-muted-foreground">Margen</p>
                                         <p className="text-2xl font-bold text-purple-600">
                                             {reportsData.economic.profitMargin}%
                                         </p>
@@ -561,9 +569,9 @@ export default function ReportsPage() {
                                     <XAxis dataKey="month" />
                                     <YAxis />
                                     <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="Revenue" />
-                                    <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} name="Expenses" />
+                                    <Legend payload={[{ value: 'Ingresos', type: 'line', color: '#10b981' }, { value: 'Gastos', type: 'line', color: '#ef4444' }]} />
+                                    <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="Ingresos" />
+                                    <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} name="Gastos" />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -577,9 +585,9 @@ export default function ReportsPage() {
                                 <XAxis dataKey="name" />
                                 <YAxis />
                                 <Tooltip />
-                                <Legend />
-                                <Bar dataKey="patients" fill="#3b82f6" name="Patients" />
-                                <Bar dataKey="satisfaction" fill="#f59e0b" name="Satisfaction" />
+                                <Legend payload={[{ value: 'Pacientes', type: 'square', color: '#3b82f6' }, { value: 'Satisfacción', type: 'square', color: '#f59e0b' }]} />
+                                <Bar dataKey="patients" fill="#3b82f6" name="Pacientes" />
+                                <Bar dataKey="satisfaction" fill="#f59e0b" name="Satisfacción" />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
@@ -592,9 +600,9 @@ export default function ReportsPage() {
                                 <XAxis dataKey="month" />
                                 <YAxis />
                                 <Tooltip />
-                                <Legend />
-                                <Bar dataKey="current" fill="#10b981" name="Current Year" />
-                                <Bar dataKey="previous" fill="#94a3b8" name="Previous Year" />
+                                <Legend payload={[{ value: 'Año Actual', type: 'square', color: '#10b981' }, { value: 'Año Anterior', type: 'square', color: '#94a3b8' }]} />
+                                <Bar dataKey="current" fill="#10b981" name="Año Actual" />
+                                <Bar dataKey="previous" fill="#94a3b8" name="Año Anterior" />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
@@ -605,10 +613,10 @@ export default function ReportsPage() {
                             <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                                 <p className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
                                     <Brain className="h-4 w-4" />
-                                    AI-Powered Revenue Forecasting
+                                    Previsión de Ingresos Potenciada por IA
                                 </p>
                                 <p className="text-xs text-indigo-700 mt-1">
-                                    Based on historical data and machine learning algorithms
+                                    Basado en datos históricos y algoritmos de aprendizaje automático
                                 </p>
                             </div>
                             <ResponsiveContainer width="100%" height={350}>
@@ -617,9 +625,9 @@ export default function ReportsPage() {
                                     <XAxis dataKey="month" />
                                     <YAxis />
                                     <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="predicted" stroke="#8b5cf6" strokeWidth={3} name="Predicted Revenue ($)" strokeDasharray="5 5" />
-                                    <Line type="monotone" dataKey="confidence" stroke="#10b981" strokeWidth={2} name="Confidence (%)" />
+                                    <Legend payload={[{ value: 'Ingresos Predichos ($)', type: 'line', color: '#8b5cf6' }, { value: 'Confianza (%)', type: 'line', color: '#10b981' }]} />
+                                    <Line type="monotone" dataKey="predicted" stroke="#8b5cf6" strokeWidth={3} name="Ingresos Predichos ($)" strokeDasharray="5 5" />
+                                    <Line type="monotone" dataKey="confidence" stroke="#10b981" strokeWidth={2} name="Confianza (%)" />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>

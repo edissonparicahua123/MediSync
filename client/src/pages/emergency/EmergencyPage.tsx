@@ -31,6 +31,7 @@ import {
 import { emergencyAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 export default function EmergencyPage() {
     const navigate = useNavigate()
@@ -65,14 +66,14 @@ export default function EmergencyPage() {
             })
             setCriticalPatients(patientsRes.data || [])
             setWardStats(wardsRes.data || [
-                { ward: 'ICU', total: 10, occupied: 8 },
-                { ward: 'Emergency', total: 20, occupied: 15 },
+                { ward: 'UCI', total: 10, occupied: 8 },
+                { ward: 'Emergencia', total: 20, occupied: 15 },
                 { ward: 'General', total: 20, occupied: 15 },
             ])
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load data',
+                description: error.response?.data?.message || 'Error al cargar datos',
                 variant: 'destructive',
             })
         } finally {
@@ -85,7 +86,7 @@ export default function EmergencyPage() {
         if (!symptoms.trim()) {
             toast({
                 title: 'Error',
-                description: 'Please enter symptoms',
+                description: 'Por favor ingrese los síntomas',
                 variant: 'destructive',
             })
             return
@@ -99,11 +100,11 @@ export default function EmergencyPage() {
             const waitTime = priority === 1 ? 0 : priority === 2 ? 10 : priority === 3 ? 30 : priority === 4 ? 60 : 120
 
             const colors: Record<number, { bg: string; text: string; label: string }> = {
-                1: { bg: 'bg-red-100', text: 'text-red-800', label: 'CRITICAL' },
-                2: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'URGENT' },
-                3: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'SEMI-URGENT' },
-                4: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'NON-URGENT' },
-                5: { bg: 'bg-green-100', text: 'text-green-800', label: 'LOW PRIORITY' },
+                1: { bg: 'bg-red-100', text: 'text-red-800', label: 'CRÍTICO' },
+                2: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'URGENTE' },
+                3: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'SEMI-URGENTE' },
+                4: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'NO URGENTE' },
+                5: { bg: 'bg-green-100', text: 'text-green-800', label: 'BAJA PRIORIDAD' },
             }
 
             setTriageResult({
@@ -111,9 +112,9 @@ export default function EmergencyPage() {
                 waitTime,
                 color: colors[priority],
                 recommendations: [
-                    'Monitor vital signs every 15 minutes',
-                    'Prepare IV access',
-                    'Alert attending physician',
+                    'Monitorear signos vitales cada 15 minutos',
+                    'Preparar acceso IV',
+                    'Alertar al médico de turno',
                 ],
             })
             setAnalyzingTriage(false)
@@ -135,33 +136,33 @@ export default function EmergencyPage() {
     const erPatients = [
         {
             id: '1',
-            name: 'John Doe',
+            name: 'Juan Pérez',
             age: 45,
             bedNumber: 'ER-01',
             priority: 1,
-            diagnosis: 'Chest pain',
+            diagnosis: 'Dolor torácico',
             doctor: 'Dr. Smith',
             admittedAt: new Date(Date.now() - 3600000),
             vitalSigns: { hr: 120, bp: '140/90', temp: 38.5, spo2: 95 },
         },
         {
             id: '2',
-            name: 'Jane Smith',
+            name: 'María García',
             age: 32,
             bedNumber: 'ER-02',
             priority: 2,
-            diagnosis: 'Severe headache',
+            diagnosis: 'Cefalea intensa',
             doctor: 'Dr. Johnson',
             admittedAt: new Date(Date.now() - 7200000),
             vitalSigns: { hr: 85, bp: '130/85', temp: 37.2, spo2: 98 },
         },
         {
             id: '3',
-            name: 'Bob Wilson',
+            name: 'Roberto Wilson',
             age: 28,
             bedNumber: 'ER-03',
             priority: 3,
-            diagnosis: 'Ankle sprain',
+            diagnosis: 'Esguince de tobillo',
             doctor: 'Dr. Brown',
             admittedAt: new Date(Date.now() - 10800000),
             vitalSigns: { hr: 75, bp: '120/80', temp: 36.8, spo2: 99 },
@@ -185,15 +186,15 @@ export default function EmergencyPage() {
                         <AlertTriangle className="h-6 w-6 text-red-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Emergency Department</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Departamento de Emergencia</h1>
                         <p className="text-muted-foreground">
-                            Real-time emergency room management and AI-powered triage
+                            Gestión de emergencias en tiempo real y evaluación con IA
                         </p>
                     </div>
                 </div>
                 <Button onClick={() => setTriageOpen(true)}>
                     <Brain className="h-4 w-4 mr-2" />
-                    AI Triage
+                    Evaluación IA
                 </Button>
             </div>
 
@@ -201,44 +202,44 @@ export default function EmergencyPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="border-red-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Critical Patients</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pacientes Críticos</CardTitle>
                         <AlertTriangle className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">
                             {dashboard?.criticalPatients || 0}
                         </div>
-                        <p className="text-xs text-muted-foreground">Requires immediate attention</p>
+                        <p className="text-xs text-muted-foreground">Requieren atención inmediata</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Beds</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total de Camas</CardTitle>
                         <Bed className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{dashboard?.beds?.total || 0}</div>
-                        <p className="text-xs text-muted-foreground">Emergency department capacity</p>
+                        <p className="text-xs text-muted-foreground">Capacidad departamento de emergencia</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-green-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Available Beds</CardTitle>
+                        <CardTitle className="text-sm font-medium">Camas Disponibles</CardTitle>
                         <Activity className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600">
                             {dashboard?.beds?.available || 0}
                         </div>
-                        <p className="text-xs text-muted-foreground">Ready for new patients</p>
+                        <p className="text-xs text-muted-foreground">Listas para nuevos pacientes</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-orange-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+                        <CardTitle className="text-sm font-medium">Tasa de Ocupación</CardTitle>
                         <Users className="h-4 w-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
@@ -247,12 +248,12 @@ export default function EmergencyPage() {
                                 ? Math.round((dashboard.beds.occupied / dashboard.beds.total) * 100)
                                 : 0}%
                         </div>
-                        <p className="text-xs text-muted-foreground">Current bed utilization</p>
+                        <p className="text-xs text-muted-foreground">Utilización actual de camas</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Triage Modal */}
+            {/* Triaje Modal */}
             {triageOpen && (
                 <Card className="border-2 border-primary">
                     <CardHeader>
@@ -260,10 +261,10 @@ export default function EmergencyPage() {
                             <div>
                                 <CardTitle className="flex items-center gap-2">
                                     <Brain className="h-5 w-5 text-primary" />
-                                    AI-Powered Triage System
+                                    Sistema de Evaluación con IA
                                 </CardTitle>
                                 <CardDescription>
-                                    Enter patient symptoms for automatic priority assessment
+                                    Ingrese los síntomas del paciente para evaluación automática de prioridad
                                 </CardDescription>
                             </div>
                             <Button variant="ghost" onClick={() => {
@@ -271,15 +272,15 @@ export default function EmergencyPage() {
                                 setTriageResult(null)
                                 setSymptoms('')
                             }}>
-                                Close
+                                Cerrar
                             </Button>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div>
-                            <label className="text-sm font-medium mb-2 block">Patient Symptoms</label>
+                            <label className="text-sm font-medium mb-2 block">Síntomas del Paciente</label>
                             <Textarea
-                                placeholder="Describe symptoms in detail (e.g., chest pain, difficulty breathing, fever...)"
+                                placeholder="Describa los síntomas en detalle (ej. dolor de pecho, dificultad para respirar, fiebre...)"
                                 value={symptoms}
                                 onChange={(e) => setSymptoms(e.target.value)}
                                 rows={4}
@@ -291,12 +292,12 @@ export default function EmergencyPage() {
                             {analyzingTriage ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Analyzing...
+                                    Analizando...
                                 </>
                             ) : (
                                 <>
                                     <Brain className="h-4 w-4 mr-2" />
-                                    Analyze with AI
+                                    Analizar con IA
                                 </>
                             )}
                         </Button>
@@ -304,11 +305,11 @@ export default function EmergencyPage() {
                         {triageResult && (
                             <div className="mt-6 space-y-4">
                                 <div className="p-6 border-2 rounded-lg bg-accent/50">
-                                    <h3 className="font-semibold text-lg mb-4">Triage Results</h3>
+                                    <h3 className="font-semibold text-lg mb-4">Resultados de Evaluación</h3>
 
                                     <div className="grid grid-cols-3 gap-4 mb-4">
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Priority Level</p>
+                                            <p className="text-sm text-muted-foreground">Nivel de Prioridad</p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <div className={`h-8 w-8 rounded-full ${getPriorityColor(triageResult.priority)} flex items-center justify-center text-white font-bold`}>
                                                     {triageResult.priority}
@@ -320,18 +321,18 @@ export default function EmergencyPage() {
                                         </div>
 
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Estimated Wait Time</p>
+                                            <p className="text-sm text-muted-foreground">Tiempo Est. de Espera</p>
                                             <p className="text-2xl font-bold mt-1">{triageResult.waitTime} min</p>
                                         </div>
 
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Color Code</p>
+                                            <p className="text-sm text-muted-foreground">Código de Color</p>
                                             <div className={`mt-1 h-8 w-full rounded ${getPriorityColor(triageResult.priority)}`}></div>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <p className="text-sm font-semibold mb-2">AI Recommendations:</p>
+                                        <p className="text-sm font-semibold mb-2">Recomendaciones IA:</p>
                                         <ul className="space-y-1">
                                             {triageResult.recommendations.map((rec: string, idx: number) => (
                                                 <li key={idx} className="text-sm flex items-start gap-2">
@@ -353,11 +354,11 @@ export default function EmergencyPage() {
                 <TabsList>
                     <TabsTrigger value="er-room">
                         <Bed className="h-4 w-4 mr-2" />
-                        Emergency Room
+                        Sala de Emergencias
                     </TabsTrigger>
                     <TabsTrigger value="bed-status">
                         <Activity className="h-4 w-4 mr-2" />
-                        Bed Status
+                        Estado de Camas
                     </TabsTrigger>
                 </TabsList>
 
@@ -365,21 +366,21 @@ export default function EmergencyPage() {
                 <TabsContent value="er-room" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Active Emergency Cases</CardTitle>
-                            <CardDescription>Real-time patient monitoring and management</CardDescription>
+                            <CardTitle>Casos de Emergencia Activos</CardTitle>
+                            <CardDescription>Monitoreo y gestión de pacientes en tiempo real</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Priority</TableHead>
-                                        <TableHead>Bed</TableHead>
-                                        <TableHead>Patient</TableHead>
-                                        <TableHead>Diagnosis</TableHead>
+                                        <TableHead>Prioridad</TableHead>
+                                        <TableHead>Cama</TableHead>
+                                        <TableHead>Paciente</TableHead>
+                                        <TableHead>Diagnóstico</TableHead>
                                         <TableHead>Doctor</TableHead>
-                                        <TableHead>Vital Signs</TableHead>
-                                        <TableHead>Admitted</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                                        <TableHead>Signos Vitales</TableHead>
+                                        <TableHead>Ingreso</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -396,7 +397,7 @@ export default function EmergencyPage() {
                                             <TableCell>
                                                 <div>
                                                     <p className="font-medium">{patient.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{patient.age} years</p>
+                                                    <p className="text-sm text-muted-foreground">{patient.age} años</p>
                                                 </div>
                                             </TableCell>
                                             <TableCell>{patient.diagnosis}</TableCell>
@@ -448,8 +449,8 @@ export default function EmergencyPage() {
                 <TabsContent value="bed-status" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Bed Occupancy by Ward</CardTitle>
-                            <CardDescription>Real-time bed availability across all wards</CardDescription>
+                            <CardTitle>Ocupación de Camas por Área</CardTitle>
+                            <CardDescription>Disponibilidad de camas en tiempo real</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-6">
@@ -458,14 +459,14 @@ export default function EmergencyPage() {
                                         <div className="flex justify-between items-center">
                                             <span className="font-semibold text-lg">{ward.ward}</span>
                                             <span className="text-sm text-muted-foreground">
-                                                {ward.occupied}/{ward.total} beds occupied ({Math.round((ward.occupied / ward.total) * 100)}%)
+                                                {ward.occupied}/{ward.total} camas ocupadas ({Math.round((ward.occupied / ward.total) * 100)}%)
                                             </span>
                                         </div>
                                         <div className="w-full bg-gray-200 rounded-full h-4">
                                             <div
                                                 className={`h-4 rounded-full ${(ward.occupied / ward.total) > 0.9 ? 'bg-red-500' :
-                                                        (ward.occupied / ward.total) > 0.7 ? 'bg-orange-500' :
-                                                            'bg-green-500'
+                                                    (ward.occupied / ward.total) > 0.7 ? 'bg-orange-500' :
+                                                        'bg-green-500'
                                                     }`}
                                                 style={{ width: `${(ward.occupied / ward.total) * 100}%` }}
                                             ></div>

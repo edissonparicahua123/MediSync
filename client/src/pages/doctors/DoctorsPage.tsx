@@ -38,6 +38,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { format, isToday } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 export default function DoctorsPage() {
     const navigate = useNavigate()
@@ -66,7 +67,7 @@ export default function DoctorsPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load doctors',
+                description: error.response?.data?.message || 'Error al cargar doctores',
                 variant: 'destructive',
             })
         } finally {
@@ -79,14 +80,14 @@ export default function DoctorsPage() {
         try {
             await doctorsAPI.delete(deleteId)
             toast({
-                title: 'Success',
-                description: 'Doctor deleted successfully',
+                title: 'Éxito',
+                description: 'Doctor eliminado correctamente',
             })
             loadData()
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to delete doctor',
+                description: error.response?.data?.message || 'Error al eliminar doctor',
                 variant: 'destructive',
             })
         } finally {
@@ -140,9 +141,9 @@ export default function DoctorsPage() {
             apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED'
         )
 
-        if (!doctor.isAvailable) return { status: 'OFFLINE', color: 'text-gray-500', bgColor: 'bg-gray-100' }
-        if (activeAppointments.length > 0) return { status: 'BUSY', color: 'text-orange-500', bgColor: 'bg-orange-100' }
-        return { status: 'AVAILABLE', color: 'text-green-500', bgColor: 'bg-green-100' }
+        if (!doctor.isAvailable) return { status: 'NO DISPONIBLE', color: 'text-gray-500', bgColor: 'bg-gray-100' }
+        if (activeAppointments.length > 0) return { status: 'OCUPADO', color: 'text-orange-500', bgColor: 'bg-orange-100' }
+        return { status: 'DISPONIBLE', color: 'text-green-500', bgColor: 'bg-green-100' }
     }
 
     const filteredDoctors = doctors.filter((doctor: any) =>
@@ -164,14 +165,14 @@ export default function DoctorsPage() {
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Doctors</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Doctores</h1>
                     <p className="text-muted-foreground">
-                        Manage medical staff and schedules • {filteredDoctors.length} total
+                        Gestionar personal médico y horarios • {filteredDoctors.length} total
                     </p>
                 </div>
                 <Button onClick={handleAdd}>
                     <Plus className="h-4 w-4 mr-2" />
-                    New Doctor
+                    Nuevo Doctor
                 </Button>
             </div>
 
@@ -180,7 +181,7 @@ export default function DoctorsPage() {
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search by name, specialty, or license number..."
+                        placeholder="Buscar por nombre, especialidad o número de licencia..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -193,21 +194,21 @@ export default function DoctorsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Photo</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Specialty</TableHead>
-                            <TableHead>Schedule</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Patients Today</TableHead>
-                            <TableHead>Extension</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>Foto</TableHead>
+                            <TableHead>Nombre</TableHead>
+                            <TableHead>Especialidad</TableHead>
+                            <TableHead>Horario</TableHead>
+                            <TableHead>Estado</TableHead>
+                            <TableHead>Pacientes Hoy</TableHead>
+                            <TableHead>Extensión</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredDoctors.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                    No doctors found
+                                    No se encontraron doctores
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -226,7 +227,7 @@ export default function DoctorsPage() {
                                             <div>
                                                 <p>Dr. {doctor.user?.firstName} {doctor.user?.lastName}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    License: {doctor.licenseNumber}
+                                                    Licencia: {doctor.licenseNumber}
                                                 </p>
                                             </div>
                                         </TableCell>
@@ -237,15 +238,15 @@ export default function DoctorsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="text-sm">
-                                                <p>Mon-Fri</p>
+                                                <p>Lun-Vie</p>
                                                 <p className="text-xs text-muted-foreground">8:00 AM - 5:00 PM</p>
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                {statusInfo.status === 'AVAILABLE' && <CheckCircle2 className={`h-4 w-4 ${statusInfo.color}`} />}
-                                                {statusInfo.status === 'BUSY' && <Clock className={`h-4 w-4 ${statusInfo.color}`} />}
-                                                {statusInfo.status === 'OFFLINE' && <XCircle className={`h-4 w-4 ${statusInfo.color}`} />}
+                                                {statusInfo.status === 'DISPONIBLE' && <CheckCircle2 className={`h-4 w-4 ${statusInfo.color}`} />}
+                                                {statusInfo.status === 'OCUPADO' && <Clock className={`h-4 w-4 ${statusInfo.color}`} />}
+                                                {statusInfo.status === 'NO DISPONIBLE' && <XCircle className={`h-4 w-4 ${statusInfo.color}`} />}
                                                 <span className={`text-xs px-2 py-1 rounded-full ${statusInfo.bgColor} ${statusInfo.color}`}>
                                                     {statusInfo.status}
                                                 </span>
@@ -256,7 +257,7 @@ export default function DoctorsPage() {
                                                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                                                     <span className="text-sm font-semibold text-primary">{patientsToday}</span>
                                                 </div>
-                                                <span className="text-xs text-muted-foreground">patients</span>
+                                                <span className="text-xs text-muted-foreground">pacientes</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
@@ -301,7 +302,7 @@ export default function DoctorsPage() {
             {/* Modal */}
             <DoctorModal
                 open={modalOpen}
-                onClose={() => setModalOpen(false)}
+                onOpenChange={setModalOpen}
                 doctor={selectedDoctor}
                 onSuccess={handleSuccess}
             />
@@ -310,14 +311,14 @@ export default function DoctorsPage() {
             <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the doctor record.
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente el registro del doctor.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

@@ -40,6 +40,7 @@ import {
 import { pharmacyAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format, differenceInDays } from 'date-fns'
+import { es } from 'date-fns/locale'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -87,7 +88,7 @@ export default function PharmacyPage() {
                 {
                     id: '1',
                     name: 'Paracetamol 500mg',
-                    type: 'Medication',
+                    type: 'Medicamento',
                     laboratory: 'Bayer',
                     currentStock: 150,
                     minStock: 200,
@@ -96,8 +97,8 @@ export default function PharmacyPage() {
                 },
                 {
                     id: '2',
-                    name: 'Amoxicillin 500mg',
-                    type: 'Medication',
+                    name: 'Amoxicilina 500mg',
+                    type: 'Medicamento',
                     laboratory: 'Pfizer',
                     currentStock: 80,
                     minStock: 100,
@@ -106,8 +107,8 @@ export default function PharmacyPage() {
                 },
                 {
                     id: '3',
-                    name: 'Surgical Gloves',
-                    type: 'Supply',
+                    name: 'Guantes Quirúrgicos',
+                    type: 'Suministro',
                     laboratory: 'MedSupply',
                     currentStock: 500,
                     minStock: 300,
@@ -116,8 +117,8 @@ export default function PharmacyPage() {
                 },
                 {
                     id: '4',
-                    name: 'Insulin 100UI/ml',
-                    type: 'Medication',
+                    name: 'Insulina 100UI/ml',
+                    type: 'Medicamento',
                     laboratory: 'Novo Nordisk',
                     currentStock: 25,
                     minStock: 50,
@@ -134,31 +135,31 @@ export default function PharmacyPage() {
                     quantity: 50,
                     doctor: 'Dr. Smith',
                     patient: 'John Doe',
-                    status: 'PENDING',
+                    status: 'PENDIENTE',
                     requestedAt: new Date(),
                 },
                 {
                     id: '2',
-                    medication: 'Amoxicillin 500mg',
+                    medication: 'Amoxicilina 500mg',
                     quantity: 30,
                     doctor: 'Dr. Johnson',
                     patient: 'Jane Smith',
-                    status: 'APPROVED',
+                    status: 'APROBADO',
                     requestedAt: new Date(Date.now() - 3600000),
                     approvedAt: new Date(Date.now() - 1800000),
-                    approvedBy: 'Pharmacist Brown',
+                    approvedBy: 'Farmacéutico Brown',
                 },
                 {
                     id: '3',
-                    medication: 'Insulin 100UI/ml',
+                    medication: 'Insulina 100UI/ml',
                     quantity: 10,
                     doctor: 'Dr. Williams',
                     patient: 'Bob Wilson',
-                    status: 'REJECTED',
+                    status: 'RECHAZADO',
                     requestedAt: new Date(Date.now() - 7200000),
                     rejectedAt: new Date(Date.now() - 3600000),
-                    rejectedBy: 'Pharmacist Brown',
-                    rejectionReason: 'Insufficient stock',
+                    rejectedBy: 'Farmacéutico Brown',
+                    rejectionReason: 'Stock insuficiente',
                 },
             ]
 
@@ -167,42 +168,42 @@ export default function PharmacyPage() {
                 {
                     id: '1',
                     medication: 'Paracetamol 500mg',
-                    type: 'ENTRY',
+                    type: 'ENTRADA',
                     quantity: 500,
                     batch: 'LOT-2024-001',
-                    responsible: 'Pharmacist Brown',
+                    responsible: 'Farmacéutico Brown',
                     date: new Date(),
-                    notes: 'New stock arrival',
+                    notes: 'Llegada de nuevo stock',
                 },
                 {
                     id: '2',
                     medication: 'Paracetamol 500mg',
-                    type: 'EXIT',
+                    type: 'SALIDA',
                     quantity: 50,
                     batch: 'LOT-2024-001',
-                    responsible: 'Nurse Johnson',
+                    responsible: 'Enfermera Johnson',
                     date: new Date(Date.now() - 3600000),
-                    notes: 'Dispensed to patient John Doe',
+                    notes: 'Dispensado al paciente John Doe',
                 },
                 {
                     id: '3',
-                    medication: 'Amoxicillin 500mg',
-                    type: 'ENTRY',
+                    medication: 'Amoxicilina 500mg',
+                    type: 'ENTRADA',
                     quantity: 200,
                     batch: 'LOT-2024-002',
-                    responsible: 'Pharmacist Brown',
+                    responsible: 'Farmacéutico Brown',
                     date: new Date(Date.now() - 86400000),
-                    notes: 'New stock arrival',
+                    notes: 'Llegada de nuevo stock',
                 },
                 {
                     id: '4',
-                    medication: 'Amoxicillin 500mg',
-                    type: 'EXIT',
+                    medication: 'Amoxicilina 500mg',
+                    type: 'SALIDA',
                     quantity: 30,
                     batch: 'LOT-2024-002',
-                    responsible: 'Pharmacist Brown',
+                    responsible: 'Farmacéutico Brown',
                     date: new Date(Date.now() - 7200000),
-                    notes: 'Dispensed to patient Jane Smith',
+                    notes: 'Dispensado a la paciente Jane Smith',
                 },
             ]
 
@@ -212,7 +213,7 @@ export default function PharmacyPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load pharmacy data',
+                description: error.response?.data?.message || 'Error al cargar datos de farmacia',
                 variant: 'destructive',
             })
         } finally {
@@ -225,14 +226,14 @@ export default function PharmacyPage() {
         try {
             await pharmacyAPI.deleteMedication(deleteId)
             toast({
-                title: 'Success',
-                description: 'Medication deleted successfully',
+                title: 'Éxito',
+                description: 'Medicamento eliminado correctamente',
             })
             loadData()
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to delete medication',
+                description: error.response?.data?.message || 'Error al eliminar medicamento',
                 variant: 'destructive',
             })
         } finally {
@@ -242,16 +243,16 @@ export default function PharmacyPage() {
 
     const handleApproveOrder = async (orderId: string) => {
         toast({
-            title: 'Order Approved',
-            description: 'The medication order has been approved',
+            title: 'Orden Aprobada',
+            description: 'La orden de medicamento ha sido aprobada',
         })
         // TODO: Implementar con backend
     }
 
     const handleRejectOrder = async (orderId: string) => {
         toast({
-            title: 'Order Rejected',
-            description: 'The medication order has been rejected',
+            title: 'Orden Rechazada',
+            description: 'La orden de medicamento ha sido rechazada',
         })
         // TODO: Implementar con backend
     }
@@ -279,14 +280,14 @@ export default function PharmacyPage() {
     })
 
     const getStockStatus = (current: number, min: number) => {
-        if (current < min * 0.5) return { color: 'text-red-600', bg: 'bg-red-100', label: 'CRITICAL' }
-        if (current < min) return { color: 'text-orange-600', bg: 'bg-orange-100', label: 'LOW' }
+        if (current < min * 0.5) return { color: 'text-red-600', bg: 'bg-red-100', label: 'CRÍTICO' }
+        if (current < min) return { color: 'text-orange-600', bg: 'bg-orange-100', label: 'BAJO' }
         return { color: 'text-green-600', bg: 'bg-green-100', label: 'NORMAL' }
     }
 
     const getExpiryStatus = (expirationDate: Date) => {
         const days = differenceInDays(new Date(expirationDate), new Date())
-        if (days < 0) return { color: 'text-red-600', bg: 'bg-red-100', label: 'EXPIRED' }
+        if (days < 0) return { color: 'text-red-600', bg: 'bg-red-100', label: 'VENCIDO' }
         if (days <= 30) return { color: 'text-red-600', bg: 'bg-red-100', label: `${days}d` }
         if (days <= 90) return { color: 'text-orange-600', bg: 'bg-orange-100', label: `${days}d` }
         return { color: 'text-green-600', bg: 'bg-green-100', label: `${days}d` }
@@ -294,12 +295,12 @@ export default function PharmacyPage() {
 
     const getOrderStatusBadge = (status: string) => {
         const colors: Record<string, string> = {
-            PENDING: 'bg-yellow-100 text-yellow-800',
-            APPROVED: 'bg-green-100 text-green-800',
-            REJECTED: 'bg-red-100 text-red-800',
-            DISPENSED: 'bg-blue-100 text-blue-800',
+            PENDIENTE: 'bg-yellow-100 text-yellow-800',
+            APROBADO: 'bg-green-100 text-green-800',
+            RECHAZADO: 'bg-red-100 text-red-800',
+            DISPENSADO: 'bg-blue-100 text-blue-800',
         }
-        return colors[status] || colors.PENDING
+        return colors[status] || colors.PENDIENTE
     }
 
     if (loading) {
@@ -319,15 +320,15 @@ export default function PharmacyPage() {
                         <Pill className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Pharmacy</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Farmacia</h1>
                         <p className="text-muted-foreground">
-                            Inventory management, orders, and medication tracking
+                            Gestión de inventario, órdenes y seguimiento de medicamentos
                         </p>
                     </div>
                 </div>
                 <Button>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Medication
+                    Agregar Medicamento
                 </Button>
             </div>
 
@@ -335,34 +336,34 @@ export default function PharmacyPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="border-red-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+                        <CardTitle className="text-sm font-medium">Stock Bajo</CardTitle>
                         <TrendingDown className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">{lowStockMeds.length}</div>
-                        <p className="text-xs text-muted-foreground">Items below minimum stock</p>
+                        <p className="text-xs text-muted-foreground">Ítems con stock mínimo</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-orange-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
+                        <CardTitle className="text-sm font-medium">Vencen Pronto</CardTitle>
                         <Calendar className="h-4 w-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-orange-600">{expiringMeds.length}</div>
-                        <p className="text-xs text-muted-foreground">Items expiring within 90 days</p>
+                        <p className="text-xs text-muted-foreground">Ítems que vencen en 90 días</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Ítems</CardTitle>
                         <Package className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{medications.length}</div>
-                        <p className="text-xs text-muted-foreground">In inventory</p>
+                        <p className="text-xs text-muted-foreground">En inventario</p>
                     </CardContent>
                 </Card>
             </div>
@@ -374,7 +375,7 @@ export default function PharmacyPage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search by name, laboratory, or batch..."
+                                placeholder="Buscar por nombre, laboratorio o lote..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10"
@@ -384,21 +385,21 @@ export default function PharmacyPage() {
 
                     <Select value={filters.type} onValueChange={(v) => setFilters({ ...filters, type: v })}>
                         <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Type" />
+                            <SelectValue placeholder="Tipo" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Types</SelectItem>
-                            <SelectItem value="Medication">Medication</SelectItem>
-                            <SelectItem value="Supply">Supply</SelectItem>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="Medicamento">Medicamento</SelectItem>
+                            <SelectItem value="Suministro">Suministro</SelectItem>
                         </SelectContent>
                     </Select>
 
                     <Select value={filters.laboratory} onValueChange={(v) => setFilters({ ...filters, laboratory: v })}>
                         <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Laboratory" />
+                            <SelectValue placeholder="Laboratorio" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Laboratories</SelectItem>
+                            <SelectItem value="all">Todos</SelectItem>
                             <SelectItem value="Bayer">Bayer</SelectItem>
                             <SelectItem value="Pfizer">Pfizer</SelectItem>
                             <SelectItem value="Novo Nordisk">Novo Nordisk</SelectItem>
@@ -413,11 +414,11 @@ export default function PharmacyPage() {
                 <TabsList>
                     <TabsTrigger value="inventory">
                         <Package className="h-4 w-4 mr-2" />
-                        Inventory
+                        Inventario
                     </TabsTrigger>
                     <TabsTrigger value="orders">
                         <FileText className="h-4 w-4 mr-2" />
-                        Internal Orders
+                        Órdenes Internas
                     </TabsTrigger>
                     <TabsTrigger value="kardex">
                         <TrendingDown className="h-4 w-4 mr-2" />
@@ -431,21 +432,21 @@ export default function PharmacyPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Laboratory</TableHead>
-                                    <TableHead>Current Stock</TableHead>
-                                    <TableHead>Min Stock</TableHead>
-                                    <TableHead>Batch</TableHead>
-                                    <TableHead>Expiration</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>Nombre</TableHead>
+                                    <TableHead>Tipo</TableHead>
+                                    <TableHead>Laboratorio</TableHead>
+                                    <TableHead>Stock Actual</TableHead>
+                                    <TableHead>Stock Min</TableHead>
+                                    <TableHead>Lote</TableHead>
+                                    <TableHead>Vencimiento</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredMedications.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                            No medications found
+                                            No se encontraron medicamentos
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -474,7 +475,7 @@ export default function PharmacyPage() {
                                                 <TableCell className="font-mono text-sm">{med.batch}</TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-sm">{format(new Date(med.expirationDate), 'MMM dd, yyyy')}</span>
+                                                        <span className="text-sm">{format(new Date(med.expirationDate), 'MMM dd, yyyy', { locale: es })}</span>
                                                         <span className={`text-xs px-2 py-1 rounded-full ${expiryStatus.bg} ${expiryStatus.color}`}>
                                                             {expiryStatus.label}
                                                         </span>
@@ -507,8 +508,8 @@ export default function PharmacyPage() {
                 <TabsContent value="orders" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Internal Medication Orders</CardTitle>
-                            <CardDescription>Doctor requests pending pharmacy approval</CardDescription>
+                            <CardTitle>Órdenes Internas de Medicamentos</CardTitle>
+                            <CardDescription>Solicitudes de doctores pendientes de aprobación</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -518,7 +519,7 @@ export default function PharmacyPage() {
                                             <div>
                                                 <p className="font-semibold text-lg">{order.medication}</p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Quantity: {order.quantity} units
+                                                    Cantidad: {order.quantity} unidades
                                                 </p>
                                             </div>
                                             <span className={`text-xs px-3 py-1 rounded-full ${getOrderStatusBadge(order.status)}`}>
@@ -528,35 +529,35 @@ export default function PharmacyPage() {
 
                                         <div className="grid grid-cols-2 gap-4 mb-3">
                                             <div>
-                                                <p className="text-xs text-muted-foreground">Requested by</p>
+                                                <p className="text-xs text-muted-foreground">Solicitado por</p>
                                                 <p className="font-medium">{order.doctor}</p>
                                             </div>
                                             <div>
-                                                <p className="text-xs text-muted-foreground">Patient</p>
+                                                <p className="text-xs text-muted-foreground">Paciente</p>
                                                 <p className="font-medium">{order.patient}</p>
                                             </div>
                                             <div>
-                                                <p className="text-xs text-muted-foreground">Requested at</p>
-                                                <p className="text-sm">{format(order.requestedAt, 'PPp')}</p>
+                                                <p className="text-xs text-muted-foreground">Fecha Solicitud</p>
+                                                <p className="text-sm">{format(order.requestedAt, 'PPp', { locale: es })}</p>
                                             </div>
                                             {order.approvedAt && (
                                                 <div>
-                                                    <p className="text-xs text-muted-foreground">Approved at</p>
-                                                    <p className="text-sm">{format(order.approvedAt, 'PPp')}</p>
-                                                    <p className="text-xs text-muted-foreground">by {order.approvedBy}</p>
+                                                    <p className="text-xs text-muted-foreground">Aprobado el</p>
+                                                    <p className="text-sm">{format(order.approvedAt, 'PPp', { locale: es })}</p>
+                                                    <p className="text-xs text-muted-foreground">por {order.approvedBy}</p>
                                                 </div>
                                             )}
                                             {order.rejectedAt && (
                                                 <div>
-                                                    <p className="text-xs text-muted-foreground">Rejected at</p>
-                                                    <p className="text-sm">{format(order.rejectedAt, 'PPp')}</p>
-                                                    <p className="text-xs text-muted-foreground">by {order.rejectedBy}</p>
-                                                    <p className="text-xs text-red-600 mt-1">Reason: {order.rejectionReason}</p>
+                                                    <p className="text-xs text-muted-foreground">Rechazado el</p>
+                                                    <p className="text-sm">{format(order.rejectedAt, 'PPp', { locale: es })}</p>
+                                                    <p className="text-xs text-muted-foreground">por {order.rejectedBy}</p>
+                                                    <p className="text-xs text-red-600 mt-1">Motivo: {order.rejectionReason}</p>
                                                 </div>
                                             )}
                                         </div>
 
-                                        {order.status === 'PENDING' && (
+                                        {order.status === 'PENDIENTE' && (
                                             <div className="flex gap-2">
                                                 <Button
                                                     size="sm"
@@ -564,7 +565,7 @@ export default function PharmacyPage() {
                                                     className="flex-1"
                                                 >
                                                     <CheckCircle className="h-4 w-4 mr-2" />
-                                                    Approve
+                                                    Aprobar
                                                 </Button>
                                                 <Button
                                                     size="sm"
@@ -573,7 +574,7 @@ export default function PharmacyPage() {
                                                     className="flex-1"
                                                 >
                                                     <XCircle className="h-4 w-4 mr-2" />
-                                                    Reject
+                                                    Rechazar
                                                 </Button>
                                             </div>
                                         )}
@@ -588,40 +589,40 @@ export default function PharmacyPage() {
                 <TabsContent value="kardex" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Medication Movement History (Kardex)</CardTitle>
-                            <CardDescription>Complete record of all medication entries and exits</CardDescription>
+                            <CardTitle>Historial de Movimientos (Kardex)</CardTitle>
+                            <CardDescription>Registro completo de entradas y salidas de medicamentos</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Medication</TableHead>
-                                        <TableHead>Type</TableHead>
-                                        <TableHead>Quantity</TableHead>
-                                        <TableHead>Batch</TableHead>
-                                        <TableHead>Responsible</TableHead>
-                                        <TableHead>Notes</TableHead>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead>Medicamento</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Cantidad</TableHead>
+                                        <TableHead>Lote</TableHead>
+                                        <TableHead>Responsable</TableHead>
+                                        <TableHead>Notas</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {kardex.map((entry: any) => (
                                         <TableRow key={entry.id}>
                                             <TableCell className="font-medium">
-                                                {format(entry.date, 'PPp')}
+                                                {format(entry.date, 'PPp', { locale: es })}
                                             </TableCell>
                                             <TableCell>{entry.medication}</TableCell>
                                             <TableCell>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${entry.type === 'ENTRY'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-red-100 text-red-800'
+                                                <span className={`text-xs px-2 py-1 rounded-full ${entry.type === 'ENTRADA'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
                                                     }`}>
                                                     {entry.type}
                                                 </span>
                                             </TableCell>
                                             <TableCell>
-                                                <span className={entry.type === 'ENTRY' ? 'text-green-600' : 'text-red-600'}>
-                                                    {entry.type === 'ENTRY' ? '+' : '-'}{entry.quantity}
+                                                <span className={entry.type === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}>
+                                                    {entry.type === 'ENTRADA' ? '+' : '-'}{entry.quantity}
                                                 </span>
                                             </TableCell>
                                             <TableCell className="font-mono text-sm">{entry.batch}</TableCell>
@@ -642,14 +643,14 @@ export default function PharmacyPage() {
             <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the medication from inventory.
+                            Esta acción no se puede deshacer. Esto eliminará permanentemente el medicamento del inventario.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

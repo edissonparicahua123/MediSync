@@ -27,19 +27,19 @@ import { Loader2 } from 'lucide-react'
 // Schema for doctor form
 const doctorSchema = z.object({
     // User fields
-    firstName: z.string().min(2, 'First name is required'),
-    lastName: z.string().min(2, 'Last name is required'),
-    email: z.string().email('Invalid email address'),
-    phone: z.string().min(10, 'Phone number is required'),
+    firstName: z.string().min(2, 'El nombre es requerido'),
+    lastName: z.string().min(2, 'El apellido es requerido'),
+    email: z.string().email('Correo electrónico inválido'),
+    phone: z.string().min(10, 'El teléfono es requerido'),
 
     // Doctor fields
-    specialization: z.string().min(2, 'Specialization is required'),
-    licenseNumber: z.string().min(5, 'License number is required'),
+    specialization: z.string().min(2, 'La especialidad es requerida'),
+    licenseNumber: z.string().min(5, 'El número de licencia es requerido'),
     consultationFee: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-        message: 'Fee must be a positive number',
+        message: 'La tarifa debe ser un número positivo',
     }),
     yearsExperience: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-        message: 'Experience must be a positive number',
+        message: 'La experiencia debe ser un número positivo',
     }),
     bio: z.string().optional(),
 })
@@ -119,14 +119,14 @@ export default function DoctorModal({
             if (doctor) {
                 await doctorsAPI.update(doctor.id, payload)
                 toast({
-                    title: 'Success',
-                    description: 'Doctor updated successfully',
+                    title: 'Éxito',
+                    description: 'Doctor actualizado correctamente',
                 })
             } else {
                 await doctorsAPI.create(payload)
                 toast({
-                    title: 'Success',
-                    description: 'Doctor created successfully',
+                    title: 'Éxito',
+                    description: 'Doctor creado correctamente',
                 })
             }
             onSuccess()
@@ -144,11 +144,11 @@ export default function DoctorModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{doctor ? 'Edit Doctor' : 'Add New Doctor'}</DialogTitle>
+                    <DialogTitle>{doctor ? 'Editar Doctor' : 'Agregar Nuevo Doctor'}</DialogTitle>
                     <DialogDescription>
                         {doctor
-                            ? 'Update doctor information and settings.'
-                            : 'Create a new doctor profile. A user account will also be created.'}
+                            ? 'Actualizar información y configuración del doctor.'
+                            : 'Crear un nuevo perfil de doctor. También se creará una cuenta de usuario.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -157,7 +157,7 @@ export default function DoctorModal({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Personal Information */}
                             <div className="md:col-span-2">
-                                <h3 className="text-lg font-medium mb-2">Personal Information</h3>
+                                <h3 className="text-lg font-medium mb-2">Información Personal</h3>
                             </div>
 
                             <FormField
@@ -165,9 +165,9 @@ export default function DoctorModal({
                                 name="firstName"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>First Name</FormLabel>
+                                        <FormLabel>Nombre</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="John" {...field} />
+                                            <Input placeholder="Juan" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -179,9 +179,9 @@ export default function DoctorModal({
                                 name="lastName"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Last Name</FormLabel>
+                                        <FormLabel>Apellido</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Doe" {...field} />
+                                            <Input placeholder="Pérez" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -193,7 +193,7 @@ export default function DoctorModal({
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Email</FormLabel>
+                                        <FormLabel>Correo Electrónico</FormLabel>
                                         <FormControl>
                                             <Input type="email" placeholder="doctor@medisync.com" {...field} />
                                         </FormControl>
@@ -207,7 +207,7 @@ export default function DoctorModal({
                                 name="phone"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Phone</FormLabel>
+                                        <FormLabel>Teléfono</FormLabel>
                                         <FormControl>
                                             <Input placeholder="+1 234 567 890" {...field} />
                                         </FormControl>
@@ -218,7 +218,7 @@ export default function DoctorModal({
 
                             {/* Professional Information */}
                             <div className="md:col-span-2 mt-4">
-                                <h3 className="text-lg font-medium mb-2">Professional Details</h3>
+                                <h3 className="text-lg font-medium mb-2">Detalles Profesionales</h3>
                             </div>
 
                             <FormField
@@ -226,9 +226,9 @@ export default function DoctorModal({
                                 name="specialization"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Specialization</FormLabel>
+                                        <FormLabel>Especialidad</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Cardiology" {...field} />
+                                            <Input placeholder="Cardiología" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -240,7 +240,7 @@ export default function DoctorModal({
                                 name="licenseNumber"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>License Number</FormLabel>
+                                        <FormLabel>Número de Licencia</FormLabel>
                                         <FormControl>
                                             <Input placeholder="MD-12345" {...field} />
                                         </FormControl>
@@ -254,7 +254,7 @@ export default function DoctorModal({
                                 name="yearsExperience"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Years of Experience</FormLabel>
+                                        <FormLabel>Años de Experiencia</FormLabel>
                                         <FormControl>
                                             <Input type="number" placeholder="5" {...field} />
                                         </FormControl>
@@ -268,7 +268,7 @@ export default function DoctorModal({
                                 name="consultationFee"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Consultation Fee ($)</FormLabel>
+                                        <FormLabel>Tarifa de Consulta ($)</FormLabel>
                                         <FormControl>
                                             <Input type="number" placeholder="150.00" {...field} />
                                         </FormControl>
@@ -282,10 +282,10 @@ export default function DoctorModal({
                                 name="bio"
                                 render={({ field }) => (
                                     <FormItem className="md:col-span-2">
-                                        <FormLabel>Biography</FormLabel>
+                                        <FormLabel>Biografía</FormLabel>
                                         <FormControl>
                                             <Textarea
-                                                placeholder="Brief professional background..."
+                                                placeholder="Breve trayectoria profesional..."
                                                 className="resize-none"
                                                 {...field}
                                             />
@@ -302,13 +302,13 @@ export default function DoctorModal({
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
                             >
-                                Cancel
+                                Cancelar
                             </Button>
                             <Button type="submit" disabled={form.formState.isSubmitting}>
                                 {form.formState.isSubmitting && (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 )}
-                                {doctor ? 'Save Changes' : 'Create Doctor'}
+                                {doctor ? 'Guardar Cambios' : 'Crear Doctor'}
                             </Button>
                         </div>
                     </form>

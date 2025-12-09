@@ -37,6 +37,7 @@ import {
 import { laboratoryAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format, differenceInDays } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function LaboratoryPage() {
@@ -66,57 +67,57 @@ export default function LaboratoryPage() {
             const simulatedOrders = [
                 {
                     id: '1',
-                    examType: 'Complete Blood Count (CBC)',
+                    examType: 'Hemograma Completo',
                     doctor: 'Dr. Smith',
                     patient: 'John Doe',
-                    status: 'PENDING',
+                    status: 'PENDIENTE',
                     requestedDate: new Date(),
                     deliveryDate: new Date(Date.now() + 86400000 * 2),
                     priority: 'NORMAL',
                 },
                 {
                     id: '2',
-                    examType: 'Lipid Panel',
+                    examType: 'Perfil Lipídico',
                     doctor: 'Dr. Johnson',
                     patient: 'Jane Smith',
-                    status: 'IN_PROGRESS',
+                    status: 'EN_PROCESO',
                     requestedDate: new Date(Date.now() - 3600000),
                     deliveryDate: new Date(Date.now() + 86400000),
                     priority: 'NORMAL',
                 },
                 {
                     id: '3',
-                    examType: 'Chest X-Ray',
+                    examType: 'Rayos X de Tórax',
                     doctor: 'Dr. Williams',
                     patient: 'Bob Wilson',
-                    status: 'COMPLETED',
+                    status: 'COMPLETADO',
                     requestedDate: new Date(Date.now() - 86400000),
                     deliveryDate: new Date(Date.now() - 3600000),
                     completedDate: new Date(Date.now() - 3600000),
-                    resultFile: 'chest_xray_result.pdf',
-                    priority: 'URGENT',
+                    resultFile: 'resultado_rayosx.pdf',
+                    priority: 'URGENTE',
                 },
                 {
                     id: '4',
-                    examType: 'Urinalysis',
+                    examType: 'Análisis de Orina',
                     doctor: 'Dr. Brown',
                     patient: 'Alice Johnson',
-                    status: 'COMPLETED',
+                    status: 'COMPLETADO',
                     requestedDate: new Date(Date.now() - 172800000),
                     deliveryDate: new Date(Date.now() - 86400000),
                     completedDate: new Date(Date.now() - 86400000),
-                    resultFile: 'urinalysis_result.pdf',
+                    resultFile: 'resultado_orina.pdf',
                     priority: 'NORMAL',
                 },
                 {
                     id: '5',
-                    examType: 'ECG',
+                    examType: 'Electrocardiograma',
                     doctor: 'Dr. Davis',
                     patient: 'Charlie Brown',
-                    status: 'PENDING',
+                    status: 'PENDIENTE',
                     requestedDate: new Date(Date.now() - 7200000),
                     deliveryDate: new Date(Date.now() + 86400000),
-                    priority: 'URGENT',
+                    priority: 'URGENTE',
                 },
             ]
 
@@ -124,7 +125,7 @@ export default function LaboratoryPage() {
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Failed to load lab orders',
+                description: error.response?.data?.message || 'Error al cargar órdenes de laboratorio',
                 variant: 'destructive',
             })
         } finally {
@@ -138,8 +139,8 @@ export default function LaboratoryPage() {
         // Simular subida
         setTimeout(() => {
             toast({
-                title: 'Result Uploaded',
-                description: 'Lab result has been uploaded and patient notified',
+                title: 'Resultado Subido',
+                description: 'El resultado de laboratorio ha sido subido y el paciente notificado',
             })
             setUploadingResult(null)
             loadData()
@@ -177,9 +178,9 @@ export default function LaboratoryPage() {
     // Estadísticas
     const stats = useMemo(() => {
         const total = orders.length
-        const pending = orders.filter(o => o.status === 'PENDING').length
-        const inProgress = orders.filter(o => o.status === 'IN_PROGRESS').length
-        const completed = orders.filter(o => o.status === 'COMPLETED').length
+        const pending = orders.filter(o => o.status === 'PENDIENTE').length
+        const inProgress = orders.filter(o => o.status === 'EN_PROCESO').length
+        const completed = orders.filter(o => o.status === 'COMPLETADO').length
 
         // Exámenes más solicitados
         const examCounts: Record<string, number> = {}
@@ -192,7 +193,7 @@ export default function LaboratoryPage() {
             .map(([name, count]) => ({ name, count }))
 
         // Tiempo promedio de entrega
-        const completedOrders = orders.filter(o => o.status === 'COMPLETED' && o.completedDate)
+        const completedOrders = orders.filter(o => o.status === 'COMPLETADO' && o.completedDate)
         const avgDeliveryTime = completedOrders.length > 0
             ? completedOrders.reduce((sum, order) => {
                 const days = differenceInDays(new Date(order.completedDate), new Date(order.requestedDate))
@@ -209,7 +210,7 @@ export default function LaboratoryPage() {
                 return orderDate.toDateString() === date.toDateString()
             }).length
             return {
-                date: format(date, 'EEE'),
+                date: format(date, 'EEE', { locale: es }),
                 count,
             }
         })
@@ -219,7 +220,7 @@ export default function LaboratoryPage() {
             const date = new Date()
             date.setMonth(date.getMonth() - (5 - i))
             return {
-                month: format(date, 'MMM'),
+                month: format(date, 'MMM', { locale: es }),
                 count: Math.floor(Math.random() * 50) + 20,
             }
         })
@@ -238,21 +239,21 @@ export default function LaboratoryPage() {
 
     const getStatusBadge = (status: string) => {
         const colors: Record<string, string> = {
-            PENDING: 'bg-yellow-100 text-yellow-800',
-            IN_PROGRESS: 'bg-blue-100 text-blue-800',
-            COMPLETED: 'bg-green-100 text-green-800',
-            CANCELLED: 'bg-red-100 text-red-800',
+            PENDIENTE: 'bg-yellow-100 text-yellow-800',
+            EN_PROCESO: 'bg-blue-100 text-blue-800',
+            COMPLETADO: 'bg-green-100 text-green-800',
+            CANCELADO: 'bg-red-100 text-red-800',
         }
-        return colors[status] || colors.PENDING
+        return colors[status] || colors.PENDIENTE
     }
 
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case 'COMPLETED':
+            case 'COMPLETADO':
                 return <CheckCircle className="h-4 w-4 text-green-600" />
-            case 'IN_PROGRESS':
+            case 'EN_PROCESO':
                 return <Clock className="h-4 w-4 text-blue-600" />
-            case 'PENDING':
+            case 'PENDIENTE':
                 return <AlertCircle className="h-4 w-4 text-yellow-600" />
             default:
                 return <XCircle className="h-4 w-4 text-red-600" />
@@ -278,15 +279,15 @@ export default function LaboratoryPage() {
                         <FlaskConical className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Laboratory</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Laboratorio</h1>
                         <p className="text-muted-foreground">
-                            Lab orders, results management, and analytics
+                            Órdenes de laboratorio, gestión de resultados y análisis
                         </p>
                     </div>
                 </div>
                 <Button>
                     <Plus className="h-4 w-4 mr-2" />
-                    New Lab Order
+                    Nueva Orden
                 </Button>
             </div>
 
@@ -294,45 +295,45 @@ export default function LaboratoryPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Órdenes</CardTitle>
                         <FlaskConical className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.total}</div>
-                        <p className="text-xs text-muted-foreground">All time</p>
+                        <p className="text-xs text-muted-foreground">Histórico</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-yellow-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
                         <AlertCircle className="h-4 w-4 text-yellow-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-                        <p className="text-xs text-muted-foreground">Awaiting processing</p>
+                        <p className="text-xs text-muted-foreground">Esperando procesamiento</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-blue-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+                        <CardTitle className="text-sm font-medium">En Proceso</CardTitle>
                         <Clock className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
-                        <p className="text-xs text-muted-foreground">Being processed</p>
+                        <p className="text-xs text-muted-foreground">Siendo procesadas</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-green-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                        <CardTitle className="text-sm font-medium">Completadas</CardTitle>
                         <CheckCircle className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-                        <p className="text-xs text-muted-foreground">Results available</p>
+                        <p className="text-xs text-muted-foreground">Resultados disponibles</p>
                     </CardContent>
                 </Card>
             </div>
@@ -344,7 +345,7 @@ export default function LaboratoryPage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search by patient, doctor, or exam type..."
+                                placeholder="Buscar por paciente, doctor o tipo de examen..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10"
@@ -354,13 +355,13 @@ export default function LaboratoryPage() {
 
                     <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
                         <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Status" />
+                            <SelectValue placeholder="Estado" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            <SelectItem value="PENDING">Pending</SelectItem>
-                            <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                            <SelectItem value="COMPLETED">Completed</SelectItem>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="PENDIENTE">Pendiente</SelectItem>
+                            <SelectItem value="EN_PROCESO">En Proceso</SelectItem>
+                            <SelectItem value="COMPLETADO">Completado</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -371,11 +372,11 @@ export default function LaboratoryPage() {
                 <TabsList>
                     <TabsTrigger value="orders">
                         <FileText className="h-4 w-4 mr-2" />
-                        Lab Orders
+                        Órdenes de Lab
                     </TabsTrigger>
                     <TabsTrigger value="statistics">
                         <BarChart3 className="h-4 w-4 mr-2" />
-                        Statistics
+                        Estadísticas
                     </TabsTrigger>
                 </TabsList>
 
@@ -385,21 +386,21 @@ export default function LaboratoryPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Exam Type</TableHead>
-                                    <TableHead>Patient</TableHead>
+                                    <TableHead>Tipo de Examen</TableHead>
+                                    <TableHead>Paciente</TableHead>
                                     <TableHead>Doctor</TableHead>
-                                    <TableHead>Requested</TableHead>
-                                    <TableHead>Delivery Date</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Priority</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>Solicitado</TableHead>
+                                    <TableHead>Entrega</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                    <TableHead>Prioridad</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredOrders.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                            No lab orders found
+                                            No se encontraron órdenes
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -408,8 +409,8 @@ export default function LaboratoryPage() {
                                             <TableCell className="font-medium">{order.examType}</TableCell>
                                             <TableCell>{order.patient}</TableCell>
                                             <TableCell>{order.doctor}</TableCell>
-                                            <TableCell>{format(new Date(order.requestedDate), 'MMM dd, yyyy')}</TableCell>
-                                            <TableCell>{format(new Date(order.deliveryDate), 'MMM dd, yyyy')}</TableCell>
+                                            <TableCell>{format(new Date(order.requestedDate), 'MMM dd, yyyy', { locale: es })}</TableCell>
+                                            <TableCell>{format(new Date(order.deliveryDate), 'MMM dd, yyyy', { locale: es })}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {getStatusIcon(order.status)}
@@ -419,20 +420,20 @@ export default function LaboratoryPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${order.priority === 'URGENT'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-blue-100 text-blue-800'
+                                                <span className={`text-xs px-2 py-1 rounded-full ${order.priority === 'URGENTE'
+                                                    ? 'bg-red-100 text-red-800'
+                                                    : 'bg-blue-100 text-blue-800'
                                                     }`}>
                                                     {order.priority}
                                                 </span>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    {order.status === 'COMPLETED' && order.resultFile ? (
+                                                    {order.status === 'COMPLETADO' && order.resultFile ? (
                                                         <Button variant="ghost" size="sm">
                                                             <Eye className="h-4 w-4" />
                                                         </Button>
-                                                    ) : order.status !== 'COMPLETED' ? (
+                                                    ) : order.status !== 'COMPLETADO' ? (
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
@@ -463,13 +464,13 @@ export default function LaboratoryPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Clock className="h-5 w-5" />
-                                Average Delivery Time
+                                Tiempo Promedio de Entrega
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-4xl font-bold text-primary">{stats.avgDeliveryTime} days</div>
+                            <div className="text-4xl font-bold text-primary">{stats.avgDeliveryTime} días</div>
                             <p className="text-sm text-muted-foreground mt-2">
-                                From request to result delivery
+                                Desde solicitud hasta entrega
                             </p>
                         </CardContent>
                     </Card>
@@ -478,8 +479,8 @@ export default function LaboratoryPage() {
                         {/* Most Requested Exams */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Most Requested Exams</CardTitle>
-                                <CardDescription>Top 5 most frequently ordered tests</CardDescription>
+                                <CardTitle>Exámenes Más Solicitados</CardTitle>
+                                <CardDescription>Top 5 tests más frecuentes</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={300}>
@@ -507,8 +508,8 @@ export default function LaboratoryPage() {
                         {/* Daily Volume */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Daily Volume</CardTitle>
-                                <CardDescription>Orders per day (last 7 days)</CardDescription>
+                                <CardTitle>Volumen Diario</CardTitle>
+                                <CardDescription>Órdenes por día (últimos 7 días)</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={300}>
@@ -518,7 +519,7 @@ export default function LaboratoryPage() {
                                         <YAxis />
                                         <Tooltip />
                                         <Legend />
-                                        <Bar dataKey="count" fill="#3b82f6" name="Orders" />
+                                        <Bar dataKey="count" fill="#3b82f6" name="Órdenes" />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </CardContent>
@@ -528,8 +529,8 @@ export default function LaboratoryPage() {
                     {/* Monthly Volume */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Monthly Volume Trend</CardTitle>
-                            <CardDescription>Orders per month (last 6 months)</CardDescription>
+                            <CardTitle>Tendencia Mensual</CardTitle>
+                            <CardDescription>Órdenes por mes (últimos 6 meses)</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <ResponsiveContainer width="100%" height={300}>
@@ -539,7 +540,7 @@ export default function LaboratoryPage() {
                                     <YAxis />
                                     <Tooltip />
                                     <Legend />
-                                    <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} name="Orders" />
+                                    <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} name="Órdenes" />
                                 </LineChart>
                             </ResponsiveContainer>
                         </CardContent>

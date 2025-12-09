@@ -48,9 +48,9 @@ export default function SettingsPage() {
 
     // Account Settings
     const [accountData, setAccountData] = useState({
-        name: 'Dr. John Smith',
-        email: 'john.smith@medisync.com',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+        name: 'Dr. Juan Pérez',
+        email: 'juan.perez@medisync.com',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Juan',
     })
 
     // Theme Settings
@@ -79,16 +79,16 @@ export default function SettingsPage() {
     const [activeSessions] = useState([
         {
             id: '1',
-            device: 'Chrome on Windows',
-            location: 'New York, USA',
+            device: 'Chrome en Windows',
+            location: 'Nueva York, EE. UU.',
             ip: '192.168.1.100',
             lastActive: new Date(),
             current: true,
         },
         {
             id: '2',
-            device: 'Safari on iPhone',
-            location: 'New York, USA',
+            device: 'Safari en iPhone',
+            location: 'Nueva York, EE. UU.',
             ip: '192.168.1.101',
             lastActive: new Date(Date.now() - 3600000),
             current: false,
@@ -99,19 +99,19 @@ export default function SettingsPage() {
     const [recentActivity] = useState([
         {
             id: '1',
-            action: 'Login',
+            action: 'Inicio de Sesión',
             timestamp: new Date(),
             ip: '192.168.1.100',
         },
         {
             id: '2',
-            action: 'Updated patient record',
+            action: 'Registro de paciente actualizado',
             timestamp: new Date(Date.now() - 1800000),
             ip: '192.168.1.100',
         },
         {
             id: '3',
-            action: 'Generated report',
+            action: 'Reporte generado',
             timestamp: new Date(Date.now() - 3600000),
             ip: '192.168.1.100',
         },
@@ -119,56 +119,56 @@ export default function SettingsPage() {
 
     // System Status
     const [systemStatus] = useState({
-        server: 'online',
-        database: 'online',
-        api: 'online',
-        uptime: '15 days, 4 hours',
+        server: 'en línea',
+        database: 'en línea',
+        api: 'en línea',
+        uptime: '15 días, 4 horas',
         version: '2.5.0',
         lastBackup: new Date(Date.now() - 86400000),
     })
 
     const handleSaveAccount = () => {
         toast({
-            title: 'Account Updated',
-            description: 'Your account settings have been saved',
+            title: 'Cuenta Actualizada',
+            description: 'La configuración de su cuenta ha sido guardada',
         })
     }
 
     const handleSaveTheme = () => {
         toast({
-            title: 'Theme Updated',
-            description: 'Your theme preferences have been saved',
+            title: 'Tema Actualizado',
+            description: 'Sus preferencias de tema han sido guardadas',
         })
     }
 
     const handleSaveNotifications = () => {
         toast({
-            title: 'Notifications Updated',
-            description: 'Your notification preferences have been saved',
+            title: 'Notificaciones Actualizadas',
+            description: 'Sus preferencias de notificaciones han sido guardadas',
         })
     }
 
     const handleEnable2FA = () => {
         setSecurity({ ...security, twoFactor: !security.twoFactor })
         toast({
-            title: security.twoFactor ? '2FA Disabled' : '2FA Enabled',
+            title: security.twoFactor ? '2FA Desactivado' : '2FA Activado',
             description: security.twoFactor
-                ? 'Two-factor authentication has been disabled'
-                : 'Two-factor authentication has been enabled',
+                ? 'La autenticación de dos factores ha sido desactivada'
+                : 'La autenticación de dos factores ha sido activada',
         })
     }
 
     const handleLogoutAllDevices = () => {
         toast({
-            title: 'Sessions Terminated',
-            description: 'All other sessions have been logged out',
+            title: 'Sesiones Terminadas',
+            description: 'Se ha cerrado sesión en todos los demás dispositivos',
         })
     }
 
     const handleCreateBackup = () => {
         toast({
-            title: 'Backup Started',
-            description: 'Database backup is being created',
+            title: 'Respaldo Iniciado',
+            description: 'Se está creando el respaldo de la base de datos',
         })
     }
 
@@ -180,9 +180,9 @@ export default function SettingsPage() {
                     <SettingsIcon className="h-6 w-6 text-purple-600" />
                 </div>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Configuración</h1>
                     <p className="text-muted-foreground">
-                        Manage your account and system preferences
+                        Gestiona tu cuenta y preferencias del sistema
                     </p>
                 </div>
             </div>
@@ -192,11 +192,11 @@ export default function SettingsPage() {
                 <TabsList className="grid grid-cols-6 w-full">
                     <TabsTrigger value="account">
                         <User className="h-4 w-4 mr-2" />
-                        Account
+                        Cuenta
                     </TabsTrigger>
                     <TabsTrigger value="personalization">
                         <Palette className="h-4 w-4 mr-2" />
-                        Personalization
+                        Personalización
                     </TabsTrigger>
                     <TabsTrigger value="roles">
                         <Users className="h-4 w-4 mr-2" />
@@ -204,15 +204,15 @@ export default function SettingsPage() {
                     </TabsTrigger>
                     <TabsTrigger value="notifications">
                         <Bell className="h-4 w-4 mr-2" />
-                        Notifications
+                        Notificaciones
                     </TabsTrigger>
                     <TabsTrigger value="security">
                         <Shield className="h-4 w-4 mr-2" />
-                        Security
+                        Seguridad
                     </TabsTrigger>
                     <TabsTrigger value="system">
                         <Server className="h-4 w-4 mr-2" />
-                        System
+                        Sistema
                     </TabsTrigger>
                 </TabsList>
 
@@ -220,8 +220,8 @@ export default function SettingsPage() {
                 <TabsContent value="account" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Profile Information</CardTitle>
-                            <CardDescription>Update your personal information</CardDescription>
+                            <CardTitle>Información de Perfil</CardTitle>
+                            <CardDescription>Actualiza tu información personal</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center gap-4">
@@ -231,12 +231,12 @@ export default function SettingsPage() {
                                 </Avatar>
                                 <Button variant="outline">
                                     <Upload className="h-4 w-4 mr-2" />
-                                    Change Photo
+                                    Cambiar Foto
                                 </Button>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <Label>Full Name</Label>
+                                    <Label>Nombre Completo</Label>
                                     <Input
                                         value={accountData.name}
                                         onChange={(e) =>
@@ -257,45 +257,45 @@ export default function SettingsPage() {
                             </div>
                             <Button onClick={handleSaveAccount}>
                                 <Save className="h-4 w-4 mr-2" />
-                                Save Changes
+                                Guardar Cambios
                             </Button>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Change Password</CardTitle>
-                            <CardDescription>Update your password</CardDescription>
+                            <CardTitle>Cambiar Contraseña</CardTitle>
+                            <CardDescription>Actualiza tu contraseña</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <Label>Current Password</Label>
+                                <Label>Contraseña Actual</Label>
                                 <Input type="password" />
                             </div>
                             <div>
-                                <Label>New Password</Label>
+                                <Label>Nueva Contraseña</Label>
                                 <Input type="password" />
                             </div>
                             <div>
-                                <Label>Confirm New Password</Label>
+                                <Label>Confirmar Nueva Contraseña</Label>
                                 <Input type="password" />
                             </div>
-                            <Button>Update Password</Button>
+                            <Button>Actualizar Contraseña</Button>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Recent Activity</CardTitle>
-                            <CardDescription>Your recent account activity</CardDescription>
+                            <CardTitle>Actividad Reciente</CardTitle>
+                            <CardDescription>Tu actividad de cuenta reciente</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Action</TableHead>
-                                        <TableHead>Time</TableHead>
-                                        <TableHead>IP Address</TableHead>
+                                        <TableHead>Acción</TableHead>
+                                        <TableHead>Hora</TableHead>
+                                        <TableHead>Dirección IP</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -318,12 +318,12 @@ export default function SettingsPage() {
                 <TabsContent value="personalization" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Theme Settings</CardTitle>
-                            <CardDescription>Customize the appearance</CardDescription>
+                            <CardTitle>Configuración de Tema</CardTitle>
+                            <CardDescription>Personaliza la apariencia</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
-                                <Label>Theme Mode</Label>
+                                <Label>Modo de Tema</Label>
                                 <Select
                                     value={themeSettings.theme}
                                     onValueChange={(value) =>
@@ -334,14 +334,14 @@ export default function SettingsPage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="light">Light</SelectItem>
-                                        <SelectItem value="dark">Dark</SelectItem>
+                                        <SelectItem value="light">Claro</SelectItem>
+                                        <SelectItem value="dark">Oscuro</SelectItem>
                                         <SelectItem value="auto">Auto</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div>
-                                <Label>Primary Color</Label>
+                                <Label>Color Primario</Label>
                                 <div className="flex gap-2 mt-2">
                                     {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'].map(
                                         (color) => (
@@ -354,8 +354,8 @@ export default function SettingsPage() {
                                                     })
                                                 }
                                                 className={`w-10 h-10 rounded-full border-2 ${themeSettings.primaryColor === color
-                                                        ? 'border-black'
-                                                        : 'border-gray-300'
+                                                    ? 'border-black'
+                                                    : 'border-gray-300'
                                                     }`}
                                                 style={{ backgroundColor: color }}
                                             />
@@ -364,7 +364,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div>
-                                <Label>Font Family</Label>
+                                <Label>Fuente</Label>
                                 <Select
                                     value={themeSettings.font}
                                     onValueChange={(value) =>
@@ -382,7 +382,7 @@ export default function SettingsPage() {
                                 </Select>
                             </div>
                             <div>
-                                <Label>Dashboard Layout</Label>
+                                <Label>Diseño del Panel</Label>
                                 <Select
                                     value={themeSettings.dashboardLayout}
                                     onValueChange={(value) =>
@@ -393,36 +393,36 @@ export default function SettingsPage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="grid">Grid</SelectItem>
-                                        <SelectItem value="list">List</SelectItem>
-                                        <SelectItem value="compact">Compact</SelectItem>
+                                        <SelectItem value="grid">Cuadrícula</SelectItem>
+                                        <SelectItem value="list">Lista</SelectItem>
+                                        <SelectItem value="compact">Compacto</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <Button onClick={handleSaveTheme}>
                                 <Save className="h-4 w-4 mr-2" />
-                                Save Theme
+                                Guardar Tema
                             </Button>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Module Visibility</CardTitle>
-                            <CardDescription>Enable or disable modules</CardDescription>
+                            <CardTitle>Visibilidad de Módulos</CardTitle>
+                            <CardDescription>Habilitar o deshabilitar módulos</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             {[
-                                'Appointments',
-                                'Emergency',
-                                'Pharmacy',
-                                'Laboratory',
-                                'Billing',
-                                'Reports',
-                                'Analytics',
-                                'HR',
-                                'Messages',
-                                'AI Features',
+                                'Citas',
+                                'Emergencia',
+                                'Farmacia',
+                                'Laboratorio',
+                                'Facturación',
+                                'Reportes',
+                                'Analítica',
+                                'RRHH',
+                                'Mensajes',
+                                'Funciones IA',
                             ].map((module) => (
                                 <div key={module} className="flex items-center justify-between">
                                     <span>{module}</span>
@@ -437,22 +437,22 @@ export default function SettingsPage() {
                 <TabsContent value="roles" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Default Permissions by Role</CardTitle>
-                            <CardDescription>Configure default permissions</CardDescription>
+                            <CardTitle>Permisos Predeterminados por Rol</CardTitle>
+                            <CardDescription>Configurar permisos predeterminados</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {['Admin', 'Doctor', 'Nurse', 'Receptionist'].map((role) => (
+                                {['Admin', 'Doctor', 'Enfermera(o)', 'Recepción'].map((role) => (
                                     <div key={role} className="border rounded-lg p-4">
                                         <h4 className="font-semibold mb-3">{role}</h4>
                                         <div className="grid grid-cols-3 gap-2">
                                             {[
-                                                'View Patients',
-                                                'Edit Patients',
-                                                'Delete Patients',
-                                                'View Reports',
-                                                'Generate Reports',
-                                                'Manage Billing',
+                                                'Ver Pacientes',
+                                                'Editar Pacientes',
+                                                'Eliminar Pacientes',
+                                                'Ver Reportes',
+                                                'Generar Reportes',
+                                                'Gestionar Facturación',
                                             ].map((permission) => (
                                                 <div
                                                     key={permission}
@@ -471,13 +471,13 @@ export default function SettingsPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Auto-Configuration by Area</CardTitle>
-                            <CardDescription>Automatic settings per department</CardDescription>
+                            <CardTitle>Auto-Configuración por Área</CardTitle>
+                            <CardDescription>Configuración automática por departamento</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            {['Emergency', 'Cardiology', 'Pediatrics', 'Surgery'].map((area) => (
+                            {['Emergencia', 'Cardiología', 'Pediatría', 'Cirugía'].map((area) => (
                                 <div key={area} className="flex items-center justify-between">
-                                    <span>{area} Department</span>
+                                    <span>Departamento de {area}</span>
                                     <Switch defaultChecked />
                                 </div>
                             ))}
@@ -489,15 +489,15 @@ export default function SettingsPage() {
                 <TabsContent value="notifications" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Notification Preferences</CardTitle>
-                            <CardDescription>Manage how you receive notifications</CardDescription>
+                            <CardTitle>Preferencias de Notificación</CardTitle>
+                            <CardDescription>Gestiona cómo recibes notificaciones</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium">Email Notifications</p>
+                                    <p className="font-medium">Notificaciones por Correo</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Receive notifications via email
+                                        Recibir notificaciones vía email
                                     </p>
                                 </div>
                                 <Switch
@@ -509,9 +509,9 @@ export default function SettingsPage() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium">Emergency Alerts</p>
+                                    <p className="font-medium">Alertas de Emergencia</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Critical emergency notifications
+                                        Notificaciones críticas de emergencia
                                     </p>
                                 </div>
                                 <Switch
@@ -523,9 +523,9 @@ export default function SettingsPage() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium">Appointment Alerts</p>
+                                    <p className="font-medium">Alertas de Citas</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Upcoming appointment reminders
+                                        Recordatorios de próximas citas
                                     </p>
                                 </div>
                                 <Switch
@@ -537,9 +537,9 @@ export default function SettingsPage() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium">Laboratory Alerts</p>
+                                    <p className="font-medium">Alertas de Laboratorio</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Lab results and updates
+                                        Resultados de laboratorio y actualizaciones
                                     </p>
                                 </div>
                                 <Switch
@@ -551,9 +551,9 @@ export default function SettingsPage() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium">Pharmacy Alerts</p>
+                                    <p className="font-medium">Alertas de Farmacia</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Medication and inventory alerts
+                                        Alertas de medicación e inventario
                                     </p>
                                 </div>
                                 <Switch
@@ -565,7 +565,7 @@ export default function SettingsPage() {
                             </div>
                             <Button onClick={handleSaveNotifications}>
                                 <Save className="h-4 w-4 mr-2" />
-                                Save Preferences
+                                Guardar Preferencias
                             </Button>
                         </CardContent>
                     </Card>
@@ -575,15 +575,15 @@ export default function SettingsPage() {
                 <TabsContent value="security" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Two-Factor Authentication</CardTitle>
-                            <CardDescription>Add an extra layer of security</CardDescription>
+                            <CardTitle>Autenticación de Dos Factores</CardTitle>
+                            <CardDescription>Agrega una capa extra de seguridad</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium">Enable 2FA</p>
+                                    <p className="font-medium">Habilitar 2FA</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Require a code in addition to your password
+                                        Requerir un código además de tu contraseña
                                     </p>
                                 </div>
                                 <Switch checked={security.twoFactor} onCheckedChange={handleEnable2FA} />
@@ -591,7 +591,7 @@ export default function SettingsPage() {
                             {security.twoFactor && (
                                 <div className="p-4 bg-green-50 rounded-lg">
                                     <p className="text-sm text-green-800">
-                                        ✓ Two-factor authentication is enabled
+                                        ✓ Autenticación de dos factores habilitada
                                     </p>
                                 </div>
                             )}
@@ -600,18 +600,18 @@ export default function SettingsPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Active Sessions</CardTitle>
-                            <CardDescription>Manage your active sessions</CardDescription>
+                            <CardTitle>Sesiones Activas</CardTitle>
+                            <CardDescription>Gestiona tus sesiones activas</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Device</TableHead>
-                                        <TableHead>Location</TableHead>
-                                        <TableHead>IP Address</TableHead>
-                                        <TableHead>Last Active</TableHead>
-                                        <TableHead>Actions</TableHead>
+                                        <TableHead>Dispositivo</TableHead>
+                                        <TableHead>Ubicación</TableHead>
+                                        <TableHead>Dirección IP</TableHead>
+                                        <TableHead>Último Activo</TableHead>
+                                        <TableHead>Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -621,7 +621,7 @@ export default function SettingsPage() {
                                                 <div className="flex items-center gap-2">
                                                     {session.device}
                                                     {session.current && (
-                                                        <Badge variant="outline">Current</Badge>
+                                                        <Badge variant="outline">Actual</Badge>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -643,20 +643,20 @@ export default function SettingsPage() {
                             </Table>
                             <Button variant="destructive" className="mt-4" onClick={handleLogoutAllDevices}>
                                 <LogOut className="h-4 w-4 mr-2" />
-                                Logout All Other Devices
+                                Cerrar sesión en otros dispositivos
                             </Button>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Access Audit</CardTitle>
-                            <CardDescription>View your access history</CardDescription>
+                            <CardTitle>Auditoría de Acceso</CardTitle>
+                            <CardDescription>Ver tu historial de acceso</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Button variant="outline">
                                 <Eye className="h-4 w-4 mr-2" />
-                                View Full Audit Log
+                                Ver Registro de Auditoría Completo
                             </Button>
                         </CardContent>
                     </Card>
@@ -666,20 +666,20 @@ export default function SettingsPage() {
                 <TabsContent value="system" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Server Status</CardTitle>
-                            <CardDescription>Current system health</CardDescription>
+                            <CardTitle>Estado del Servidor</CardTitle>
+                            <CardDescription>Salud actual del sistema</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <span>Server</span>
+                                    <span>Servidor</span>
                                     <Badge className="bg-green-600">
                                         <CheckCircle className="h-3 w-3 mr-1" />
                                         {systemStatus.server}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span>Database</span>
+                                    <span>Base de Datos</span>
                                     <Badge className="bg-green-600">
                                         <CheckCircle className="h-3 w-3 mr-1" />
                                         {systemStatus.database}
@@ -693,11 +693,11 @@ export default function SettingsPage() {
                                     </Badge>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span>Uptime</span>
+                                    <span>Tiempo de Actividad</span>
                                     <span className="font-mono text-sm">{systemStatus.uptime}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span>Version</span>
+                                    <span>Versión</span>
                                     <Badge variant="outline">v{systemStatus.version}</Badge>
                                 </div>
                             </div>
@@ -706,20 +706,20 @@ export default function SettingsPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Backups</CardTitle>
-                            <CardDescription>Database backup management</CardDescription>
+                            <CardTitle>Respaldos</CardTitle>
+                            <CardDescription>Gestión de respaldos de base de datos</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium">Last Backup</p>
+                                    <p className="font-medium">Último Respaldo</p>
                                     <p className="text-sm text-muted-foreground">
                                         {format(systemStatus.lastBackup, 'PPp')}
                                     </p>
                                 </div>
                                 <Button onClick={handleCreateBackup}>
                                     <Download className="h-4 w-4 mr-2" />
-                                    Create Backup
+                                    Crear Respaldo
                                 </Button>
                             </div>
                         </CardContent>
@@ -727,13 +727,13 @@ export default function SettingsPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>System Logs</CardTitle>
-                            <CardDescription>View system activity logs</CardDescription>
+                            <CardTitle>Registros del Sistema</CardTitle>
+                            <CardDescription>Ver registros de actividad del sistema</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Button variant="outline">
                                 <Activity className="h-4 w-4 mr-2" />
-                                View Logs
+                                Ver Registros
                             </Button>
                         </CardContent>
                     </Card>

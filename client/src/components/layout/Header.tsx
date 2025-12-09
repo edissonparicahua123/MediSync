@@ -19,10 +19,18 @@ export default function Header() {
         <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
             <div>
                 <h2 className="text-lg font-semibold">
-                    Welcome back, {user?.firstName}!
+                    ¡Hola, {user?.firstName}!
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                    {user?.role?.name || 'User'}
+                    {({
+                        'ADMIN': 'Administrador',
+                        'DOCTOR': 'Doctor',
+                        'NURSE': 'Enfermero/a',
+                        'RECEPTIONIST': 'Recepcionista',
+                        'LAB': 'Laboratorista',
+                        'PHARMACY': 'Farmacéutico/a',
+                        'HR': 'Recursos Humanos'
+                    } as Record<string, string>)[user?.role?.name || ''] || user?.role?.name || 'Usuario'}
                 </p>
             </div>
 

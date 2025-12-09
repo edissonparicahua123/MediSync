@@ -19,6 +19,7 @@ import {
     AlertCircle,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
 
 export default function AppointmentDetailsPage() {
@@ -37,39 +38,40 @@ export default function AppointmentDetailsPage() {
     const appointment = appointmentData?.data
 
     // Datos simulados para historial y notificaciones
-    const changeHistory = [
+    // Datos simulados para historial y notificaciones
+    const mockHistory = [
         {
             id: '1',
             date: new Date(),
             user: 'Dr. Smith',
-            action: 'Created appointment',
-            details: 'Initial appointment scheduled',
+            action: 'Cita creada',
+            details: 'Cita inicial programada',
         },
         {
             id: '2',
             date: new Date(Date.now() - 3600000),
-            user: 'Receptionist',
-            action: 'Status changed',
-            details: 'From SCHEDULED to CONFIRMED',
+            user: 'Recepcionista',
+            action: 'Estado cambiado',
+            details: 'De SCHEDULED a CONFIRMED',
         },
     ]
 
-    const notifications = [
+    const mockNotifications = [
         {
             id: '1',
             type: 'email',
             date: new Date(),
-            recipient: 'patient@example.com',
-            status: 'sent',
-            message: 'Appointment confirmation',
+            recipient: 'paciente@example.com',
+            status: 'enviado',
+            message: 'Confirmación de cita',
         },
         {
             id: '2',
             type: 'sms',
             date: new Date(Date.now() - 7200000),
             recipient: '+1234567890',
-            status: 'sent',
-            message: 'Appointment reminder',
+            status: 'enviado',
+            message: 'Recordatorio de cita',
         },
     ]
 
@@ -84,10 +86,10 @@ export default function AppointmentDetailsPage() {
     if (!appointment) {
         return (
             <div className="flex flex-col items-center justify-center h-96 space-y-4">
-                <p className="text-muted-foreground">Appointment not found</p>
+                <p className="text-muted-foreground">Cita no encontrada</p>
                 <Button onClick={() => navigate('/appointments')}>
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Appointments
+                    Volver a Citas
                 </Button>
             </div>
         )
@@ -113,19 +115,19 @@ export default function AppointmentDetailsPage() {
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" onClick={() => navigate('/appointments')}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back
+                        Volver
                     </Button>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Appointment Details</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Detalles de la Cita</h1>
                         <p className="text-muted-foreground">
-                            {appointment.appointmentDate ? format(new Date(appointment.appointmentDate), 'PPpp') : 'N/A'}
+                            {appointment.appointmentDate ? format(new Date(appointment.appointmentDate), 'PPpp', { locale: es }) : 'N/A'}
                         </p>
                     </div>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline">
                         <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                        Editar
                     </Button>
                 </div>
             </div>
@@ -136,43 +138,43 @@ export default function AppointmentDetailsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground">Patient</p>
+                                <p className="text-sm text-muted-foreground">Paciente</p>
                                 <p className="font-medium text-lg">
-                                    {appointment.patient ? `${appointment.patient.firstName} ${appointment.patient.lastName}` : 'Unknown'}
+                                    {appointment.patient ? `${appointment.patient.firstName} ${appointment.patient.lastName}` : 'Desconocido'}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Doctor</p>
                                 <p className="font-medium">
-                                    {appointment.doctor ? `Dr. ${appointment.doctor.user?.firstName} ${appointment.doctor.user?.lastName}` : 'Unknown'}
+                                    {appointment.doctor ? `Dr. ${appointment.doctor.user?.firstName} ${appointment.doctor.user?.lastName}` : 'Desconocido'}
                                 </p>
                             </div>
                         </div>
 
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground">Date & Time</p>
+                                <p className="text-sm text-muted-foreground">Fecha y Hora</p>
                                 <p className="font-medium">
-                                    {appointment.appointmentDate ? format(new Date(appointment.appointmentDate), 'PPpp') : 'N/A'}
+                                    {appointment.appointmentDate ? format(new Date(appointment.appointmentDate), 'PPpp', { locale: es }) : 'N/A'}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Duration</p>
-                                <p className="font-medium">1 hour</p>
+                                <p className="text-sm text-muted-foreground">Duración</p>
+                                <p className="font-medium">1 hora</p>
                             </div>
                         </div>
 
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground">Status</p>
+                                <p className="text-sm text-muted-foreground">Estado</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     {getStatusIcon(appointment.status)}
                                     <span className="font-medium">{appointment.status}</span>
                                 </div>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Reason</p>
-                                <p className="font-medium">{appointment.reason || 'General Checkup'}</p>
+                                <p className="text-sm text-muted-foreground">Motivo</p>
+                                <p className="font-medium">{appointment.reason || 'Chequeo General'}</p>
                             </div>
                         </div>
                     </div>
@@ -183,36 +185,36 @@ export default function AppointmentDetailsPage() {
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Scheduled Time</CardTitle>
+                        <CardTitle className="text-sm font-medium">Hora Programada</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
                             {appointment.appointmentDate ? format(new Date(appointment.appointmentDate), 'HH:mm') : 'N/A'}
                         </div>
-                        <p className="text-xs text-muted-foreground">Original appointment time</p>
+                        <p className="text-xs text-muted-foreground">Hora original de cita</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Wait Time</CardTitle>
+                        <CardTitle className="text-sm font-medium">Tiempo de Espera</CardTitle>
                         <AlertCircle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">15 min</div>
-                        <p className="text-xs text-muted-foreground">Average wait time</p>
+                        <p className="text-xs text-muted-foreground">Tiempo de espera promedio</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Consultation Time</CardTitle>
+                        <CardTitle className="text-sm font-medium">Tiempo de Consulta</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">45 min</div>
-                        <p className="text-xs text-muted-foreground">Duration of consultation</p>
+                        <p className="text-xs text-muted-foreground">Duración de la consulta</p>
                     </CardContent>
                 </Card>
             </div>
@@ -222,15 +224,15 @@ export default function AppointmentDetailsPage() {
                 <TabsList>
                     <TabsTrigger value="details">
                         <FileText className="h-4 w-4 mr-2" />
-                        Details
+                        Detalles
                     </TabsTrigger>
                     <TabsTrigger value="history">
                         <Calendar className="h-4 w-4 mr-2" />
-                        History
+                        Historial
                     </TabsTrigger>
                     <TabsTrigger value="notifications">
                         <Bell className="h-4 w-4 mr-2" />
-                        Notifications
+                        Notificaciones
                     </TabsTrigger>
                 </TabsList>
 
@@ -238,27 +240,27 @@ export default function AppointmentDetailsPage() {
                 <TabsContent value="details">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Appointment Information</CardTitle>
+                            <CardTitle>Información de la Cita</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Appointment ID</p>
+                                    <p className="text-sm text-muted-foreground">ID Cita</p>
                                     <p className="font-medium">{appointment.id}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Created At</p>
+                                    <p className="text-sm text-muted-foreground">Creada El</p>
                                     <p className="font-medium">
-                                        {appointment.createdAt ? format(new Date(appointment.createdAt), 'PPpp') : 'N/A'}
+                                        {appointment.createdAt ? format(new Date(appointment.createdAt), 'PPpp', { locale: es }) : 'N/A'}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Reason</p>
-                                    <p className="font-medium">{appointment.reason || 'General Checkup'}</p>
+                                    <p className="text-sm text-muted-foreground">Motivo</p>
+                                    <p className="font-medium">{appointment.reason || 'Chequeo General'}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Notes</p>
-                                    <p className="font-medium">{appointment.notes || 'No notes'}</p>
+                                    <p className="text-sm text-muted-foreground">Notas</p>
+                                    <p className="font-medium">{appointment.notes || 'Sin notas'}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -269,12 +271,12 @@ export default function AppointmentDetailsPage() {
                 <TabsContent value="history">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Change History</CardTitle>
-                            <CardDescription>Track all changes made to this appointment</CardDescription>
+                            <CardTitle>Historial de Cambios</CardTitle>
+                            <CardDescription>Rastrea todos los cambios realizados a esta cita</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {changeHistory.map((change) => (
+                                {mockHistory.map((change) => (
                                     <div key={change.id} className="flex gap-4 p-4 border rounded-lg">
                                         <div className="flex-shrink-0">
                                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -287,11 +289,11 @@ export default function AppointmentDetailsPage() {
                                                     <p className="font-medium">{change.action}</p>
                                                     <p className="text-sm text-muted-foreground">{change.details}</p>
                                                     <p className="text-xs text-muted-foreground mt-1">
-                                                        by {change.user}
+                                                        por {change.user}
                                                     </p>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {format(change.date, 'PPp')}
+                                                    {format(change.date, 'PPp', { locale: es })}
                                                 </p>
                                             </div>
                                         </div>
@@ -306,12 +308,12 @@ export default function AppointmentDetailsPage() {
                 <TabsContent value="notifications">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Notifications Sent</CardTitle>
-                            <CardDescription>All notifications related to this appointment</CardDescription>
+                            <CardTitle>Notificaciones Enviadas</CardTitle>
+                            <CardDescription>Todas las notificaciones relacionadas a esta cita</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {notifications.map((notification) => (
+                                {mockNotifications.map((notification) => (
                                     <div key={notification.id} className="flex gap-4 p-4 border rounded-lg">
                                         <div className="flex-shrink-0">
                                             <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -323,14 +325,14 @@ export default function AppointmentDetailsPage() {
                                                 <div>
                                                     <p className="font-medium">{notification.message}</p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        {notification.type.toUpperCase()} to {notification.recipient}
+                                                        {notification.type.toUpperCase()} a {notification.recipient}
                                                     </p>
                                                     <span className="inline-block mt-2 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
                                                         {notification.status}
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {format(notification.date, 'PPp')}
+                                                    {format(notification.date, 'PPp', { locale: es })}
                                                 </p>
                                             </div>
                                         </div>

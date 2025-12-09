@@ -11,8 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Activity } from 'lucide-react'
 
 const loginSchema = z.object({
-    email: z.string().email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    email: z.string().email('Correo electrónico inválido'),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 })
 
 type LoginForm = z.infer<typeof loginSchema>
@@ -39,7 +39,7 @@ export default function LoginPage() {
             login(response.data.user, response.data.accessToken)
             navigate('/dashboard')
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed')
+            setError(err.response?.data?.message || 'Inicio de sesión fallido')
         } finally {
             setLoading(false)
         }
@@ -54,13 +54,13 @@ export default function LoginPage() {
                     </div>
                     <CardTitle className="text-2xl font-bold">MediSync Enterprise</CardTitle>
                     <CardDescription>
-                        Sign in to your account to continue
+                        Inicia sesión en tu cuenta para continuar
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Email</label>
+                            <label className="text-sm font-medium">Correo electrónico</label>
                             <Input
                                 {...register('email')}
                                 type="email"
@@ -73,7 +73,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Password</label>
+                            <label className="text-sm font-medium">Contraseña</label>
                             <Input
                                 {...register('password')}
                                 type="password"
@@ -92,12 +92,12 @@ export default function LoginPage() {
                         )}
 
                         <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? 'Signing in...' : 'Sign In'}
+                            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                         </Button>
                     </form>
 
                     <div className="mt-4 text-center text-sm text-muted-foreground">
-                        <p>Demo credentials:</p>
+                        <p>Credenciales de prueba:</p>
                         <p className="font-mono">admin@medisync.com / password123</p>
                     </div>
                 </CardContent>
