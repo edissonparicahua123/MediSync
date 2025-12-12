@@ -356,10 +356,6 @@ export default function EmergencyPage() {
                         <Bed className="h-4 w-4 mr-2" />
                         Sala de Emergencias
                     </TabsTrigger>
-                    <TabsTrigger value="bed-status">
-                        <Activity className="h-4 w-4 mr-2" />
-                        Estado de Camas
-                    </TabsTrigger>
                 </TabsList>
 
                 {/* Emergency Room Tab */}
@@ -445,38 +441,7 @@ export default function EmergencyPage() {
                     </Card>
                 </TabsContent>
 
-                {/* Bed Status Tab */}
-                <TabsContent value="bed-status" className="mt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Ocupación de Camas por Área</CardTitle>
-                            <CardDescription>Disponibilidad de camas en tiempo real</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-6">
-                                {wardStats.map((ward: any) => (
-                                    <div key={ward.ward} className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                            <span className="font-semibold text-lg">{ward.ward}</span>
-                                            <span className="text-sm text-muted-foreground">
-                                                {ward.occupied}/{ward.total} camas ocupadas ({Math.round((ward.occupied / ward.total) * 100)}%)
-                                            </span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-4">
-                                            <div
-                                                className={`h-4 rounded-full ${(ward.occupied / ward.total) > 0.9 ? 'bg-red-500' :
-                                                    (ward.occupied / ward.total) > 0.7 ? 'bg-orange-500' :
-                                                        'bg-green-500'
-                                                    }`}
-                                                style={{ width: `${(ward.occupied / ward.total) * 100}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+
             </Tabs>
         </div>
     )

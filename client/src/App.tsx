@@ -21,6 +21,7 @@ import PublicScreenPage from '@/pages/PublicScreenPage'
 import HRPage from '@/pages/hr/HRPage'
 import EmergencyPage from '@/pages/emergency/EmergencyPage'
 import EmergencyCaseProfilePage from '@/pages/emergency/EmergencyCaseProfilePage'
+import BedManagementPage from '@/pages/beds/BedManagementPage'
 import AdminPage from '@/pages/admin/AdminPage'
 import MessagesPage from '@/pages/messages/MessagesPage'
 import AnalyticsPage from '@/pages/analytics/AnalyticsPage'
@@ -45,6 +46,7 @@ function App() {
                             <Route path="/hr" element={<HRPage />} />
                             <Route path="/emergency" element={<EmergencyPage />} />
                             <Route path="/emergency/:id" element={<EmergencyCaseProfilePage />} />
+                            <Route path="/beds" element={<BedManagementPage />} />
                             <Route path="/pharmacy" element={<PharmacyPage />} />
                             <Route path="/laboratory" element={<LaboratoryPage />} />
                             <Route path="/billing" element={<BillingPage />} />

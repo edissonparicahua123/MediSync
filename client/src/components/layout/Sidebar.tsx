@@ -6,6 +6,7 @@ import {
     Users,
     Stethoscope,
     Calendar,
+    Bed,
     Pill,
     FlaskConical,
     Receipt,
@@ -68,6 +69,12 @@ const menuSections: MenuSection[] = [
                 label: 'Citas',
                 path: '/appointments',
                 roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST']
+            },
+            {
+                icon: Bed,
+                label: 'Camas',
+                path: '/beds',
+                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'HR']
             },
         ],
     },
