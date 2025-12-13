@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { patientsAPI, appointmentsAPI } from '@/services/api'
+import { patientsAPI, appointmentsAPI, emergencyAPI, laboratoryAPI } from '@/services/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -22,38 +22,68 @@ import {
     Shield,
     Edit,
     Download,
+    Plus,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useToast } from '@/components/ui/use-toast'
+import PatientModal from '@/components/modals/PatientModal'
 
 export default function PatientProfilePage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const { toast } = useToast()
     const [activeTab, setActiveTab] = useState('general')
+    const [editModalOpen, setEditModalOpen] = useState(false)
 
     // Cargar datos del paciente
-    const { data: patientData, isLoading } = useQuery({
+    const { data: patientData, isLoading, refetch } = useQuery({
         queryKey: ['patient', id],
         queryFn: () => patientsAPI.getOne(id!),
         enabled: !!id,
     })
 
-    // Cargar citas del paciente
+    // Cargar citas del paciente (Filtrado por ID)
     const { data: appointmentsData } = useQuery({
         queryKey: ['patient-appointments', id],
-        queryFn: () => appointmentsAPI.getAll(),
+        queryFn: () => appointmentsAPI.getAll({ patientId: id }),
+        enabled: !!id,
+    })
+
+    // Cargar historial de emergencias
+    const { data: emergencyData } = useQuery({
+        queryKey: ['patient-emergency', id],
+        queryFn: () => emergencyAPI.getPatientHistory(id!),
+        enabled: !!id,
+    })
+
+    // Cargar ordenes de laboratorio
+    const { data: labData } = useQuery({
+        queryKey: ['patient-lab', id],
+        queryFn: () => laboratoryAPI.getOrders({ patientId: id }),
         enabled: !!id,
     })
 
     const patient = patientData?.data
-    const allAppointments = appointmentsData?.data?.data || []
-    const patientAppointments = allAppointments.filter((apt: any) => apt.patientId === id)
+    // Handle different API response structures (array vs { data: [] })
+    const appointments = appointmentsData?.data?.data || appointmentsData?.data || []
+    const emergencies = emergencyData?.data || []
+    const labOrders = labData?.data?.data || labData?.data || []
 
     const calculateAge = (dateOfBirth: string) => {
         if (!dateOfBirth) return 'N/A'
         const age = new Date().getFullYear() - new Date(dateOfBirth).getFullYear()
         return age
+    }
+
+    const handleEditSuccess = () => {
+        refetch()
+        setEditModalOpen(false)
+        toast({ title: 'Perfil actualizado', description: 'Los datos del paciente han sido actualizados.' })
+    }
+
+    const handleDownload = () => {
+        // Mock download logic
+        toast({ title: 'Descargando...', description: `Historial de ${patient?.firstName || 'Paciente'} en proceso.` })
     }
 
     if (isLoading) {
@@ -76,10 +106,10 @@ export default function PatientProfilePage() {
         )
     }
 
-    const pastAppointments = patientAppointments.filter((apt: any) =>
+    const pastAppointments = appointments.filter((apt: any) =>
         new Date(apt.appointmentDate) < new Date() || apt.status === 'COMPLETED'
     )
-    const futureAppointments = patientAppointments.filter((apt: any) =>
+    const futureAppointments = appointments.filter((apt: any) =>
         new Date(apt.appointmentDate) >= new Date() && apt.status !== 'COMPLETED'
     )
 
@@ -102,11 +132,11 @@ export default function PatientProfilePage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleDownload}>
                         <Download className="h-4 w-4 mr-2" />
                         Descargar Registros
                     </Button>
-                    <Button>
+                    <Button onClick={() => setEditModalOpen(true)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar Perfil
                     </Button>
@@ -118,9 +148,13 @@ export default function PatientProfilePage() {
                 <CardContent className="pt-6">
                     <div className="flex items-start gap-6">
                         {/* Avatar */}
-                        <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
-                            {patient.firstName?.[0]}{patient.lastName?.[0]}
-                        </div>
+                        {patient.photo ? (
+                            <img src={patient.photo} alt="Profile" className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-lg" />
+                        ) : (
+                            <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-lg">
+                                {patient.firstName?.[0]}{patient.lastName?.[0]}
+                            </div>
+                        )}
 
                         {/* Info Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
@@ -361,13 +395,7 @@ export default function PatientProfilePage() {
                                                         </p>
                                                     </div>
                                                     <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-                                                        {({
-                                                            'SCHEDULED': 'PROGRAMADA',
-                                                            'CONFIRMED': 'CONFIRMADA',
-                                                            'COMPLETED': 'COMPLETADA',
-                                                            'CANCELLED': 'CANCELADA',
-                                                            'NO_SHOW': 'NO ASISTIÓ'
-                                                        } as Record<string, string>)[apt.status] || apt.status}
+                                                        {apt.status}
                                                     </span>
                                                 </div>
                                             </div>
@@ -400,13 +428,7 @@ export default function PatientProfilePage() {
                                                         </p>
                                                     </div>
                                                     <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">
-                                                        {({
-                                                            'SCHEDULED': 'PROGRAMADA',
-                                                            'CONFIRMED': 'CONFIRMADA',
-                                                            'COMPLETED': 'COMPLETADA',
-                                                            'CANCELLED': 'CANCELADA',
-                                                            'NO_SHOW': 'NO ASISTIÓ'
-                                                        } as Record<string, string>)[apt.status] || apt.status}
+                                                        {apt.status}
                                                     </span>
                                                 </div>
                                             </div>
@@ -435,11 +457,25 @@ export default function PatientProfilePage() {
                 <TabsContent value="lab">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Resultados de Laboratorio</CardTitle>
+                            <CardTitle>Resultados de Laboratorio ({labOrders.length})</CardTitle>
                             <CardDescription>Resultados de pruebas e informes</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">No hay resultados de laboratorio disponibles</p>
+                            {labOrders.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No hay resultados de laboratorio disponibles</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {labOrders.map((order: any) => (
+                                        <div key={order.id} className="p-3 border rounded-lg flex justify-between">
+                                            <div>
+                                                <p className="font-medium">{order.testName}</p>
+                                                <p className="text-xs text-muted-foreground">{format(new Date(order.createdAt), 'dd MMM yyyy')}</p>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">{order.status}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -448,11 +484,25 @@ export default function PatientProfilePage() {
                 <TabsContent value="emergency">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Registros de Emergencia</CardTitle>
+                            <CardTitle>Registros de Emergencia ({emergencies.length})</CardTitle>
                             <CardDescription>Visitas de emergencia previas</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">No hay registros de emergencia</p>
+                            {emergencies.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No hay registros de emergencia</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {emergencies.map((em: any) => (
+                                        <div key={em.id} className="p-3 border rounded-lg flex justify-between">
+                                            <div>
+                                                <p className="font-medium">{em.diagnosis || em.chiefComplaint}</p>
+                                                <p className="text-xs text-muted-foreground">{format(new Date(em.admissionDate), 'dd MMM yyyy HH:mm')}</p>
+                                            </div>
+                                            <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">Nivel {em.triageLevel}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -489,6 +539,13 @@ export default function PatientProfilePage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            <PatientModal
+                open={editModalOpen}
+                onOpenChange={setEditModalOpen}
+                patient={patient}
+                onSuccess={handleEditSuccess}
+            />
         </div>
     )
 }

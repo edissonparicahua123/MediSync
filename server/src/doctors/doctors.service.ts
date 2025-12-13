@@ -12,7 +12,7 @@ export class DoctorsService {
             this.prisma.doctor.findMany({
                 where: { deletedAt: null },
                 include: {
-                    user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, avatar: true } },
+                    user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, avatar: true, address: true } },
                 },
                 skip,
                 take: limit,
@@ -48,7 +48,7 @@ export class DoctorsService {
     }
 
     async create(data: any) {
-        const { firstName, lastName, email, phone, password, ...doctorData } = data;
+        const { firstName, lastName, email, phone, address, avatar, password, ...doctorData } = data;
 
         // Check if user exists
         const existingUser = await this.prisma.user.findUnique({
@@ -68,7 +68,7 @@ export class DoctorsService {
             return this.prisma.doctor.create({
                 data: {
                     userId: existingUser.id,
-                    ...doctorData,
+                    ...doctorData, // specialization, licenseNumber, etc.
                 },
                 include: { user: true },
             });
@@ -90,8 +90,10 @@ export class DoctorsService {
                     lastName,
                     email,
                     phone,
+                    address,
+                    avatar,
                     password: password || 'Medisync2024!', // Default password
-                    roleId: doctorRole.id!,
+                    roleId: doctorRole?.id || '',
                 },
             });
 
@@ -107,7 +109,7 @@ export class DoctorsService {
     }
 
     async update(id: string, data: any) {
-        const { firstName, lastName, email, phone, ...doctorData } = data;
+        const { firstName, lastName, email, phone, address, avatar, ...doctorData } = data;
 
         // Update doctor and related user info
         const doctor = await this.prisma.doctor.findUnique({ where: { id } });
@@ -115,17 +117,17 @@ export class DoctorsService {
 
         return this.prisma.$transaction(async (prisma) => {
             // Update User if needed
-            if (firstName || lastName || email || phone) {
+            if (firstName || lastName || email || phone || address || avatar !== undefined) {
                 await prisma.user.update({
                     where: { id: doctor.userId },
-                    data: { firstName, lastName, email, phone },
+                    data: { firstName, lastName, email, phone, address, avatar },
                 });
             }
 
             // Update Doctor
             return prisma.doctor.update({
                 where: { id },
-                data: doctorData,
+                data: doctorData, // specialization, yearsExperience, consultationFee, isAvailable, bio
                 include: { user: true, specialty: true },
             });
         });

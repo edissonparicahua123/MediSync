@@ -31,6 +31,8 @@ const doctorSchema = z.object({
     lastName: z.string().min(2, 'El apellido es requerido'),
     email: z.string().email('Correo electrónico inválido'),
     phone: z.string().min(10, 'El teléfono es requerido'),
+    address: z.string().optional(),
+    avatar: z.string().optional(),
 
     // Doctor fields
     specialization: z.string().min(2, 'La especialidad es requerida'),
@@ -42,6 +44,7 @@ const doctorSchema = z.object({
         message: 'La experiencia debe ser un número positivo',
     }),
     bio: z.string().optional(),
+    isAvailable: z.boolean().default(true),
 })
 
 type DoctorFormData = z.infer<typeof doctorSchema>
@@ -68,11 +71,14 @@ export default function DoctorModal({
             lastName: '',
             email: '',
             phone: '',
+            address: '',
+            avatar: '',
             specialization: '',
             licenseNumber: '',
             consultationFee: '',
             yearsExperience: '',
             bio: '',
+            isAvailable: true,
         },
     })
 
@@ -85,11 +91,14 @@ export default function DoctorModal({
                     lastName: doctor.user?.lastName || '',
                     email: doctor.user?.email || '',
                     phone: doctor.user?.phone || '',
+                    address: doctor.user?.address || '',
+                    avatar: doctor.user?.avatar || '',
                     specialization: doctor.specialization || '',
                     licenseNumber: doctor.licenseNumber || '',
                     consultationFee: doctor.consultationFee ? String(doctor.consultationFee) : '',
                     yearsExperience: doctor.yearsExperience ? String(doctor.yearsExperience) : '',
                     bio: doctor.bio || '',
+                    isAvailable: doctor.isAvailable ?? true,
                 })
             } else {
                 form.reset({
@@ -97,11 +106,14 @@ export default function DoctorModal({
                     lastName: '',
                     email: '',
                     phone: '',
+                    address: '',
+                    avatar: '',
                     specialization: '',
                     licenseNumber: '',
                     consultationFee: '',
                     yearsExperience: '',
                     bio: '',
+                    isAvailable: true,
                 })
             }
         }
@@ -216,6 +228,34 @@ export default function DoctorModal({
                                 )}
                             />
 
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem className="md:col-span-2">
+                                        <FormLabel>Dirección</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Av. Principal 123, Oficina 301" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="avatar"
+                                render={({ field }) => (
+                                    <FormItem className="md:col-span-2">
+                                        <FormLabel>Foto (URL)</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="https://example.com/photo.jpg" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
                             {/* Professional Information */}
                             <div className="md:col-span-2 mt-4">
                                 <h3 className="text-lg font-medium mb-2">Detalles Profesionales</h3>
@@ -273,6 +313,34 @@ export default function DoctorModal({
                                             <Input type="number" placeholder="150.00" {...field} />
                                         </FormControl>
                                         <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="isAvailable"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm md:col-span-2">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Disponibilidad</FormLabel>
+                                            <DialogDescription>
+                                                Mostrar al doctor como disponible para nuevas citas.
+                                            </DialogDescription>
+                                        </div>
+                                        <FormControl>
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={field.value}
+                                                    onChange={field.onChange}
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm text-gray-900">
+                                                    {field.value ? 'Disponible' : 'No Disponible'}
+                                                </span>
+                                            </div>
+                                        </FormControl>
                                     </FormItem>
                                 )}
                             />

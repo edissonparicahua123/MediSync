@@ -60,4 +60,22 @@ export class HRController {
     getStats() {
         return this.hrService.getStats();
     }
+
+    @Get('attendance')
+    @ApiOperation({ summary: 'Get employee attendance' })
+    getAttendance(@Query('date') date?: string) {
+        return this.hrService.getAttendance(date ? new Date(date) : undefined);
+    }
+
+    @Get('payroll')
+    @ApiOperation({ summary: 'Get payroll records' })
+    getPayroll() {
+        return this.hrService.getPayroll();
+    }
+
+    @Get('shifts')
+    @ApiOperation({ summary: 'Get employee shifts' })
+    getShifts() {
+        return this.hrService.getShifts();
+    }
 }

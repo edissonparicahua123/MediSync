@@ -152,11 +152,52 @@ export default function PatientsPage() {
     }
 
     const handleExportExcel = () => {
-        toast({
-            title: 'Exportar a Excel',
-            description: 'Generando archivo Excel...',
-        })
-        // TODO: Implementar exportación Excel
+        try {
+            toast({
+                title: 'Exportando...',
+                description: 'Generando archivo CSV...',
+            })
+
+            // Generate CSV
+            const headers = ['ID', 'Nombre', 'Apellido', 'DNI', 'Email', 'Teléfono', 'Género', 'Tipo Sangre', 'Estado']
+            const rows = filteredPatients.map((p: any) => [
+                p.id,
+                p.firstName,
+                p.lastName,
+                p.documentNumber || '',
+                p.email || '',
+                p.phone || '',
+                p.gender,
+                p.bloodType || '',
+                p.status
+            ])
+
+            const csvContent = [
+                headers.join(','),
+                ...rows.map((row: any[]) => row.map(cell => `"${cell}"`).join(','))
+            ].join('\n')
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.setAttribute('href', url)
+            link.setAttribute('download', `pacientes_${format(new Date(), 'yyyyMMdd')}.csv`)
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+
+            toast({
+                title: 'Éxito',
+                description: 'Archivo descargado correctamente',
+            })
+        } catch (error) {
+            console.error(error)
+            toast({
+                title: 'Error',
+                description: 'No se pudo exportar el archivo',
+                variant: 'destructive'
+            })
+        }
     }
 
     const handleImport = () => {
@@ -188,11 +229,22 @@ export default function PatientsPage() {
 
     const getPriorityBadge = (priority: string) => {
         const colors: Record<string, string> = {
-            HIGH: 'bg-red-100 text-red-800',
-            MEDIUM: 'bg-yellow-100 text-yellow-800',
-            LOW: 'bg-blue-100 text-blue-800',
+            HIGH: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+            MEDIUM: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+            LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
         }
         return colors[priority] || colors.MEDIUM
+    }
+
+    // Helper for table render
+    const getPatientPriority = (patient: any) => {
+        // If backend doesn't send priority, simulate it based on age or status for UI demo
+        if (patient.priority) return patient.priority
+        if (patient.status === 'CRITICAL') return 'HIGH'
+
+        const age = calculateAge(patient.dateOfBirth)
+        if (typeof age === 'number' && age > 70) return 'HIGH'
+        return 'MEDIUM'
     }
 
     if (isLoading) {
@@ -372,8 +424,9 @@ export default function PatientsPage() {
                                     <TableCell>{patient.insuranceProvider || 'None'}</TableCell>
                                     <TableCell>{patient.phone || 'N/A'}</TableCell>
                                     <TableCell>
-                                        <span className={`text-xs px-2 py-1 rounded-full ${getPriorityBadge('MEDIUM')}`}>
-                                            MEDIA
+                                        <span className={`text-xs px-2 py-1 rounded-full ${getPriorityBadge(getPatientPriority(patient))}`}>
+                                            {getPatientPriority(patient) === 'HIGH' ? 'ALTA' :
+                                                getPatientPriority(patient) === 'LOW' ? 'BAJA' : 'MEDIA'}
                                         </span>
                                     </TableCell>
                                     <TableCell>

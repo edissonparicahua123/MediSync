@@ -23,6 +23,12 @@ export class EmergencyController {
         return this.emergencyService.getCriticalPatients();
     }
 
+    @Get('history/:patientId')
+    @ApiOperation({ summary: 'Get patient emergency history' })
+    getPatientHistory(@Param('patientId') patientId: string) {
+        return this.emergencyService.getPatientHistory(patientId);
+    }
+
     @Post('beds')
     @ApiOperation({ summary: 'Create new bed' })
     createBed(@Body() createBedDto: CreateBedDto) {

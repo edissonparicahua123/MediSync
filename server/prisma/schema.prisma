@@ -21,6 +21,7 @@ model User {
   firstName String
   lastName  String
   phone     String?
+  address   String?   // Added for doctor/staff address
   avatar    String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -43,6 +44,9 @@ model User {
   // Messages
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
+  
+  // Bed Management Activities
+  bedActivities    BedActivity[]
 
   @@index([email])
   @@index([roleId])
@@ -99,6 +103,7 @@ model Patient {
   id              String    @id @default(uuid())
   firstName       String
   lastName        String
+  documentNumber  String?   @unique
   dateOfBirth     DateTime
   gender          String // MALE, FEMALE, OTHER
   bloodType       String?
@@ -115,6 +120,7 @@ model Patient {
   allergies       String?
   chronicConditions String?
   notes           String?
+  photo           String?   // [NEW] Added for frontend avatar
   status          String    @default("ACTIVE") // ACTIVE, INACTIVE, DECEASED
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -126,7 +132,8 @@ model Patient {
   labOrders       LabOrder[]
   invoices        Invoice[]
   files           FileStorage[]
-  bed             BedStatus?
+  assignedBedStatus BedStatus?
+  beds            Bed[]
 
   @@index([firstName, lastName])
   @@index([phone])
@@ -204,6 +211,7 @@ model Appointment {
   startTime       String // HH:mm format
   endTime         String? // HH:mm format
   reason          String
+  type            String    @default("CHECKUP") // CHECKUP, FOLLOW_UP, EMERGENCY, CONSULTATION, SURGERY
   symptoms        String?
   status          String    @default("SCHEDULED") // SCHEDULED, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
   priority        String    @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
@@ -468,20 +476,24 @@ model Payment {
 // ============================================
 
 model Attendance {
-  id        String    @id @default(uuid())
-  checkIn   DateTime
-  checkOut  DateTime?
-  workHours Decimal?  @db.Decimal(5, 2)
-  status    String    @default("PRESENT") // PRESENT, LATE, ABSENT, HALF_DAY
-  notes     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(uuid())
+  checkIn     DateTime
+  checkOut    DateTime?
+  hoursWorked Decimal?  @db.Decimal(5, 2)
+  tardiness   Int       @default(0) // [NEW] In minutes
+  status      String    @default("PRESENT") // PRESENT, LATE, ABSENT, HALF_DAY
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   // Relations
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id])
+  employeeId  String?
+  employee    Employee? @relation(fields: [employeeId], references: [id])
 
   @@index([userId])
+  @@index([employeeId])
   @@index([checkIn])
   @@map("attendances")
 }
@@ -568,13 +580,17 @@ model FileStorage {
 model Employee {
   id               String    @id @default(uuid())
   name             String
+  photo            String?   // [NEW] From frontend mock
   role             String
+  area             String?   // [NEW] From frontend mock (e.g. "Cardiología")
   department       String
   email            String    @unique
   phone            String?
   salary           Decimal?  @db.Decimal(10, 2)
+  contract         String?   // [NEW] From frontend mock (e.g. "Tiempo Completo")
   hireDate         DateTime
   isActive         Boolean   @default(true)
+  status           String    @default("ACTIVE") // ACTIVE, VACATION, SICK, INACTIVE
   address          String?
   emergencyContact String?
   emergencyPhone   String?
@@ -582,14 +598,99 @@ model Employee {
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
 
+  // Relations
+  attendances Attendance[]
+  shifts      EmployeeShift[]
+  payrolls    Payroll[]
+
   @@index([email])
-  @@index([department])
-  @@index([role])
   @@map("employees")
 }
 
+model EmployeeShift {
+  id        String   @id @default(uuid())
+  startTime DateTime
+  endTime   DateTime
+  type      String   // MORNING, AFTERNOON, NIGHT, GUARD
+  status    String   @default("SCHEDULED") // SCHEDULED, COMPLETED, ABSENT, SWAPPED
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([startTime])
+  @@map("employee_shifts")
+}
+
+model Payroll {
+  id          String   @id @default(uuid())
+  periodStart DateTime
+  periodEnd   DateTime
+  baseSalary  Decimal  @db.Decimal(10, 2)
+  bonuses     Decimal  @default(0) @db.Decimal(10, 2)
+  deductions  Decimal  @default(0) @db.Decimal(10, 2)
+  netSalary   Decimal  @db.Decimal(10, 2)
+  status      String   @default("DRAFT") // DRAFT, PROCESSED, PAID
+  paidDate    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId])
+  @@map("payrolls")
+}
+
 // ============================================
-// EMERGENCY MODULE - BED MANAGEMENT
+// BED MANAGEMENT
+// ============================================
+
+model Bed {
+  id        String   @id @default(uuid())
+  number    String   @unique // e.g., CAM-001
+  ward      String // e.g., Emergencia, UCI
+  type      String // e.g., Camilla, Cama Hospitalaria
+  status    String   @default("AVAILABLE") // AVAILABLE, OCCUPIED, CLEANING, MAINTENANCE, RESERVED
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Occupancy details
+  admissionDate DateTime?
+  
+  // Relations
+  patientId String?
+  patient   Patient? @relation(fields: [patientId], references: [id])
+  
+  activities BedActivity[]
+
+  @@map("beds")
+}
+
+model BedActivity {
+  id        String   @id @default(uuid())
+  action    String // RESERVA, ASIGNACION, ALTA, LIMPIEZA
+  details   String?
+  timestamp DateTime @default(now())
+  
+  // Relations
+  bedId     String
+  bed       Bed      @relation(fields: [bedId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([bedId])
+  @@map("bed_activities")
+}
+
+// ============================================
+// EMERGENCY MODULE - BED MANAGEMENT & TRIAGE
 // ============================================
 
 model BedStatus {
@@ -610,8 +711,36 @@ model BedStatus {
   @@map("bed_statuses")
 }
 
+model EmergencyCase {
+  id              String   @id @default(uuid())
+  patientName     String   // Temporal name or real name
+  patientAge      Int?
+  patientId       String?  // Optional link to real patient
+  admissionDate   DateTime @default(now())
+  
+  // Triage & Vitals
+  triageLevel     Int      // 1 (Critical) to 5 (Non-Urgent)
+  chiefComplaint  String
+  diagnosis       String?
+  vitalSigns      Json?    // { hr, bp, temp, spo2 }
+  
+  // Location & Staff
+  bedNumber       String?
+  doctorName      String?
+  
+  status          String   @default("ADMITTED") // TRIAGE, ADMITTED, DISCHARGED, OBSERVATION
+  dischargedAt    DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("emergency_cases")
+}
+
 // ============================================
-// ADMIN MODULE - SYSTEM CONFIGURATION
+// ADMINISTRATION & CONFIG
 // ============================================
 
 model SystemConfig {
@@ -631,7 +760,7 @@ model SystemConfig {
 }
 
 // ============================================
-// MESSAGES MODULE - INTERNAL MESSAGING
+// MESSAGING
 // ============================================
 
 model Message {

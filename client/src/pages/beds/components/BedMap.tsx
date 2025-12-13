@@ -18,9 +18,10 @@ import BedAssignmentDialog from './BedAssignmentDialog'
 interface BedMapProps {
     filterWard: string
     filterStatus: string
+    onEditBed: (bed: BedType) => void
 }
 
-export default function BedMap({ filterWard, filterStatus }: BedMapProps) {
+export default function BedMap({ filterWard, filterStatus, onEditBed }: BedMapProps) {
     const { beds, deleteBed, dischargePatient, setBedStatus } = useBedStore()
     const { toast } = useToast()
     const [assignDialogOpen, setAssignDialogOpen] = useState(false)
@@ -120,6 +121,12 @@ export default function BedMap({ filterWard, filterStatus }: BedMapProps) {
                                                 <UserMinus className="mr-2 h-4 w-4" /> Dar de Alta
                                             </DropdownMenuItem>
                                         )}
+                                        <DropdownMenuSeparator />
+
+                                        <DropdownMenuItem onClick={() => onEditBed(bed)}>
+                                            <Settings className="mr-2 h-4 w-4" /> Editar Cama
+                                        </DropdownMenuItem>
+
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={() => setBedStatus(bed.id, 'AVAILABLE')}>
                                             <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> Marcar Disponible

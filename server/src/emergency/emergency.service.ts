@@ -8,10 +8,11 @@ export class EmergencyService {
 
     async getDashboard() {
         const [criticalPatients, totalBeds, availableBeds, occupiedBeds, bedsByWard] = await Promise.all([
-            this.prisma.appointment.count({
+            // Now using EmergencyCase instead of Appointment
+            this.prisma.emergencyCase.count({
                 where: {
-                    priority: 'URGENT',
-                    status: { in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] },
+                    status: { in: ['TRIAGE', 'ADMITTED', 'OBSERVATION'] },
+                    triageLevel: { lte: 2 }, // Levels 1 and 2 are critical/urgent
                 },
             }),
             this.prisma.bedStatus.count(),
@@ -36,22 +37,38 @@ export class EmergencyService {
     }
 
     async getCriticalPatients() {
-        return this.prisma.appointment.findMany({
+        return this.prisma.emergencyCase.findMany({
             where: {
-                priority: 'URGENT',
-                status: { in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] },
+                status: { in: ['TRIAGE', 'ADMITTED', 'OBSERVATION'] },
             },
-            include: {
-                patient: true,
-                doctor: {
-                    include: {
-                        user: true,
-                        specialty: true,
-                    },
-                },
-            },
-            orderBy: { triageScore: 'desc' },
+            orderBy: { triageLevel: 'asc' }, // Lower number = Higher priority
         });
+    }
+
+    // [NEW] Get patient emergency history
+    async getPatientHistory(patientId: string) {
+        if (!patientId) return [];
+
+        // Try to match by patient ID if we were storing it, 
+        // or for now return empty since our seed data mocks names not IDs strictly linked yet.
+        // However, we should try to match on something.
+        // If we update EmergencyCase schema to have patientId, we can use it.
+        // Since we didn't add patientId to EmergencyCase schema (only to Patient), 
+        // we might have limited luck. 
+        // WAIT: In Step 169 summary I said: "EmergencyCase ... patientId (opcional)".
+        // So I can query it.
+
+        return this.prisma.emergencyCase.findMany({
+            where: {
+                patientId: patientId
+            },
+            orderBy: { admissionDate: 'desc' }
+        });
+    }
+
+    // [NEW] Helper to create emergency case
+    async createEmergencyCase(data: any) {
+        return this.prisma.emergencyCase.create({ data });
     }
 
     async createBed(data: CreateBedDto) {

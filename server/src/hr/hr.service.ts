@@ -90,4 +90,47 @@ export class HRService {
             byRole,
         };
     }
+
+    // [NEW] Attendance Methods
+    async getAttendance(date?: Date) {
+        const where: any = {};
+        if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+            where.checkIn = {
+                gte: startOfDay,
+                lte: endOfDay,
+            };
+        }
+
+        return this.prisma.attendance.findMany({
+            where,
+            include: {
+                employee: true,
+            },
+            orderBy: { checkIn: 'desc' },
+        });
+    }
+
+    // [NEW] Payroll Methods
+    async getPayroll(periodStart?: Date, periodEnd?: Date) {
+        return this.prisma.payroll.findMany({
+            include: {
+                employee: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    // [NEW] Shift Methods
+    async getShifts() {
+        return this.prisma.employeeShift.findMany({
+            include: {
+                employee: true,
+            },
+            orderBy: [{ startTime: 'asc' }],
+        });
+    }
 }

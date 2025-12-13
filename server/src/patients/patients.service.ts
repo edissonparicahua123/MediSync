@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePatientDto, UpdatePatientDto, SearchPatientsDto } from './dto';
 
@@ -7,9 +7,13 @@ export class PatientsService {
     constructor(private prisma: PrismaService) { }
 
     async create(createPatientDto: CreatePatientDto) {
-        return this.prisma.patient.create({
-            data: createPatientDto,
-        });
+        try {
+            return await this.prisma.patient.create({
+                data: createPatientDto,
+            });
+        } catch (error) {
+            this.handlePrismaError(error);
+        }
     }
 
     async findAll(page: number = 1, limit: number = 20, search?: SearchPatientsDto) {
@@ -97,10 +101,23 @@ export class PatientsService {
     async update(id: string, updatePatientDto: UpdatePatientDto) {
         await this.findOne(id);
 
-        return this.prisma.patient.update({
-            where: { id },
-            data: updatePatientDto,
-        });
+        try {
+            return await this.prisma.patient.update({
+                where: { id },
+                data: updatePatientDto,
+            });
+        } catch (error) {
+            this.handlePrismaError(error);
+        }
+    }
+
+    private handlePrismaError(error: any) {
+        if (error.code === 'P2002') {
+            const fields = error.meta?.target ? ` en: ${error.meta.target.join(', ')}` : '';
+            throw new ConflictException(`Ya existe un paciente con este dato único${fields}.`);
+        }
+        console.error('Prisma Error:', error);
+        throw new BadRequestException('Error al procesar datos del paciente. Verifique los campos enviados.');
     }
 
     async remove(id: string) {

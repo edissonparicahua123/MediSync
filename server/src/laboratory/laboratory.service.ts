@@ -13,6 +13,9 @@ export class LaboratoryService {
         if (status) {
             where.status = status;
         }
+        if (query.patientId) {
+            where.patientId = query.patientId;
+        }
 
         const [data, total] = await Promise.all([
             this.prisma.labOrder.findMany({

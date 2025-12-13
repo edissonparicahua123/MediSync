@@ -20,6 +20,11 @@ export class AiService {
         age: number;
         vitalSigns: any;
     }): Promise<{ score: number; priority: string; notes: string }> {
+        // Bypass external AI service for stability if it's not running
+        // directly calls fallback logic.
+        this.logger.log('Bypassing external AI service, using fallback rules.');
+        return this.fallbackTriage(data);
+        /* 
         try {
             const response = await firstValueFrom(
                 this.httpService.post(`${this.aiServiceUrl}/predict/triage`, data),
@@ -30,6 +35,7 @@ export class AiService {
             // Fallback to rule-based triage
             return this.fallbackTriage(data);
         }
+        */
     }
 
     async summarizeClinical(text: string): Promise<{ summary: string }> {

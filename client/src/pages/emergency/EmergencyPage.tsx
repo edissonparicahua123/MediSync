@@ -380,48 +380,50 @@ export default function EmergencyPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {erPatients.map((patient) => (
+                                    {criticalPatients.map((patient) => (
                                         <TableRow key={patient.id}>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`h-6 w-6 rounded-full ${getPriorityColor(patient.priority)} flex items-center justify-center text-white text-xs font-bold`}>
-                                                        {patient.priority}
+                                                    <div className={`h-6 w-6 rounded-full ${getPriorityColor(patient.triageLevel || patient.priority)} flex items-center justify-center text-white text-xs font-bold`}>
+                                                        {patient.triageLevel || patient.priority}
                                                     </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{patient.bedNumber}</TableCell>
                                             <TableCell>
                                                 <div>
-                                                    <p className="font-medium">{patient.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{patient.age} años</p>
+                                                    <p className="font-medium">{patient.patientName || patient.name}</p>
+                                                    <p className="text-sm text-muted-foreground">{patient.patientAge || patient.age} años</p>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{patient.diagnosis}</TableCell>
-                                            <TableCell>{patient.doctor}</TableCell>
+                                            <TableCell>{patient.diagnosis || patient.chiefComplaint}</TableCell>
+                                            <TableCell>{patient.doctorName || patient.doctor}</TableCell>
                                             <TableCell>
-                                                <div className="flex gap-2 text-xs">
-                                                    <div className="flex items-center gap-1">
-                                                        <Heart className="h-3 w-3" />
-                                                        {patient.vitalSigns.hr}
+                                                {patient.vitalSigns && (
+                                                    <div className="flex gap-2 text-xs">
+                                                        <div className="flex items-center gap-1">
+                                                            <Heart className="h-3 w-3" />
+                                                            {patient.vitalSigns.hr ? Math.round(patient.vitalSigns.hr) : '-'}
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <Activity className="h-3 w-3" />
+                                                            {patient.vitalSigns.bp || '-'}
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <Thermometer className="h-3 w-3" />
+                                                            {patient.vitalSigns.temp ? parseFloat(patient.vitalSigns.temp).toFixed(1) : '-'}°C
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <Wind className="h-3 w-3" />
+                                                            {patient.vitalSigns.spo2 ? Math.round(patient.vitalSigns.spo2) : '-'}%
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <Activity className="h-3 w-3" />
-                                                        {patient.vitalSigns.bp}
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <Thermometer className="h-3 w-3" />
-                                                        {patient.vitalSigns.temp}°C
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <Wind className="h-3 w-3" />
-                                                        {patient.vitalSigns.spo2}%
-                                                    </div>
-                                                </div>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                                     <Clock className="h-3 w-3" />
-                                                    {format(patient.admittedAt, 'HH:mm')}
+                                                    {format(new Date(patient.admissionDate || patient.admittedAt), 'HH:mm')}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right">

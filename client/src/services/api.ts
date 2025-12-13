@@ -87,6 +87,9 @@ export const hrAPI = {
     updateEmployee: (id: string, data: any) => api.put(`/hr/employees/${id}`, data),
     deleteEmployee: (id: string) => api.delete(`/hr/employees/${id}`),
     getStats: () => api.get('/hr/stats'),
+    getAttendance: (date?: Date) => api.get('/hr/attendance', { params: { date } }),
+    getPayroll: () => api.get('/hr/payroll'),
+    getShifts: () => api.get('/hr/shifts'),
 }
 
 // ============================================
@@ -100,6 +103,21 @@ export const emergencyAPI = {
     createBed: (data: any) => api.post('/emergency/beds', data),
     updateBedStatus: (id: string, data: any) => api.put(`/emergency/beds/${id}`, data),
     getWardStats: () => api.get('/emergency/wards/stats'),
+    getPatientHistory: (patientId: string) => api.get(`/emergency/history/${patientId}`),
+}
+
+// ============================================
+// BED MANAGEMENT API
+// ============================================
+export const bedsAPI = {
+    getAll: (params?: any) => api.get('/beds', { params }),
+    getStats: () => api.get('/beds/stats'),
+    getOne: (id: string) => api.get(`/beds/${id}`),
+    create: (data: any) => api.post('/beds', data),
+    update: (id: string, data: any) => api.patch(`/beds/${id}`, data),
+    delete: (id: string) => api.delete(`/beds/${id}`),
+    assign: (id: string, data: any) => api.post(`/beds/${id}/assign`, data),
+    discharge: (id: string) => api.post(`/beds/${id}/discharge`),
 }
 
 // ============================================

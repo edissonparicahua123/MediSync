@@ -12,6 +12,16 @@ export class CreatePatientDto {
     @IsNotEmpty()
     lastName: string;
 
+    @ApiProperty({ required: false })
+    @IsString()
+    @IsOptional()
+    documentNumber?: string;
+
+    @ApiProperty({ required: false })
+    @IsString()
+    @IsOptional()
+    photo?: string;
+
     @ApiProperty()
     @IsDateString()
     @IsNotEmpty()

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useBedStore } from '@/stores/bedStore'
+import BedModal from '@/components/modals/BedModal'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -10,23 +10,28 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
     LayoutGrid,
     List,
-    Filter,
     Plus,
     Search,
     Activity,
     BedDouble,
     CheckCircle2,
     AlertCircle,
-    Clock,
     History
 } from 'lucide-react'
 import BedMap from './components/BedMap'
+import BedList from './components/BedList'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 export default function BedManagementPage() {
-    const { getStats, activityLog } = useBedStore()
-    const stats = getStats()
+    const { activityLog, fetchBeds, fetchStats, stats } = useBedStore()
+    const [isBedModalOpen, setIsBedModalOpen] = useState(false)
+    const [bedToEdit, setBedToEdit] = useState(null)
+
+    useEffect(() => {
+        fetchBeds()
+        fetchStats()
+    }, [fetchBeds, fetchStats])
 
     // Filters
     const [view, setView] = useState<'map' | 'list'>('map')
@@ -36,6 +41,15 @@ export default function BedManagementPage() {
 
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col space-y-4 p-4 md:p-8 pt-6">
+            <BedModal
+                isOpen={isBedModalOpen}
+                onClose={() => {
+                    setIsBedModalOpen(false)
+                    setBedToEdit(null)
+                }}
+                bedToEdit={bedToEdit}
+            />
+
             {/* Header & Stats */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -45,7 +59,7 @@ export default function BedManagementPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button>
+                    <Button onClick={() => setIsBedModalOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" /> Nueva Cama
                     </Button>
                 </div>
@@ -157,13 +171,25 @@ export default function BedManagementPage() {
                     </div>
 
                     {/* Content */}
-                    <ScrollArea className="flex-1 h-[600px] pr-4">
+                    <ScrollArea className="flex-1 h-[600px]">
                         {view === 'map' ? (
-                            <BedMap filterWard={filterWard} filterStatus={filterStatus} />
+                            <BedMap
+                                filterWard={filterWard}
+                                filterStatus={filterStatus}
+                                onEditBed={(bed) => {
+                                    setBedToEdit(bed)
+                                    setIsBedModalOpen(true)
+                                }}
+                            />
                         ) : (
-                            <div className="text-center py-10 text-muted-foreground">
-                                Vista de lista en desarrollo...
-                            </div>
+                            <BedList
+                                filterWard={filterWard}
+                                filterStatus={filterStatus}
+                                onEditBed={(bed) => {
+                                    setBedToEdit(bed)
+                                    setIsBedModalOpen(true)
+                                }}
+                            />
                         )}
                     </ScrollArea>
                 </div>

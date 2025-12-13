@@ -200,7 +200,7 @@ export default function DoctorsPage() {
                             <TableHead>Horario</TableHead>
                             <TableHead>Estado</TableHead>
                             <TableHead>Pacientes Hoy</TableHead>
-                            <TableHead>Extensión</TableHead>
+                            <TableHead>Teléfono</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -219,9 +219,17 @@ export default function DoctorsPage() {
                                 return (
                                     <TableRow key={doctor.id} className="hover:bg-accent/50">
                                         <TableCell>
-                                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-semibold">
-                                                {doctor.user?.firstName?.[0]}{doctor.user?.lastName?.[0]}
-                                            </div>
+                                            {doctor.user?.avatar ? (
+                                                <img
+                                                    src={doctor.user.avatar}
+                                                    alt={`${doctor.user.firstName} ${doctor.user.lastName}`}
+                                                    className="h-10 w-10 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-semibold">
+                                                    {doctor.user?.firstName?.[0]}{doctor.user?.lastName?.[0]}
+                                                </div>
+                                            )}
                                         </TableCell>
                                         <TableCell className="font-medium">
                                             <div>

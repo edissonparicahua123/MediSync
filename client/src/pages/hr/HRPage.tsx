@@ -61,188 +61,58 @@ export default function HRPage() {
         try {
             setLoading(true)
 
-            // Datos simulados profesionales
-            const simulatedData = {
-                // A. Empleados
-                employees: [
-                    {
-                        id: '1',
-                        photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-                        name: 'Dr. John Smith',
-                        area: 'Cardiología',
-                        salary: 8500,
-                        contract: 'Tiempo Completo',
-                        status: 'ACTIVE',
-                    },
-                    {
-                        id: '2',
-                        photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-                        name: 'Dra. Sarah Johnson',
-                        area: 'Pediatría',
-                        salary: 7800,
-                        contract: 'Tiempo Completo',
-                        status: 'ACTIVE',
-                    },
-                    {
-                        id: '3',
-                        photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-                        name: 'Enf. Mike Williams',
-                        area: 'Emergencia',
-                        salary: 4500,
-                        contract: 'Tiempo Completo',
-                        status: 'ACTIVE',
-                    },
-                    {
-                        id: '4',
-                        photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-                        name: 'Emma Brown',
-                        area: 'Administración',
-                        salary: 3200,
-                        contract: 'Medio Tiempo',
-                        status: 'ACTIVE',
-                    },
-                    {
-                        id: '5',
-                        photo: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
-                        name: 'Dr. David Davis',
-                        area: 'Cirugía',
-                        salary: 9500,
-                        contract: 'Tiempo Completo',
-                        status: 'VACATION',
-                    },
-                ],
+            // [REAL] Fetch data from Backend
+            const [employeesRes, attendanceRes, payrollRes, shiftsRes] = await Promise.all([
+                hrAPI.getEmployees(),
+                hrAPI.getAttendance(),
+                hrAPI.getPayroll(),
+                hrAPI.getShifts()
+            ])
 
-                // B. Asistencia
-                attendance: [
-                    {
-                        id: '1',
-                        employeeName: 'Dr. John Smith',
-                        date: new Date(),
-                        checkIn: new Date(new Date().setHours(8, 5, 0)),
-                        checkOut: new Date(new Date().setHours(17, 10, 0)),
-                        hoursWorked: 9,
-                        tardiness: 5,
-                        status: 'LATE',
-                    },
-                    {
-                        id: '2',
-                        employeeName: 'Dra. Sarah Johnson',
-                        date: new Date(),
-                        checkIn: new Date(new Date().setHours(7, 55, 0)),
-                        checkOut: new Date(new Date().setHours(17, 0, 0)),
-                        hoursWorked: 9,
-                        tardiness: 0,
-                        status: 'ON_TIME',
-                    },
-                    {
-                        id: '3',
-                        employeeName: 'Enf. Mike Williams',
-                        date: new Date(),
-                        checkIn: new Date(new Date().setHours(8, 0, 0)),
-                        checkOut: new Date(new Date().setHours(16, 0, 0)),
-                        hoursWorked: 8,
-                        tardiness: 0,
-                        status: 'ON_TIME',
-                    },
-                    {
-                        id: '4',
-                        employeeName: 'Emma Brown',
-                        date: new Date(),
-                        checkIn: null,
-                        checkOut: null,
-                        hoursWorked: 0,
-                        tardiness: 0,
-                        status: 'ABSENT',
-                    },
-                ],
+            // Map Backend Data to Frontend Structure
+            // Note: Backend returns { data: [], meta: ... } for some, array for others
+            // Adjust based on actual API return signature in hr.service.ts
 
-                // C. Planilla
-                payroll: [
-                    {
-                        id: '1',
-                        employeeName: 'Dr. John Smith',
-                        baseSalary: 8500,
-                        pension: 1105, // 13%
-                        discounts: 150,
-                        bonuses: 500,
-                        finalAmount: 7745,
-                    },
-                    {
-                        id: '2',
-                        employeeName: 'Dra. Sarah Johnson',
-                        baseSalary: 7800,
-                        pension: 1014,
-                        discounts: 100,
-                        bonuses: 300,
-                        finalAmount: 6986,
-                    },
-                    {
-                        id: '3',
-                        employeeName: 'Enf. Mike Williams',
-                        baseSalary: 4500,
-                        pension: 585,
-                        discounts: 50,
-                        bonuses: 200,
-                        finalAmount: 4065,
-                    },
-                    {
-                        id: '4',
-                        employeeName: 'Emma Brown',
-                        baseSalary: 3200,
-                        pension: 416,
-                        discounts: 0,
-                        bonuses: 100,
-                        finalAmount: 2884,
-                    },
-                ],
-
-                // D. Turnos
-                shifts: [
-                    {
-                        id: '1',
-                        employeeName: 'Dr. John Smith',
-                        day: 'Lunes',
-                        shift: 'MORNING',
-                        startTime: '08:00',
-                        endTime: '16:00',
-                    },
-                    {
-                        id: '2',
-                        employeeName: 'Dra. Sarah Johnson',
-                        day: 'Lunes',
-                        shift: 'AFTERNOON',
-                        startTime: '14:00',
-                        endTime: '22:00',
-                    },
-                    {
-                        id: '3',
-                        employeeName: 'Enf. Mike Williams',
-                        day: 'Lunes',
-                        shift: 'NIGHT',
-                        startTime: '22:00',
-                        endTime: '06:00',
-                    },
-                    {
-                        id: '4',
-                        employeeName: 'Dr. John Smith',
-                        day: 'Martes',
-                        shift: 'MORNING',
-                        startTime: '08:00',
-                        endTime: '16:00',
-                    },
-                    {
-                        id: '5',
-                        employeeName: 'Dra. Sarah Johnson',
-                        day: 'Miércoles',
-                        shift: 'MORNING',
-                        startTime: '08:00',
-                        endTime: '16:00',
-                    },
-                ],
+            const realData = {
+                employees: employeesRes.data.data.map((e: any) => ({
+                    ...e,
+                    // Ensure fields match if backend differs slightly
+                    area: e.area || e.department,
+                    contract: e.contract || 'Tiempo Completo',
+                    photo: e.photo || `https://ui-avatars.com/api/?name=${e.name}`
+                })),
+                attendance: attendanceRes.data.map((a: any) => ({
+                    id: a.id,
+                    employeeName: a.employee?.name || 'Unknown',
+                    date: new Date(a.checkIn),
+                    checkIn: new Date(a.checkIn),
+                    checkOut: a.checkOut ? new Date(a.checkOut) : null,
+                    hoursWorked: a.hoursWorked || 0,
+                    tardiness: a.tardiness || 0,
+                    status: a.status
+                })),
+                payroll: payrollRes.data.map((p: any) => ({
+                    id: p.id,
+                    employeeName: p.employee?.name || 'Unknown',
+                    baseSalary: parseFloat(p.baseSalary),
+                    pension: parseFloat(p.pension),
+                    discounts: parseFloat(p.discounts),
+                    bonuses: parseFloat(p.bonuses),
+                    finalAmount: parseFloat(p.netAmount)
+                })),
+                shifts: shiftsRes.data.map((s: any) => ({
+                    id: s.id,
+                    employeeName: s.employee?.name || 'Unknown',
+                    day: s.dayOfWeek,
+                    shift: s.shiftType,
+                    startTime: s.startTime,
+                    endTime: s.endTime
+                }))
             }
 
-            setHrData(simulatedData)
+            setHrData(realData)
         } catch (error: any) {
+            console.error('HR Load Error:', error)
             toast({
                 title: 'Error',
                 description: error.response?.data?.message || 'Error al cargar datos de RRHH',

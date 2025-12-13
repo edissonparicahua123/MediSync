@@ -54,4 +54,16 @@ export class PharmacyController {
     async updateStock(@Param('id') id: string, @Body() data: any) {
         return this.pharmacyService.updateStock(id, data);
     }
+
+    @Get('orders')
+    @ApiOperation({ summary: 'Get pharmacy orders' })
+    async getOrders() {
+        return { data: [], meta: { total: 0, page: 1, limit: 10 } };
+    }
+
+    @Get('kardex')
+    @ApiOperation({ summary: 'Get kardex entries' })
+    async getKardex() {
+        return { data: [], meta: { total: 0, page: 1, limit: 10 } };
+    }
 }

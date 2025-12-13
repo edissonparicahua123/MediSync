@@ -163,9 +163,18 @@ export default function DoctorProfilePage() {
                 <CardContent className="pt-6">
                     <div className="flex items-start gap-6">
                         {/* Avatar */}
-                        <div className="h-24 w-24 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0">
-                            {doctor.user?.firstName?.[0]}{doctor.user?.lastName?.[0]}
-                        </div>
+                        {/* Avatar */}
+                        {doctor.user?.avatar ? (
+                            <img
+                                src={doctor.user.avatar}
+                                alt={`${doctor.user.firstName} ${doctor.user.lastName}`}
+                                className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-lg"
+                            />
+                        ) : (
+                            <div className="h-24 w-24 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-lg">
+                                {doctor.user?.firstName?.[0]}{doctor.user?.lastName?.[0]}
+                            </div>
+                        )}
 
                         {/* Info Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
