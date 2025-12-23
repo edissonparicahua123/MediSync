@@ -8,6 +8,7 @@ import {
     Delete,
     UseGuards,
     Query,
+    Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -36,6 +37,24 @@ export class UsersController {
             page ? parseInt(page) : 1,
             limit ? parseInt(limit) : 20,
         );
+    }
+
+    @Get('roles')
+    @ApiOperation({ summary: 'Get all roles' })
+    getRoles() {
+        return this.usersService.getRoles();
+    }
+
+    @Get('me')
+    @ApiOperation({ summary: 'Get current user profile' })
+    getProfile(@Request() req) {
+        return this.usersService.findOne(req.user.id);
+    }
+
+    @Patch('me')
+    @ApiOperation({ summary: 'Update current user profile' })
+    updateProfile(@Request() req, @Body() updateUserDto: UpdateUserDto) {
+        return this.usersService.update(req.user.id, updateUserDto);
     }
 
     @Get(':id')

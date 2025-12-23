@@ -49,7 +49,7 @@ export class UsersService {
     async findOne(id: string) {
         const user = await this.prisma.user.findUnique({
             where: { id },
-            include: { role: { include: { permissions: { include: { permission: true } } } } },
+            include: { role: true },
         });
 
         if (!user || user.deletedAt) {
@@ -65,6 +65,10 @@ export class UsersService {
             where: { email },
             include: { role: true },
         });
+    }
+
+    async getRoles() {
+        return this.prisma.role.findMany();
     }
 
     async update(id: string, updateUserDto: UpdateUserDto) {

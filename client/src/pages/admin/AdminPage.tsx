@@ -36,7 +36,7 @@ import {
     Settings,
     Database,
     Key,
-    Mail,
+    // Mail,
     Clock,
     DollarSign,
     Brain,
@@ -45,7 +45,7 @@ import {
     Upload,
     CheckCircle,
 } from 'lucide-react'
-import { adminAPI } from '@/services/api'
+import { adminAPI, usersAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -57,10 +57,31 @@ export default function AdminPage() {
     const [selectedUser, setSelectedUser] = useState<any>(null)
     const { toast } = useToast()
 
-    // Datos de admin
+    // Form states for New/Edit User
+    const [userData, setUserData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        roleId: '',
+        status: 'ACTIVE',
+        permissions: [] as string[]
+    })
+
+    // Data containers
     const [adminData, setAdminData] = useState<any>({
         users: [],
-        settings: {},
+        roles: [],
+        settings: {
+            hospitalName: '',
+            email: '',
+            phone: '',
+            address: '',
+            logo: '',
+            openingHours: {},
+            billing: {},
+            ai: { features: {} },
+        },
         backups: [],
     })
 
@@ -71,118 +92,24 @@ export default function AdminPage() {
     const loadAdminData = async () => {
         try {
             setLoading(true)
+            const [usersRes, rolesRes, orgRes, backupsRes] = await Promise.all([
+                usersAPI.getAll({ limit: 100 }),
+                usersAPI.getRoles(),
+                adminAPI.getOrganization(),
+                adminAPI.getBackups()
+            ])
 
-            // Datos simulados profesionales
-            const simulatedData = {
-                // A. Usuarios
-                users: [
-                    {
-                        id: '1',
-                        name: 'Usuario Admin',
-                        email: 'admin@medisync.com',
-                        role: 'ADMIN',
-                        status: 'ACTIVE',
-                        permissions: ['ALL'],
-                        lastLogin: new Date(),
-                    },
-                    {
-                        id: '2',
-                        name: 'Dr. John Smith',
-                        email: 'john.smith@medisync.com',
-                        role: 'DOCTOR',
-                        status: 'ACTIVE',
-                        permissions: ['PATIENTS', 'APPOINTMENTS', 'MEDICAL_RECORDS'],
-                        lastLogin: new Date(Date.now() - 3600000),
-                    },
-                    {
-                        id: '3',
-                        name: 'Enf. Sarah',
-                        email: 'sarah@medisync.com',
-                        role: 'NURSE',
-                        status: 'ACTIVE',
-                        permissions: ['PATIENTS', 'APPOINTMENTS'],
-                        lastLogin: new Date(Date.now() - 7200000),
-                    },
-                    {
-                        id: '4',
-                        name: 'Recepción Mike',
-                        email: 'mike@medisync.com',
-                        role: 'RECEPTIONIST',
-                        status: 'ACTIVE',
-                        permissions: ['APPOINTMENTS', 'BILLING'],
-                        lastLogin: new Date(Date.now() - 86400000),
-                    },
-                ],
-
-                // B. Configuraciones del sistema
-                settings: {
-                    logo: 'https://via.placeholder.com/150',
-                    hospitalName: 'MediSync Enterprise Hospital',
-                    email: 'contact@medisync.com',
-                    phone: '+1 (555) 123-4567',
-                    address: '123 Medical Center Dr, City, State 12345',
-                    openingHours: {
-                        monday: { open: '08:00', close: '20:00', enabled: true },
-                        tuesday: { open: '08:00', close: '20:00', enabled: true },
-                        wednesday: { open: '08:00', close: '20:00', enabled: true },
-                        thursday: { open: '08:00', close: '20:00', enabled: true },
-                        friday: { open: '08:00', close: '20:00', enabled: true },
-                        saturday: { open: '09:00', close: '14:00', enabled: true },
-                        sunday: { open: '00:00', close: '00:00', enabled: false },
-                    },
-                    billing: {
-                        taxRate: 10,
-                        currency: 'USD',
-                        invoicePrefix: 'INV',
-                        paymentMethods: ['Efectivo', 'Tarjeta de Crédito', 'Seguro'],
-                    },
-                    ai: {
-                        enabled: true,
-                        model: 'GPT-4',
-                        temperature: 0.7,
-                        maxTokens: 2000,
-                        features: {
-                            triage: true,
-                            diagnosis: true,
-                            predictions: true,
-                        },
-                    },
-                },
-
-                // C. Backups
-                backups: [
-                    {
-                        id: '1',
-                        name: 'backup_2024_12_08_full.sql',
-                        type: 'FULL',
-                        size: '2.5 GB',
-                        createdAt: new Date(),
-                        status: 'COMPLETED',
-                    },
-                    {
-                        id: '2',
-                        name: 'backup_2024_12_07_full.sql',
-                        type: 'FULL',
-                        size: '2.4 GB',
-                        createdAt: new Date(Date.now() - 86400000),
-                        status: 'COMPLETED',
-                    },
-                    {
-                        id: '3',
-                        name: 'backup_2024_12_06_incremental.sql',
-                        type: 'INCREMENTAL',
-                        size: '450 MB',
-                        createdAt: new Date(Date.now() - 172800000),
-                        status: 'COMPLETED',
-                    },
-                ],
-            }
-
-            setAdminData(simulatedData)
-        } catch (error: any) {
+            setAdminData({
+                users: usersRes.data.data,
+                roles: rolesRes.data || [],
+                settings: orgRes.data,
+                backups: backupsRes.data,
+            })
+        } catch (error) {
+            console.error(error)
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Error al cargar datos de admin',
+                description: 'Error al cargar datos de administración',
                 variant: 'destructive',
             })
         } finally {
@@ -190,51 +117,142 @@ export default function AdminPage() {
         }
     }
 
+    const handleSaveUser = async () => {
+        try {
+            if (!userData.roleId) {
+                toast({ title: 'Error', description: 'Selecciona un rol', variant: 'destructive' })
+                return
+            }
+
+            const payload = {
+                email: userData.email,
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                roleId: userData.roleId, // Should be UUID
+                isActive: userData.status === 'ACTIVE',
+                password: userData.password || undefined, // Only send if set
+                preferences: { // Prisma User model stores preferences as Json
+                    permissions: userData.permissions
+                }
+            }
+
+            if (selectedUser) {
+                await usersAPI.update(selectedUser.id, payload)
+                toast({ title: 'Usuario Actualizado' })
+            } else {
+                if (!userData.password) {
+                    toast({ title: 'Error', description: 'La contraseña es requerida', variant: 'destructive' })
+                    return
+                }
+                await usersAPI.create(payload)
+                toast({ title: 'Usuario Creado' })
+            }
+            setUserModalOpen(false)
+            loadAdminData()
+        } catch (error: any) {
+            console.error(error)
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Error al guardar usuario',
+                variant: 'destructive',
+            })
+        }
+    }
+
+    const handleOpenUserModal = (user: any = null) => {
+        setSelectedUser(user)
+        if (user) {
+            setUserData({
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                password: '',
+                roleId: user.roleId,
+                status: user.isActive ? 'ACTIVE' : 'INACTIVE',
+                permissions: user.preferences?.permissions || []
+            })
+        } else {
+            // Default to first role if available
+            const defaultRole = adminData.roles?.[0]?.id || ''
+            setUserData({
+                firstName: '',
+                lastName: '',
+                email: '',
+                password: '',
+                roleId: defaultRole,
+                status: 'ACTIVE',
+                permissions: []
+            })
+        }
+        setUserModalOpen(true)
+    }
+
     const handleResetPassword = (userId: string) => {
         toast({
             title: 'Contraseña Restablecida',
-            description: 'Email de restablecimiento enviado exitosamente',
+            description: 'Email de restablecimiento enviado exitosamente (Simulado)',
         })
     }
 
-    const handleCreateBackup = () => {
-        toast({
-            title: 'Respaldo Iniciado',
-            description: 'La copia de seguridad se está creando...',
-        })
+    const handleCreateBackup = async () => {
+        try {
+            await adminAPI.createBackup()
+            toast({
+                title: 'Respaldo Creado',
+                description: 'La copia de seguridad se ha completado',
+            })
+            loadAdminData()
+        } catch (error) {
+            toast({ title: 'Error', variant: 'destructive' })
+        }
     }
 
     const handleRestoreBackup = (backupId: string) => {
         toast({
             title: 'Restauración Iniciada',
-            description: 'Proceso de restauración iniciado',
+            description: 'Proceso de restauración iniciado (Simulado)',
         })
     }
 
-    const handleSaveSettings = () => {
-        toast({
-            title: 'Configuración Guardada',
-            description: 'Ajustes del sistema actualizados exitosamente',
+    const handleSaveSettings = async () => {
+        try {
+            await adminAPI.updateOrganization(adminData.settings)
+            toast({
+                title: 'Configuración Guardada',
+                description: 'Ajustes del sistema actualizados exitosamente',
+            })
+        } catch (error) {
+            toast({ title: 'Error', variant: 'destructive' })
+        }
+    }
+
+    // Helper to update deeply nested settings state
+    const updateSetting = (path: string, value: any) => {
+        const keys = path.split('.')
+        setAdminData((prev: any) => {
+            const newSettings = JSON.parse(JSON.stringify(prev.settings))
+            let current = newSettings
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!current[keys[i]]) current[keys[i]] = {}
+                current = current[keys[i]]
+            }
+            current[keys[keys.length - 1]] = value
+            return { ...prev, settings: newSettings }
         })
     }
 
-    const getRoleBadge = (role: string) => {
+    const getRoleBadge = (roleName: string) => {
+        // Simple mapping based on Role Name
         const colors: Record<string, string> = {
-            ADMIN: 'bg-purple-100 text-purple-800',
-            DOCTOR: 'bg-blue-100 text-blue-800',
-            NURSE: 'bg-green-100 text-green-800',
-            RECEPTIONIST: 'bg-orange-100 text-orange-800',
+            'Admin': 'bg-purple-100 text-purple-800',
+            'Doctor': 'bg-blue-100 text-blue-800',
+            'Nurse': 'bg-green-100 text-green-800',
+            'Receptionist': 'bg-orange-100 text-orange-800',
+            'ADMIN': 'bg-purple-100 text-purple-800', // Fallback caps
+            'DOCTOR': 'bg-blue-100 text-blue-800',
         }
-        return colors[role] || colors.RECEPTIONIST
-    }
-
-    const getStatusBadge = (status: string) => {
-        const colors: Record<string, string> = {
-            ACTIVE: 'bg-green-100 text-green-800',
-            INACTIVE: 'bg-red-100 text-red-800',
-            SUSPENDED: 'bg-orange-100 text-orange-800',
-        }
-        return colors[status] || colors.ACTIVE
+        const match = Object.keys(colors).find(key => roleName?.includes(key))
+        return match ? colors[match] : colors['Receptionist']
     }
 
     if (loading) {
@@ -244,6 +262,11 @@ export default function AdminPage() {
             </div>
         )
     }
+
+    // Use default hours if not present
+    const hours = adminData.settings.openingHours || {}
+    const billing = adminData.settings.billing || {}
+    const ai = adminData.settings.ai || { features: {} }
 
     return (
         <div className="space-y-6">
@@ -288,7 +311,7 @@ export default function AdminPage() {
                                     <CardTitle>Gestión de Usuarios</CardTitle>
                                     <CardDescription>Gestionar usuarios, roles y permisos</CardDescription>
                                 </div>
-                                <Button onClick={() => setUserModalOpen(true)}>
+                                <Button onClick={() => handleOpenUserModal(null)}>
                                     <Plus className="h-4 w-4 mr-2" />
                                     Agregar Usuario
                                 </Button>
@@ -302,46 +325,30 @@ export default function AdminPage() {
                                         <TableHead>Email</TableHead>
                                         <TableHead>Rol</TableHead>
                                         <TableHead>Estado</TableHead>
-                                        <TableHead>Último Acceso</TableHead>
                                         <TableHead>Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {adminData.users.map((user: any) => (
                                         <TableRow key={user.id}>
-                                            <TableCell className="font-medium">{user.name}</TableCell>
+                                            <TableCell className="font-medium">{user.firstName} {user.lastName}</TableCell>
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${getRoleBadge(user.role)}`}>
-                                                    {({
-                                                        'ADMIN': 'ADMIN',
-                                                        'DOCTOR': 'DOCTOR',
-                                                        'NURSE': 'ENFERMERA/O',
-                                                        'RECEPTIONIST': 'RECEPCIÓN'
-                                                    } as Record<string, string>)[user.role] || user.role}
+                                                <span className={`text-xs px-2 py-1 rounded-full ${getRoleBadge(user.role?.name)}`}>
+                                                    {user.role?.name || 'Sin Rol'}
                                                 </span>
                                             </TableCell>
                                             <TableCell>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${getStatusBadge(user.status)}`}>
-                                                    {({
-                                                        'ACTIVE': 'ACTIVO',
-                                                        'INACTIVE': 'INACTIVO',
-                                                        'SUSPENDED': 'SUSPENDIDO'
-                                                    } as Record<string, string>)[user.status] || user.status}
+                                                <span className={`text-xs px-2 py-1 rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                    {user.isActive ? 'ACTIVO' : 'INACTIVO'}
                                                 </span>
-                                            </TableCell>
-                                            <TableCell className="text-sm text-muted-foreground">
-                                                {format(user.lastLogin, 'PPp', { locale: es })}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => {
-                                                            setSelectedUser(user)
-                                                            setUserModalOpen(true)
-                                                        }}
+                                                        onClick={() => handleOpenUserModal(user)}
                                                     >
                                                         Editar
                                                     </Button>
@@ -375,7 +382,7 @@ export default function AdminPage() {
                         <CardContent className="space-y-4">
                             <div className="flex items-center gap-4">
                                 <img
-                                    src={adminData.settings.logo}
+                                    src={adminData.settings.logo || 'https://via.placeholder.com/150'}
                                     alt="Logo del Hospital"
                                     className="w-24 h-24 rounded border"
                                 />
@@ -387,19 +394,32 @@ export default function AdminPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label>Nombre del Hospital</Label>
-                                    <Input defaultValue={adminData.settings.hospitalName} />
+                                    <Input
+                                        value={adminData.settings.hospitalName || ''}
+                                        onChange={(e) => updateSetting('hospitalName', e.target.value)}
+                                    />
                                 </div>
                                 <div>
                                     <Label>Teléfono</Label>
-                                    <Input defaultValue={adminData.settings.phone} />
+                                    <Input
+                                        value={adminData.settings.phone || ''}
+                                        onChange={(e) => updateSetting('phone', e.target.value)}
+                                    />
                                 </div>
                                 <div>
                                     <Label>Email</Label>
-                                    <Input type="email" defaultValue={adminData.settings.email} />
+                                    <Input
+                                        type="email"
+                                        value={adminData.settings.email || ''}
+                                        onChange={(e) => updateSetting('email', e.target.value)}
+                                    />
                                 </div>
                                 <div>
                                     <Label>Dirección</Label>
-                                    <Input defaultValue={adminData.settings.address} />
+                                    <Input
+                                        value={adminData.settings.address || ''}
+                                        onChange={(e) => updateSetting('address', e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </CardContent>
@@ -415,33 +435,41 @@ export default function AdminPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                {Object.entries(adminData.settings.openingHours).map(([day, hours]: [string, any]) => (
-                                    <div key={day} className="flex items-center gap-4">
-                                        <div className="w-32">
-                                            <span className="font-medium capitalize">
-                                                {({
-                                                    'monday': 'Lunes', 'tuesday': 'Martes', 'wednesday': 'Miércoles',
-                                                    'thursday': 'Jueves', 'friday': 'Viernes', 'saturday': 'Sábado',
-                                                    'sunday': 'Domingo'
-                                                } as Record<string, string>)[day] || day}
-                                            </span>
+                                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                                    const dayHours = hours[day] || { open: '', close: '', enabled: false };
+                                    return (
+                                        <div key={day} className="flex items-center gap-4">
+                                            <div className="w-32">
+                                                <span className="font-medium capitalize">
+                                                    {({
+                                                        'monday': 'Lunes', 'tuesday': 'Martes', 'wednesday': 'Miércoles',
+                                                        'thursday': 'Jueves', 'friday': 'Viernes', 'saturday': 'Sábado',
+                                                        'sunday': 'Domingo'
+                                                    } as Record<string, string>)[day] || day}
+                                                </span>
+                                            </div>
+                                            <Switch
+                                                checked={!!dayHours.enabled}
+                                                onCheckedChange={(c) => updateSetting(`openingHours.${day}.enabled`, c)}
+                                            />
+                                            <Input
+                                                type="time"
+                                                value={dayHours.open || ''}
+                                                onChange={(e) => updateSetting(`openingHours.${day}.open`, e.target.value)}
+                                                className="w-32"
+                                                disabled={!dayHours.enabled}
+                                            />
+                                            <span>a</span>
+                                            <Input
+                                                type="time"
+                                                value={dayHours.close || ''}
+                                                onChange={(e) => updateSetting(`openingHours.${day}.close`, e.target.value)}
+                                                className="w-32"
+                                                disabled={!dayHours.enabled}
+                                            />
                                         </div>
-                                        <Switch defaultChecked={hours.enabled} />
-                                        <Input
-                                            type="time"
-                                            defaultValue={hours.open}
-                                            className="w-32"
-                                            disabled={!hours.enabled}
-                                        />
-                                        <span>a</span>
-                                        <Input
-                                            type="time"
-                                            defaultValue={hours.close}
-                                            className="w-32"
-                                            disabled={!hours.enabled}
-                                        />
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </CardContent>
                     </Card>
@@ -458,11 +486,18 @@ export default function AdminPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label>Tasa de Impuesto (%)</Label>
-                                    <Input type="number" defaultValue={adminData.settings.billing.taxRate} />
+                                    <Input
+                                        type="number"
+                                        value={billing.taxRate || ''}
+                                        onChange={(e) => updateSetting('billing.taxRate', Number(e.target.value))}
+                                    />
                                 </div>
                                 <div>
                                     <Label>Moneda</Label>
-                                    <Select defaultValue={adminData.settings.billing.currency}>
+                                    <Select
+                                        value={billing.currency || 'USD'}
+                                        onValueChange={(v) => updateSetting('billing.currency', v)}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
@@ -470,12 +505,16 @@ export default function AdminPage() {
                                             <SelectItem value="USD">USD</SelectItem>
                                             <SelectItem value="EUR">EUR</SelectItem>
                                             <SelectItem value="GBP">GBP</SelectItem>
+                                            <SelectItem value="PEN">PEN</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div>
                                     <Label>Prefijo de Factura</Label>
-                                    <Input defaultValue={adminData.settings.billing.invoicePrefix} />
+                                    <Input
+                                        value={billing.invoicePrefix || ''}
+                                        onChange={(e) => updateSetting('billing.invoicePrefix', e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </CardContent>
@@ -486,23 +525,26 @@ export default function AdminPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Brain className="h-5 w-5" />
-                                Configuración de Panel IA
+                                Configuración de Panel IA (Beta)
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">Habilitar Funciones IA</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Activar diagnósticos y predicciones impulsados por IA
-                                    </p>
                                 </div>
-                                <Switch defaultChecked={adminData.settings.ai.enabled} />
+                                <Switch
+                                    checked={!!ai.enabled}
+                                    onCheckedChange={(c) => updateSetting('ai.enabled', c)}
+                                />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label>Modelo IA</Label>
-                                    <Select defaultValue={adminData.settings.ai.model}>
+                                    <Select
+                                        value={ai.model || 'GPT-4'}
+                                        onValueChange={(v) => updateSetting('ai.model', v)}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
@@ -513,28 +555,22 @@ export default function AdminPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div>
-                                    <Label>Temperatura</Label>
-                                    <Input type="number" step="0.1" defaultValue={adminData.settings.ai.temperature} />
-                                </div>
-                                <div>
-                                    <Label>Máx Tokens</Label>
-                                    <Input type="number" defaultValue={adminData.settings.ai.maxTokens} />
-                                </div>
                             </div>
                             <div className="space-y-2">
                                 <p className="font-medium">Funciones IA</p>
                                 <div className="flex items-center justify-between">
                                     <span>Asistente de Triage</span>
-                                    <Switch defaultChecked={adminData.settings.ai.features.triage} />
+                                    <Switch
+                                        checked={!!ai.features?.triage}
+                                        onCheckedChange={(c) => updateSetting('ai.features.triage', c)}
+                                    />
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span>Soporte de Diagnóstico</span>
-                                    <Switch defaultChecked={adminData.settings.ai.features.diagnosis} />
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span>Analítica Predictiva</span>
-                                    <Switch defaultChecked={adminData.settings.ai.features.predictions} />
+                                    <Switch
+                                        checked={!!ai.features?.diagnosis}
+                                        onCheckedChange={(c) => updateSetting('ai.features.diagnosis', c)}
+                                    />
                                 </div>
                             </div>
                         </CardContent>
@@ -553,11 +589,11 @@ export default function AdminPage() {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <CardTitle>Respaldos de Base de Datos</CardTitle>
-                                    <CardDescription>Crear y restaurar copias de seguridad</CardDescription>
+                                    <CardDescription>Gestión del historial de copias de seguridad</CardDescription>
                                 </div>
                                 <Button onClick={handleCreateBackup}>
                                     <Database className="h-4 w-4 mr-2" />
-                                    Crear Respaldo
+                                    Crear Respaldo (Simulado)
                                 </Button>
                             </div>
                         </CardHeader>
@@ -588,7 +624,7 @@ export default function AdminPage() {
                                                 </span>
                                             </TableCell>
                                             <TableCell>{backup.size}</TableCell>
-                                            <TableCell>{format(backup.createdAt, 'PPp', { locale: es })}</TableCell>
+                                            <TableCell>{format(new Date(backup.createdAt), 'PPp', { locale: es })}</TableCell>
                                             <TableCell>
                                                 <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
                                                     {backup.status === 'COMPLETED' ? 'COMPLETADO' : backup.status}
@@ -603,9 +639,6 @@ export default function AdminPage() {
                                                     >
                                                         <Upload className="h-4 w-4 mr-2" />
                                                         Restaurar
-                                                    </Button>
-                                                    <Button variant="outline" size="sm">
-                                                        <Download className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </TableCell>
@@ -624,47 +657,91 @@ export default function AdminPage() {
                     <DialogHeader>
                         <DialogTitle>{selectedUser ? 'Editar Usuario' : 'Crear Usuario'}</DialogTitle>
                         <DialogDescription>
-                            Gestionar información del usuario, rol y permisos
+                            Gestionar información del usuario
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <div>
-                            <Label>Nombre</Label>
-                            <Input placeholder="Ingresar nombre" defaultValue={selectedUser?.name} />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label>Nombre</Label>
+                                <Input
+                                    value={userData.firstName || ''}
+                                    onChange={(e) => setUserData({ ...userData, firstName: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <Label>Apellido</Label>
+                                <Input
+                                    value={userData.lastName || ''}
+                                    onChange={(e) => setUserData({ ...userData, lastName: e.target.value })}
+                                />
+                            </div>
                         </div>
+
                         <div>
                             <Label>Email</Label>
-                            <Input type="email" placeholder="Ingresar email" defaultValue={selectedUser?.email} />
+                            <Input
+                                type="email"
+                                value={userData.email || ''}
+                                onChange={(e) => setUserData({ ...userData, email: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <Label>Password {selectedUser && '(Dejar en blanco para mantener actual)'}</Label>
+                            <Input
+                                type="password"
+                                value={userData.password || ''}
+                                onChange={(e) => setUserData({ ...userData, password: e.target.value })}
+                            />
                         </div>
                         <div>
                             <Label>Rol</Label>
-                            <Select defaultValue={selectedUser?.role || 'RECEPTIONIST'}>
+                            <Select
+                                value={userData.roleId}
+                                onValueChange={(v) => setUserData({ ...userData, roleId: v })}
+                            >
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="ADMIN">Admin</SelectItem>
-                                    <SelectItem value="DOCTOR">Doctor</SelectItem>
-                                    <SelectItem value="NURSE">Enfermera(o)</SelectItem>
-                                    <SelectItem value="RECEPTIONIST">Recepción</SelectItem>
+                                    {adminData.roles.map((role: any) => (
+                                        <SelectItem key={role.id} value={role.id}>
+                                            {role.name}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div>
-                            <Label>Permisos</Label>
+                            <Label>Estado</Label>
+                            <Select
+                                value={userData.status || 'ACTIVE'}
+                                onValueChange={(v) => setUserData({ ...userData, status: v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ACTIVE">Activo</SelectItem>
+                                    <SelectItem value="INACTIVE">Inactivo</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Permisos Adicionales</Label>
                             <div className="space-y-2 mt-2">
                                 {['PATIENTS', 'APPOINTMENTS', 'MEDICAL_RECORDS', 'BILLING', 'REPORTS'].map(perm => (
                                     <div key={perm} className="flex items-center justify-between">
-                                        <span className="text-sm">
-                                            {({
-                                                'PATIENTS': 'PACIENTES',
-                                                'APPOINTMENTS': 'CITAS',
-                                                'MEDICAL_RECORDS': 'HISTORIA CLÍNICA',
-                                                'BILLING': 'FACTURACIÓN',
-                                                'REPORTS': 'REPORTES'
-                                            } as Record<string, string>)[perm] || perm}
-                                        </span>
-                                        <Switch defaultChecked={selectedUser?.permissions?.includes(perm)} />
+                                        <span className="text-sm">{perm}</span>
+                                        <Switch
+                                            checked={userData.permissions.includes(perm)}
+                                            onCheckedChange={(checked) => {
+                                                const newPerms = checked
+                                                    ? [...userData.permissions, perm]
+                                                    : userData.permissions.filter(p => p !== perm)
+                                                setUserData({ ...userData, permissions: newPerms })
+                                            }}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -674,14 +751,7 @@ export default function AdminPage() {
                         <Button variant="outline" onClick={() => setUserModalOpen(false)}>
                             Cancelar
                         </Button>
-                        <Button onClick={() => {
-                            toast({
-                                title: 'Usuario Guardado',
-                                description: 'Información de usuario actualizada exitosamente',
-                            })
-                            setUserModalOpen(false)
-                            setSelectedUser(null)
-                        }}>
+                        <Button onClick={handleSaveUser}>
                             Guardar Usuario
                         </Button>
                     </DialogFooter>

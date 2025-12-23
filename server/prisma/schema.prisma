@@ -818,3 +818,33 @@ model Message {
   @@index([createdAt])
   @@map("messages")
 }
+
+// ============================================
+// SYSTEM ADMINISTRATION
+// ============================================
+
+model OrganizationConfig {
+  id          String   @id @default(uuid())
+  hospitalName String  @default("MediSync Hospital")
+  email       String?
+  phone       String?
+  address     String?
+  logo        String?
+  openingHours Json?
+  billing     Json?
+  ai          Json?
+  updatedAt   DateTime @updatedAt
+  
+  @@map("organization_configs")
+}
+
+model BackupLog {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   @default("FULL")
+  size      String
+  status    String   @default("COMPLETED")
+  createdAt DateTime @default(now())
+  
+  @@map("backup_logs")
+}

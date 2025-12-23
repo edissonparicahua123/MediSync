@@ -131,6 +131,9 @@ export const bedsAPI = {
 // ============================================
 // ADMIN API (NEW)
 // ============================================
+// ============================================
+// ADMIN API (NEW)
+// ============================================
 export const adminAPI = {
     getConfigs: (params?: any) => api.get('/admin/config', { params }),
     getConfig: (id: string) => api.get(`/admin/config/${id}`),
@@ -138,6 +141,11 @@ export const adminAPI = {
     updateConfig: (id: string, data: any) => api.put(`/admin/config/${id}`, data),
     deleteConfig: (id: string) => api.delete(`/admin/config/${id}`),
     getServicesByCategory: () => api.get('/admin/services/by-category'),
+    // Organization & Backups
+    getOrganization: () => api.get('/admin/organization'),
+    updateOrganization: (data: any) => api.put('/admin/organization', data),
+    getBackups: () => api.get('/admin/backups'),
+    createBackup: () => api.post('/admin/backups'),
 }
 
 // ============================================
@@ -264,4 +272,25 @@ export const attendanceAPI = {
     clockIn: () => api.post('/attendance/clock-in'),
     clockOut: () => api.post('/attendance/clock-out'),
     getMyAttendance: () => api.get('/attendance/me'),
+}
+
+// ============================================
+// USERS API
+// ============================================
+export const usersAPI = {
+    getProfile: () => api.get('/users/me'),
+    updateProfile: (data: any) => api.patch('/users/me', data),
+    getRoles: () => api.get('/users/roles'),
+    getAll: (params?: any) => api.get('/users', { params }),
+    getOne: (id: string) => api.get(`/users/${id}`),
+    create: (data: any) => api.post('/users', data),
+    update: (id: string, data: any) => api.patch(`/users/${id}`, data),
+    delete: (id: string) => api.delete(`/users/${id}`),
+}
+
+// ============================================
+// SYSTEM API
+// ============================================
+export const systemAPI = {
+    getStatus: () => api.get('/health'),
 }

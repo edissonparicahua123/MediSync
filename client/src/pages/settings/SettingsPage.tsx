@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,20 +37,23 @@ import {
     Download,
     Activity,
     CheckCircle,
-    XCircle,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
+import { usersAPI, systemAPI } from '@/services/api'
+import { Loader2 } from 'lucide-react'
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState('account')
+    const [loading, setLoading] = useState(true)
     const { toast } = useToast()
 
     // Account Settings
     const [accountData, setAccountData] = useState({
-        name: 'Dr. Juan Pérez',
-        email: 'juan.perez@medisync.com',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Juan',
+        name: '',
+        userId: '',
+        email: '',
+        avatar: '',
     })
 
     // Theme Settings
@@ -75,93 +78,162 @@ export default function SettingsPage() {
         twoFactor: false,
     })
 
-    // Active Sessions
+    // Active Sessions (Mock for now as backend doesn't support session tracking yet)
     const [activeSessions] = useState([
         {
             id: '1',
             device: 'Chrome en Windows',
-            location: 'Nueva York, EE. UU.',
-            ip: '192.168.1.100',
+            location: 'Local',
+            ip: '127.0.0.1',
             lastActive: new Date(),
             current: true,
         },
-        {
-            id: '2',
-            device: 'Safari en iPhone',
-            location: 'Nueva York, EE. UU.',
-            ip: '192.168.1.101',
-            lastActive: new Date(Date.now() - 3600000),
-            current: false,
-        },
     ])
 
-    // Recent Activity
+    // Recent Activity (Mock)
     const [recentActivity] = useState([
         {
             id: '1',
             action: 'Inicio de Sesión',
             timestamp: new Date(),
-            ip: '192.168.1.100',
-        },
-        {
-            id: '2',
-            action: 'Registro de paciente actualizado',
-            timestamp: new Date(Date.now() - 1800000),
-            ip: '192.168.1.100',
-        },
-        {
-            id: '3',
-            action: 'Reporte generado',
-            timestamp: new Date(Date.now() - 3600000),
-            ip: '192.168.1.100',
+            ip: '127.0.0.1',
         },
     ])
 
     // System Status
-    const [systemStatus] = useState({
-        server: 'en línea',
-        database: 'en línea',
-        api: 'en línea',
-        uptime: '15 días, 4 horas',
-        version: '2.5.0',
-        lastBackup: new Date(Date.now() - 86400000),
+    const [systemStatus, setSystemStatus] = useState({
+        server: 'offline',
+        database: 'offline',
+        api: 'offline',
+        uptime: '0s',
+        version: '1.0.0',
+        lastBackup: new Date(),
     })
 
-    const handleSaveAccount = () => {
-        toast({
-            title: 'Cuenta Actualizada',
-            description: 'La configuración de su cuenta ha sido guardada',
-        })
+    useEffect(() => {
+        loadData()
+    }, [])
+
+    const loadData = async () => {
+        try {
+            setLoading(true)
+            const [profileRes, systemRes] = await Promise.all([
+                usersAPI.getProfile(),
+                systemAPI.getStatus()
+            ])
+
+            const user = profileRes.data
+            // Populate Account Data
+            setAccountData({
+                name: `${user.firstName} ${user.lastName}`,
+                userId: user.id,
+                email: user.email,
+                avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName}`,
+            })
+
+            // Populate Preferences (Theme/Notifications)
+            if (user.preferences) {
+                if (user.preferences.theme) setThemeSettings(user.preferences.theme)
+                if (user.preferences.notifications) setNotifications(user.preferences.notifications)
+                if (user.preferences.security) setSecurity(user.preferences.security)
+            }
+
+            // Populate System Status
+            const sys = systemRes.data
+            setSystemStatus({
+                server: sys.server,
+                database: sys.database,
+                api: sys.api,
+                uptime: `${Math.floor(sys.uptime / 60)} min`, // Simple fmt
+                version: sys.version,
+                lastBackup: new Date(), // Mock backup date
+            })
+
+        } catch (error) {
+            console.error(error)
+            toast({
+                title: 'Error',
+                description: 'No se pudo cargar la configuración',
+                variant: 'destructive',
+            })
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const handleSaveTheme = () => {
-        toast({
-            title: 'Tema Actualizado',
-            description: 'Sus preferencias de tema han sido guardadas',
-        })
+    const handleSaveAccount = async () => {
+        try {
+            // Split name
+            const [firstName, ...lastNameParts] = accountData.name.split(' ')
+            const lastName = lastNameParts.join(' ')
+
+            await usersAPI.updateProfile({
+                firstName,
+                lastName,
+                email: accountData.email,
+                avatar: accountData.avatar,
+            })
+
+            toast({
+                title: 'Cuenta Actualizada',
+                description: 'La configuración de su cuenta ha sido guardada',
+            })
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Error al actualizar cuenta',
+                variant: 'destructive',
+            })
+        }
     }
 
-    const handleSaveNotifications = () => {
-        toast({
-            title: 'Notificaciones Actualizadas',
-            description: 'Sus preferencias de notificaciones han sido guardadas',
-        })
+    const handleSavePreferences = async (section: 'theme' | 'notifications' | 'security') => {
+        try {
+            const preferences = {
+                theme: section === 'theme' ? themeSettings : undefined,
+                notifications: section === 'notifications' ? notifications : undefined,
+                security: section === 'security' ? security : undefined,
+            }
+            // Need to merge with existing preferences?
+            // The API patch typically merges top-level, but JSON merge depends on backend logic.
+            // For simplicity, we send the whole preferences object constructed from state.
+
+            const fullPreferences = {
+                theme: themeSettings,
+                notifications: notifications,
+                security: security
+            }
+
+            await usersAPI.updateProfile({
+                preferences: fullPreferences
+            })
+
+            toast({
+                title: 'Preferencias Actualizadas',
+                description: 'Sus preferencias han sido guardadas',
+            })
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Error al guardar preferencias',
+                variant: 'destructive',
+            })
+        }
     }
 
     const handleEnable2FA = () => {
-        setSecurity({ ...security, twoFactor: !security.twoFactor })
-        toast({
-            title: security.twoFactor ? '2FA Desactivado' : '2FA Activado',
-            description: security.twoFactor
-                ? 'La autenticación de dos factores ha sido desactivada'
-                : 'La autenticación de dos factores ha sido activada',
-        })
+        const newSecurity = { ...security, twoFactor: !security.twoFactor }
+        setSecurity(newSecurity)
+        // Auto-save security pref
+        // Ideally calling handleSavePreferences('security') but state update is async.
+        // We will just show toast and let user click save, or save immediately after state update (difficult here).
+        // Let's defer save to a explicit save or use effect. For now, just toggling UI.
     }
 
     const handleLogoutAllDevices = () => {
         toast({
             title: 'Sesiones Terminadas',
-            description: 'Se ha cerrado sesión en todos los demás dispositivos',
+            description: 'Se ha cerrado sesión en todos los demás dispositivos (Simulado)',
         })
     }
 
@@ -170,6 +242,14 @@ export default function SettingsPage() {
             title: 'Respaldo Iniciado',
             description: 'Se está creando el respaldo de la base de datos',
         })
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
     }
 
     return (
@@ -283,42 +363,13 @@ export default function SettingsPage() {
                             <Button>Actualizar Contraseña</Button>
                         </CardContent>
                     </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Actividad Reciente</CardTitle>
-                            <CardDescription>Tu actividad de cuenta reciente</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Acción</TableHead>
-                                        <TableHead>Hora</TableHead>
-                                        <TableHead>Dirección IP</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {recentActivity.map((activity) => (
-                                        <TableRow key={activity.id}>
-                                            <TableCell>{activity.action}</TableCell>
-                                            <TableCell>{format(activity.timestamp, 'PPp')}</TableCell>
-                                            <TableCell className="font-mono text-sm">
-                                                {activity.ip}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
                 </TabsContent>
 
                 {/* 2. Personalization */}
                 <TabsContent value="personalization" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Configuración de Tema</CardTitle>
+                            <CardTitle>Configuración de Tema (Persistente)</CardTitle>
                             <CardDescription>Personaliza la apariencia</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -340,47 +391,7 @@ export default function SettingsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div>
-                                <Label>Color Primario</Label>
-                                <div className="flex gap-2 mt-2">
-                                    {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'].map(
-                                        (color) => (
-                                            <button
-                                                key={color}
-                                                onClick={() =>
-                                                    setThemeSettings({
-                                                        ...themeSettings,
-                                                        primaryColor: color,
-                                                    })
-                                                }
-                                                className={`w-10 h-10 rounded-full border-2 ${themeSettings.primaryColor === color
-                                                    ? 'border-black'
-                                                    : 'border-gray-300'
-                                                    }`}
-                                                style={{ backgroundColor: color }}
-                                            />
-                                        )
-                                    )}
-                                </div>
-                            </div>
-                            <div>
-                                <Label>Fuente</Label>
-                                <Select
-                                    value={themeSettings.font}
-                                    onValueChange={(value) =>
-                                        setThemeSettings({ ...themeSettings, font: value })
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="inter">Inter</SelectItem>
-                                        <SelectItem value="roboto">Roboto</SelectItem>
-                                        <SelectItem value="poppins">Poppins</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+
                             <div>
                                 <Label>Diseño del Panel</Label>
                                 <Select
@@ -399,89 +410,21 @@ export default function SettingsPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Button onClick={handleSaveTheme}>
+                            <Button onClick={() => handleSavePreferences('theme')}>
                                 <Save className="h-4 w-4 mr-2" />
-                                Guardar Tema
+                                Guardar Preferencias
                             </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Visibilidad de Módulos</CardTitle>
-                            <CardDescription>Habilitar o deshabilitar módulos</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {[
-                                'Citas',
-                                'Emergencia',
-                                'Farmacia',
-                                'Laboratorio',
-                                'Facturación',
-                                'Reportes',
-                                'Analítica',
-                                'RRHH',
-                                'Mensajes',
-                                'Funciones IA',
-                            ].map((module) => (
-                                <div key={module} className="flex items-center justify-between">
-                                    <span>{module}</span>
-                                    <Switch defaultChecked />
-                                </div>
-                            ))}
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* 3. Role Preferences */}
+                {/* 3. Role Preferences (Placeholder) */}
                 <TabsContent value="roles" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Permisos Predeterminados por Rol</CardTitle>
-                            <CardDescription>Configurar permisos predeterminados</CardDescription>
+                            <CardTitle>Permisos Predeterminados</CardTitle>
+                            <CardDescription>Esta funcionalidad estará disponible pronto.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {['Admin', 'Doctor', 'Enfermera(o)', 'Recepción'].map((role) => (
-                                    <div key={role} className="border rounded-lg p-4">
-                                        <h4 className="font-semibold mb-3">{role}</h4>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {[
-                                                'Ver Pacientes',
-                                                'Editar Pacientes',
-                                                'Eliminar Pacientes',
-                                                'Ver Reportes',
-                                                'Generar Reportes',
-                                                'Gestionar Facturación',
-                                            ].map((permission) => (
-                                                <div
-                                                    key={permission}
-                                                    className="flex items-center justify-between text-sm"
-                                                >
-                                                    <span>{permission}</span>
-                                                    <Switch defaultChecked={role === 'Admin'} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Auto-Configuración por Área</CardTitle>
-                            <CardDescription>Configuración automática por departamento</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {['Emergencia', 'Cardiología', 'Pediatría', 'Cirugía'].map((area) => (
-                                <div key={area} className="flex items-center justify-between">
-                                    <span>Departamento de {area}</span>
-                                    <Switch defaultChecked />
-                                </div>
-                            ))}
-                        </CardContent>
                     </Card>
                 </TabsContent>
 
@@ -496,9 +439,6 @@ export default function SettingsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">Notificaciones por Correo</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Recibir notificaciones vía email
-                                    </p>
                                 </div>
                                 <Switch
                                     checked={notifications.email}
@@ -510,9 +450,6 @@ export default function SettingsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">Alertas de Emergencia</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Notificaciones críticas de emergencia
-                                    </p>
                                 </div>
                                 <Switch
                                     checked={notifications.emergency}
@@ -521,49 +458,7 @@ export default function SettingsPage() {
                                     }
                                 />
                             </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Alertas de Citas</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Recordatorios de próximas citas
-                                    </p>
-                                </div>
-                                <Switch
-                                    checked={notifications.appointments}
-                                    onCheckedChange={(checked) =>
-                                        setNotifications({ ...notifications, appointments: checked })
-                                    }
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Alertas de Laboratorio</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Resultados de laboratorio y actualizaciones
-                                    </p>
-                                </div>
-                                <Switch
-                                    checked={notifications.laboratory}
-                                    onCheckedChange={(checked) =>
-                                        setNotifications({ ...notifications, laboratory: checked })
-                                    }
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Alertas de Farmacia</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Alertas de medicación e inventario
-                                    </p>
-                                </div>
-                                <Switch
-                                    checked={notifications.pharmacy}
-                                    onCheckedChange={(checked) =>
-                                        setNotifications({ ...notifications, pharmacy: checked })
-                                    }
-                                />
-                            </div>
-                            <Button onClick={handleSaveNotifications}>
+                            <Button onClick={() => handleSavePreferences('notifications')}>
                                 <Save className="h-4 w-4 mr-2" />
                                 Guardar Preferencias
                             </Button>
@@ -575,88 +470,22 @@ export default function SettingsPage() {
                 <TabsContent value="security" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Autenticación de Dos Factores</CardTitle>
-                            <CardDescription>Agrega una capa extra de seguridad</CardDescription>
+                            <CardTitle>Seguridad</CardTitle>
+                            <CardDescription>Configuración de seguridad de cuenta</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="font-medium">Habilitar 2FA</p>
                                     <p className="text-sm text-muted-foreground">
-                                        Requerir un código además de tu contraseña
+                                        Requerir código adicional (Simulado)
                                     </p>
                                 </div>
                                 <Switch checked={security.twoFactor} onCheckedChange={handleEnable2FA} />
                             </div>
-                            {security.twoFactor && (
-                                <div className="p-4 bg-green-50 rounded-lg">
-                                    <p className="text-sm text-green-800">
-                                        ✓ Autenticación de dos factores habilitada
-                                    </p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Sesiones Activas</CardTitle>
-                            <CardDescription>Gestiona tus sesiones activas</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Dispositivo</TableHead>
-                                        <TableHead>Ubicación</TableHead>
-                                        <TableHead>Dirección IP</TableHead>
-                                        <TableHead>Último Activo</TableHead>
-                                        <TableHead>Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {activeSessions.map((session) => (
-                                        <TableRow key={session.id}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    {session.device}
-                                                    {session.current && (
-                                                        <Badge variant="outline">Actual</Badge>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{session.location}</TableCell>
-                                            <TableCell className="font-mono text-sm">
-                                                {session.ip}
-                                            </TableCell>
-                                            <TableCell>{format(session.lastActive, 'PPp')}</TableCell>
-                                            <TableCell>
-                                                {!session.current && (
-                                                    <Button variant="outline" size="sm">
-                                                        <LogOut className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                            <Button variant="destructive" className="mt-4" onClick={handleLogoutAllDevices}>
-                                <LogOut className="h-4 w-4 mr-2" />
-                                Cerrar sesión en otros dispositivos
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Auditoría de Acceso</CardTitle>
-                            <CardDescription>Ver tu historial de acceso</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button variant="outline">
-                                <Eye className="h-4 w-4 mr-2" />
-                                Ver Registro de Auditoría Completo
+                            <Button onClick={() => handleSavePreferences('security')}>
+                                <Save className="h-4 w-4 mr-2" />
+                                Guardar Seguridad
                             </Button>
                         </CardContent>
                     </Card>
@@ -667,74 +496,29 @@ export default function SettingsPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Estado del Servidor</CardTitle>
-                            <CardDescription>Salud actual del sistema</CardDescription>
+                            <CardDescription>Salud en tiempo real del sistema</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <span>Servidor</span>
-                                    <Badge className="bg-green-600">
+                                    <Badge className={systemStatus.server === 'online' ? "bg-green-600" : "bg-red-600"}>
                                         <CheckCircle className="h-3 w-3 mr-1" />
                                         {systemStatus.server}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span>Base de Datos</span>
-                                    <Badge className="bg-green-600">
+                                    <Badge className={systemStatus.database === 'online' ? "bg-green-600" : "bg-red-600"}>
                                         <CheckCircle className="h-3 w-3 mr-1" />
                                         {systemStatus.database}
-                                    </Badge>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span>API</span>
-                                    <Badge className="bg-green-600">
-                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                        {systemStatus.api}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span>Tiempo de Actividad</span>
                                     <span className="font-mono text-sm">{systemStatus.uptime}</span>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span>Versión</span>
-                                    <Badge variant="outline">v{systemStatus.version}</Badge>
-                                </div>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Respaldos</CardTitle>
-                            <CardDescription>Gestión de respaldos de base de datos</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Último Respaldo</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {format(systemStatus.lastBackup, 'PPp')}
-                                    </p>
-                                </div>
-                                <Button onClick={handleCreateBackup}>
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Crear Respaldo
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Registros del Sistema</CardTitle>
-                            <CardDescription>Ver registros de actividad del sistema</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button variant="outline">
-                                <Activity className="h-4 w-4 mr-2" />
-                                Ver Registros
-                            </Button>
                         </CardContent>
                     </Card>
                 </TabsContent>

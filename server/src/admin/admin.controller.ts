@@ -47,4 +47,28 @@ export class AdminController {
     getServicesByCategory() {
         return this.adminService.getServicesByCategory();
     }
+
+    @Get('organization')
+    @ApiOperation({ summary: 'Get organization configuration' })
+    getOrganizationConfig() {
+        return this.adminService.getOrganizationConfig();
+    }
+
+    @Put('organization')
+    @ApiOperation({ summary: 'Update organization configuration' })
+    updateOrganizationConfig(@Body() body: any) {
+        return this.adminService.updateOrganizationConfig(body);
+    }
+
+    @Get('backups')
+    @ApiOperation({ summary: 'Get backup logs' })
+    getBackups() {
+        return this.adminService.getBackups();
+    }
+
+    @Post('backups')
+    @ApiOperation({ summary: 'Create new backup' })
+    createBackup() {
+        return this.adminService.createBackup();
+    }
 }
