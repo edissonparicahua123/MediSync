@@ -169,6 +169,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
+    // Safety check: ensure role is a string. If it's an object (from backend relation), extract name.
+    const safeRole: string = (typeof userRole === 'object' && userRole !== null)
+        ? (userRole as any).name
+        : String(userRole);
+
     const location = useLocation()
     const [expandedSections, setExpandedSections] = useState<string[]>([
         'Gestión Clínica',
@@ -216,7 +221,7 @@ export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
                 <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-green-500"></div>
                     <span className="text-xs font-medium text-muted-foreground">
-                        {userRole.replace('_', ' ')}
+                        {safeRole.replace('_', ' ')}
                     </span>
                 </div>
             </div>

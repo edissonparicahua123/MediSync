@@ -23,6 +23,12 @@ export class EmergencyController {
         return this.emergencyService.getCriticalPatients();
     }
 
+    @Get('cases/:id')
+    @ApiOperation({ summary: 'Get emergency case details' })
+    getCaseById(@Param('id') id: string) {
+        return this.emergencyService.getCaseById(id);
+    }
+
     @Get('history/:patientId')
     @ApiOperation({ summary: 'Get patient emergency history' })
     getPatientHistory(@Param('patientId') patientId: string) {

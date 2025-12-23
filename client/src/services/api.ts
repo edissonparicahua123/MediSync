@@ -9,9 +9,11 @@ export const api = axios.create({
     },
 })
 
+import { useAuthStore } from '@/stores/authStore'
+
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token')
+    const token = useAuthStore.getState().token
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
@@ -22,8 +24,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        const isLoginRequest = error.config?.url?.includes('/auth/login')
+        if (error.response?.status === 401 && !isLoginRequest) {
             localStorage.removeItem('token')
+            useAuthStore.getState().logout()
             window.location.href = '/login'
         }
         return Promise.reject(error)
@@ -98,6 +102,7 @@ export const hrAPI = {
 export const emergencyAPI = {
     getDashboard: () => api.get('/emergency/dashboard'),
     getCriticalPatients: () => api.get('/emergency/critical-patients'),
+    getCase: (id: string) => api.get(`/emergency/cases/${id}`),
     getBeds: (params?: any) => api.get('/emergency/beds', { params }),
     getBed: (id: string) => api.get(`/emergency/beds/${id}`),
     createBed: (data: any) => api.post('/emergency/beds', data),
@@ -169,6 +174,8 @@ export const pharmacyAPI = {
     updateStock: (id: string, data: any) => api.patch(`/pharmacy/stock/${id}`, data),
     getLowStock: () => api.get('/pharmacy/stock/low'),
     getOrders: (params?: any) => api.get('/pharmacy/orders', { params }),
+    approveOrder: (id: string) => api.patch(`/pharmacy/orders/${id}/approve`),
+    rejectOrder: (id: string, reason: string) => api.patch(`/pharmacy/orders/${id}/reject`, { reason }),
     getKardex: (params?: any) => api.get('/pharmacy/kardex', { params }),
 }
 

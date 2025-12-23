@@ -35,115 +35,75 @@ export default function EmergencyCaseProfilePage() {
     const [activeTab, setActiveTab] = useState('vitals')
     const [loading, setLoading] = useState(false)
 
-    // Datos simulados del caso
-    const caseData = {
-        id: id,
-        patient: {
-            name: 'John Doe',
-            age: 45,
-            gender: 'Male',
-            bloodType: 'O+',
-        },
-        admission: {
-            date: new Date(),
-            bedNumber: 'ER-01',
-            priority: 1,
-            diagnosis: 'Acute chest pain',
-            chiefComplaint: 'Severe chest pain radiating to left arm',
-        },
-        doctor: {
-            name: 'Dr. Sarah Smith',
-            specialty: 'Emergency Medicine',
-        },
+    const [caseData, setCaseData] = useState<any>(null)
+    const [vitalSigns, setVitalSigns] = useState<any[]>([])
+
+    useEffect(() => {
+        const fetchCaseData = async () => {
+            if (!id) return;
+            try {
+                setLoading(true)
+                const res = await import('@/services/api').then(m => m.emergencyAPI.getCase(id))
+                const data = res.data
+
+                setCaseData({
+                    id: data.id,
+                    patient: {
+                        name: data.patientName,
+                        age: data.patientAge,
+                        gender: 'Unknown', // Not in EmergencyCase model
+                        bloodType: 'Unknown',
+                    },
+                    admission: {
+                        date: new Date(data.admissionDate),
+                        bedNumber: data.bedNumber,
+                        priority: data.triageLevel,
+                        diagnosis: data.diagnosis,
+                        chiefComplaint: data.chiefComplaint,
+                    },
+                    doctor: {
+                        name: data.doctorName,
+                        specialty: 'Emergency Medicine',
+                    },
+                })
+
+                if (data.vitalSigns && typeof data.vitalSigns === 'object') {
+                    setVitalSigns([{
+                        time: new Date(data.updatedAt || data.createdAt),
+                        heartRate: Math.round(data.vitalSigns.hr || 0),
+                        bloodPressure: data.vitalSigns.bp || '--/--',
+                        temperature: data.vitalSigns.temp ? Number(data.vitalSigns.temp).toFixed(1) : 0,
+                        spo2: Math.round(data.vitalSigns.spo2 || 0),
+                        respiratoryRate: 18, // Default if missing
+                    }])
+                }
+
+            } catch (error) {
+                toast({
+                    title: 'Error',
+                    description: 'No se pudo cargar el caso',
+                    variant: 'destructive'
+                })
+                navigate('/emergency')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchCaseData()
+    }, [id, navigate, toast])
+
+    // Empty states for missing tabs
+    const medications: any[] = []
+    const procedures: any[] = []
+    const attachments: any[] = []
+
+    if (loading || !caseData) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        )
     }
-
-    // Signos vitales
-    const vitalSigns = [
-        {
-            time: new Date(),
-            heartRate: 120,
-            bloodPressure: '140/90',
-            temperature: 38.5,
-            spo2: 95,
-            respiratoryRate: 22,
-        },
-        {
-            time: new Date(Date.now() - 900000),
-            heartRate: 125,
-            bloodPressure: '145/95',
-            temperature: 38.7,
-            spo2: 94,
-            respiratoryRate: 24,
-        },
-        {
-            time: new Date(Date.now() - 1800000),
-            heartRate: 130,
-            bloodPressure: '150/95',
-            temperature: 38.8,
-            spo2: 93,
-            respiratoryRate: 26,
-        },
-    ]
-
-    // Medicamentos administrados
-    const medications = [
-        {
-            id: '1',
-            name: 'Aspirin',
-            dose: '325mg',
-            route: 'Oral',
-            time: new Date(),
-            administeredBy: 'Nurse Johnson',
-        },
-        {
-            id: '2',
-            name: 'Nitroglycerin',
-            dose: '0.4mg',
-            route: 'Sublingual',
-            time: new Date(Date.now() - 600000),
-            administeredBy: 'Dr. Smith',
-        },
-        {
-            id: '3',
-            name: 'Morphine',
-            dose: '4mg',
-            route: 'IV',
-            time: new Date(Date.now() - 1200000),
-            administeredBy: 'Nurse Johnson',
-        },
-    ]
-
-    // Procedimientos realizados
-    const procedures = [
-        {
-            id: '1',
-            name: 'ECG',
-            time: new Date(),
-            performedBy: 'Dr. Smith',
-            result: 'ST elevation in leads II, III, aVF',
-        },
-        {
-            id: '2',
-            name: 'Chest X-Ray',
-            time: new Date(Date.now() - 900000),
-            performedBy: 'Radiology Tech',
-            result: 'Pending review',
-        },
-        {
-            id: '3',
-            name: 'Blood Work',
-            time: new Date(Date.now() - 1800000),
-            performedBy: 'Lab Tech',
-            result: 'Troponin elevated',
-        },
-    ]
-
-    // Archivos adjuntos
-    const attachments = [
-        { id: '1', name: 'ECG_Report.pdf', type: 'PDF', size: '2.4 MB', uploadedAt: new Date() },
-        { id: '2', name: 'Chest_XRay.jpg', type: 'Image', size: '5.1 MB', uploadedAt: new Date(Date.now() - 900000) },
-        { id: '3', name: 'Lab_Results.pdf', type: 'PDF', size: '1.8 MB', uploadedAt: new Date(Date.now() - 1800000) },
-    ]
 
     const getPriorityColor = (priority: number) => {
         const colors: Record<number, string> = {

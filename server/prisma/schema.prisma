@@ -134,6 +134,7 @@ model Patient {
   files           FileStorage[]
   assignedBedStatus BedStatus?
   beds            Bed[]
+  pharmacyOrders  PharmacyOrder[]
 
   @@index([firstName, lastName])
   @@index([phone])
@@ -179,6 +180,7 @@ model Doctor {
   appointments   Appointment[]
   schedules      DoctorSchedule[]
   medicalRecords MedicalRecord[]
+  pharmacyOrders PharmacyOrder[]
 
   @@index([licenseNumber])
   @@map("doctors")
@@ -307,6 +309,7 @@ model Medication {
   // Relations
   stock     PharmacyStock[]
   movements PharmacyMovement[]
+  orders    PharmacyOrder[]
 
   @@index([name])
   @@map("medications")
@@ -353,6 +356,36 @@ model PharmacyMovement {
   @@index([movementType])
   @@index([createdAt])
   @@map("pharmacy_movements")
+}
+
+model PharmacyOrder {
+  id              String   @id @default(uuid())
+  orderNumber     String   @unique
+  medicationId    String
+  medication      Medication @relation(fields: [medicationId], references: [id])
+  quantity        Int
+  doctorId        String
+  doctor          Doctor   @relation(fields: [doctorId], references: [id])
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id])
+  
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED, DISPENSED
+  
+  requestedAt     DateTime @default(now())
+  approvedAt      DateTime?
+  approvedBy      String?
+  rejectedAt      DateTime?
+  rejectedBy      String?
+  rejectionReason String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([medicationId])
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([status])
+  @@map("pharmacy_orders")
 }
 
 // ============================================

@@ -18,6 +18,7 @@ interface AuthState {
     isAuthenticated: boolean
     setUser: (user: User | null) => void
     setToken: (token: string | null) => void
+    login: (user: User, token: string) => void
     logout: () => void
 }
 
@@ -29,6 +30,18 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: false,
             setUser: (user) => set({ user, isAuthenticated: !!user }),
             setToken: (token) => set({ token }),
+            login: (user, token) => {
+                // Normalize role to string if it comes as an object from backend
+                const roleRaw = (typeof user.role === 'object' && user.role !== null)
+                    ? (user.role as any).name
+                    : user.role
+
+                const normalizedUser = {
+                    ...user,
+                    role: String(roleRaw).toUpperCase() as UserRole
+                }
+                set({ user: normalizedUser, token, isAuthenticated: true })
+            },
             logout: () => set({ user: null, token: null, isAuthenticated: false }),
         }),
         {

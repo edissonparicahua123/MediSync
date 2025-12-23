@@ -39,7 +39,7 @@ import {
 } from 'lucide-react'
 import { pharmacyAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
-import { format, differenceInDays } from 'date-fns'
+import { format, differenceInDays, isValid } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
     AlertDialog,
@@ -61,6 +61,16 @@ export default function PharmacyPage() {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('inventory')
     const [deleteId, setDeleteId] = useState<string | null>(null)
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const [newItem, setNewItem] = useState({
+        name: '',
+        laboratory: '',
+        stock: 0,
+        minStock: 10,
+        expiry: '',
+        batch: '',
+        type: 'Medicamento'
+    })
     const { toast } = useToast()
 
     // Filtros
@@ -83,133 +93,9 @@ export default function PharmacyPage() {
                 pharmacyAPI.getKardex().catch(() => ({ data: [] })),
             ])
 
-            // Datos simulados para inventario
-            const simulatedMeds = [
-                {
-                    id: '1',
-                    name: 'Paracetamol 500mg',
-                    type: 'Medicamento',
-                    laboratory: 'Bayer',
-                    currentStock: 150,
-                    minStock: 200,
-                    batch: 'LOT-2024-001',
-                    expirationDate: new Date('2025-06-15'),
-                },
-                {
-                    id: '2',
-                    name: 'Amoxicilina 500mg',
-                    type: 'Medicamento',
-                    laboratory: 'Pfizer',
-                    currentStock: 80,
-                    minStock: 100,
-                    batch: 'LOT-2024-002',
-                    expirationDate: new Date('2024-12-20'),
-                },
-                {
-                    id: '3',
-                    name: 'Guantes Quirúrgicos',
-                    type: 'Suministro',
-                    laboratory: 'MedSupply',
-                    currentStock: 500,
-                    minStock: 300,
-                    batch: 'LOT-2024-003',
-                    expirationDate: new Date('2026-01-10'),
-                },
-                {
-                    id: '4',
-                    name: 'Insulina 100UI/ml',
-                    type: 'Medicamento',
-                    laboratory: 'Novo Nordisk',
-                    currentStock: 25,
-                    minStock: 50,
-                    batch: 'LOT-2024-004',
-                    expirationDate: new Date('2025-03-30'),
-                },
-            ]
-
-            // Datos simulados para órdenes
-            const simulatedOrders = [
-                {
-                    id: '1',
-                    medication: 'Paracetamol 500mg',
-                    quantity: 50,
-                    doctor: 'Dr. Smith',
-                    patient: 'John Doe',
-                    status: 'PENDIENTE',
-                    requestedAt: new Date(),
-                },
-                {
-                    id: '2',
-                    medication: 'Amoxicilina 500mg',
-                    quantity: 30,
-                    doctor: 'Dr. Johnson',
-                    patient: 'Jane Smith',
-                    status: 'APROBADO',
-                    requestedAt: new Date(Date.now() - 3600000),
-                    approvedAt: new Date(Date.now() - 1800000),
-                    approvedBy: 'Farmacéutico Brown',
-                },
-                {
-                    id: '3',
-                    medication: 'Insulina 100UI/ml',
-                    quantity: 10,
-                    doctor: 'Dr. Williams',
-                    patient: 'Bob Wilson',
-                    status: 'RECHAZADO',
-                    requestedAt: new Date(Date.now() - 7200000),
-                    rejectedAt: new Date(Date.now() - 3600000),
-                    rejectedBy: 'Farmacéutico Brown',
-                    rejectionReason: 'Stock insuficiente',
-                },
-            ]
-
-            // Datos simulados para kardex
-            const simulatedKardex = [
-                {
-                    id: '1',
-                    medication: 'Paracetamol 500mg',
-                    type: 'ENTRADA',
-                    quantity: 500,
-                    batch: 'LOT-2024-001',
-                    responsible: 'Farmacéutico Brown',
-                    date: new Date(),
-                    notes: 'Llegada de nuevo stock',
-                },
-                {
-                    id: '2',
-                    medication: 'Paracetamol 500mg',
-                    type: 'SALIDA',
-                    quantity: 50,
-                    batch: 'LOT-2024-001',
-                    responsible: 'Enfermera Johnson',
-                    date: new Date(Date.now() - 3600000),
-                    notes: 'Dispensado al paciente John Doe',
-                },
-                {
-                    id: '3',
-                    medication: 'Amoxicilina 500mg',
-                    type: 'ENTRADA',
-                    quantity: 200,
-                    batch: 'LOT-2024-002',
-                    responsible: 'Farmacéutico Brown',
-                    date: new Date(Date.now() - 86400000),
-                    notes: 'Llegada de nuevo stock',
-                },
-                {
-                    id: '4',
-                    medication: 'Amoxicilina 500mg',
-                    type: 'SALIDA',
-                    quantity: 30,
-                    batch: 'LOT-2024-002',
-                    responsible: 'Farmacéutico Brown',
-                    date: new Date(Date.now() - 7200000),
-                    notes: 'Dispensado a la paciente Jane Smith',
-                },
-            ]
-
-            setMedications(medsRes.data?.data?.length > 0 ? medsRes.data.data : simulatedMeds)
-            setOrders(ordersRes.data?.length > 0 ? ordersRes.data : simulatedOrders)
-            setKardex(kardexRes.data?.length > 0 ? kardexRes.data : simulatedKardex)
+            setMedications(medsRes.data?.data || [])
+            setOrders(ordersRes.data || [])
+            setKardex(kardexRes.data || [])
         } catch (error: any) {
             toast({
                 title: 'Error',
@@ -241,20 +127,59 @@ export default function PharmacyPage() {
         }
     }
 
+    const handleSaveMedication = async () => {
+        try {
+            await pharmacyAPI.createMedication({
+                name: newItem.name,
+                manufacturer: newItem.laboratory,
+                description: 'Nuevo medicamento',
+                category: newItem.type,
+                stock: newItem.stock,
+                minStock: newItem.minStock,
+                batch: newItem.batch,
+                expiry: newItem.expiry
+            })
+            toast({ title: 'Éxito', description: 'Medicamento creado correctamente' })
+            setIsAddDialogOpen(false)
+            loadData()
+            setNewItem({ name: '', laboratory: '', stock: 0, minStock: 10, expiry: '', batch: '', type: 'Medicamento' })
+        } catch (error) {
+            toast({ title: 'Error', description: 'No se pudo crear el medicamento', variant: 'destructive' })
+        }
+    }
+
     const handleApproveOrder = async (orderId: string) => {
-        toast({
-            title: 'Orden Aprobada',
-            description: 'La orden de medicamento ha sido aprobada',
-        })
-        // TODO: Implementar con backend
+        try {
+            await pharmacyAPI.approveOrder(orderId)
+            toast({
+                title: 'Orden Aprobada',
+                description: 'La orden de medicamento ha sido aprobada',
+            })
+            loadData()
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'No se pudo aprobar la orden',
+                variant: 'destructive',
+            })
+        }
     }
 
     const handleRejectOrder = async (orderId: string) => {
-        toast({
-            title: 'Orden Rechazada',
-            description: 'La orden de medicamento ha sido rechazada',
-        })
-        // TODO: Implementar con backend
+        try {
+            await pharmacyAPI.rejectOrder(orderId, 'Stock insuficiente') // Simple reason for now
+            toast({
+                title: 'Orden Rechazada',
+                description: 'La orden de medicamento ha sido rechazada',
+            })
+            loadData()
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'No se pudo rechazar la orden',
+                variant: 'destructive',
+            })
+        }
     }
 
     // Filtrar medicamentos
@@ -326,7 +251,7 @@ export default function PharmacyPage() {
                         </p>
                     </div>
                 </div>
-                <Button>
+                <Button onClick={() => setIsAddDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Agregar Medicamento
                 </Button>
@@ -475,7 +400,14 @@ export default function PharmacyPage() {
                                                 <TableCell className="font-mono text-sm">{med.batch}</TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-sm">{format(new Date(med.expirationDate), 'MMM dd, yyyy', { locale: es })}</span>
+                                                        <span className="text-sm">
+                                                            {(() => {
+                                                                const date = new Date(med.expirationDate);
+                                                                return isValid(date)
+                                                                    ? format(date, 'MMM dd, yyyy', { locale: es })
+                                                                    : 'N/A';
+                                                            })()}
+                                                        </span>
                                                         <span className={`text-xs px-2 py-1 rounded-full ${expiryStatus.bg} ${expiryStatus.color}`}>
                                                             {expiryStatus.label}
                                                         </span>
@@ -513,7 +445,7 @@ export default function PharmacyPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {orders.map((order: any) => (
+                                {Array.isArray(orders) && orders.map((order: any) => (
                                     <div key={order.id} className="p-4 border rounded-lg">
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
@@ -538,19 +470,19 @@ export default function PharmacyPage() {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-muted-foreground">Fecha Solicitud</p>
-                                                <p className="text-sm">{format(order.requestedAt, 'PPp', { locale: es })}</p>
+                                                <p className="text-sm">{format(new Date(order.requestedAt), 'PPp', { locale: es })}</p>
                                             </div>
                                             {order.approvedAt && (
                                                 <div>
                                                     <p className="text-xs text-muted-foreground">Aprobado el</p>
-                                                    <p className="text-sm">{format(order.approvedAt, 'PPp', { locale: es })}</p>
+                                                    <p className="text-sm">{format(new Date(order.approvedAt), 'PPp', { locale: es })}</p>
                                                     <p className="text-xs text-muted-foreground">por {order.approvedBy}</p>
                                                 </div>
                                             )}
                                             {order.rejectedAt && (
                                                 <div>
                                                     <p className="text-xs text-muted-foreground">Rechazado el</p>
-                                                    <p className="text-sm">{format(order.rejectedAt, 'PPp', { locale: es })}</p>
+                                                    <p className="text-sm">{format(new Date(order.rejectedAt), 'PPp', { locale: es })}</p>
                                                     <p className="text-xs text-muted-foreground">por {order.rejectedBy}</p>
                                                     <p className="text-xs text-red-600 mt-1">Motivo: {order.rejectionReason}</p>
                                                 </div>
@@ -606,10 +538,10 @@ export default function PharmacyPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {kardex.map((entry: any) => (
+                                    {Array.isArray(kardex) && kardex.map((entry: any) => (
                                         <TableRow key={entry.id}>
                                             <TableCell className="font-medium">
-                                                {format(entry.date, 'PPp', { locale: es })}
+                                                {format(new Date(entry.date), 'PPp', { locale: es })}
                                             </TableCell>
                                             <TableCell>{entry.medication}</TableCell>
                                             <TableCell>
@@ -651,6 +583,89 @@ export default function PharmacyPage() {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            {/* Add Medication Dialog */}
+            <AlertDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Agregar Nuevo Medicamento</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Ingrese los detalles del nuevo medicamento.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Tipo</label>
+                            <select
+                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                value={newItem.type}
+                                onChange={(e) => setNewItem({ ...newItem, type: e.target.value })}
+                            >
+                                <option value="Medicamento">Medicamento</option>
+                                <option value="Insumo">Insumo</option>
+                                <option value="Equipo">Equipo</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Nombre</label>
+                            <Input
+                                value={newItem.name}
+                                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                                placeholder="Ej: Paracetamol 500mg"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Laboratorio</label>
+                            <Input
+                                value={newItem.laboratory}
+                                onChange={(e) => setNewItem({ ...newItem, laboratory: e.target.value })}
+                                placeholder="Ej: Bayer"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Stock Inicial</label>
+                                <Input
+                                    type="number"
+                                    value={newItem.stock}
+                                    onChange={(e) => setNewItem({ ...newItem, stock: parseInt(e.target.value) || 0 })}
+                                    placeholder="0"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Stock Mínimo</label>
+                                <Input
+                                    type="number"
+                                    value={newItem.minStock}
+                                    onChange={(e) => setNewItem({ ...newItem, minStock: parseInt(e.target.value) || 0 })}
+                                    placeholder="10"
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Lote</label>
+                                <Input
+                                    value={newItem.batch || ''}
+                                    onChange={(e) => setNewItem({ ...newItem, batch: e.target.value })}
+                                    placeholder="Lote #123"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Vencimiento</label>
+                                <Input
+                                    type="date"
+                                    value={newItem.expiry}
+                                    onChange={(e) => setNewItem({ ...newItem, expiry: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleSaveMedication}>Guardar</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

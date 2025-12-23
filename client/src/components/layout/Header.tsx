@@ -1,4 +1,4 @@
-import { useAuthStore } from '@/store/authStore'
+import { useAuthStore } from '@/stores/authStore'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Moon, Sun, LogOut, User } from 'lucide-react'
@@ -30,7 +30,7 @@ export default function Header() {
                         'LAB': 'Laboratorista',
                         'PHARMACY': 'Farmacéutico/a',
                         'HR': 'Recursos Humanos'
-                    } as Record<string, string>)[user?.role?.name || ''] || user?.role?.name || 'Usuario'}
+                    } as Record<string, string>)[(typeof user?.role === 'object' ? (user.role as any).name : user?.role) || ''] || (typeof user?.role === 'object' ? (user.role as any).name : user?.role) || 'Usuario'}
                 </p>
             </div>
 

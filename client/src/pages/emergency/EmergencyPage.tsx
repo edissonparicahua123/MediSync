@@ -28,7 +28,7 @@ import {
     Wind,
     Brain,
 } from 'lucide-react'
-import { emergencyAPI } from '@/services/api'
+import { emergencyAPI, aiAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -49,38 +49,31 @@ export default function EmergencyPage() {
     const [analyzingTriage, setAnalyzingTriage] = useState(false)
 
     useEffect(() => {
-        loadData()
+        const loadDashboardData = async () => {
+            try {
+                setLoading(true)
+                const [dashboardRes, patientsRes, wardsRes] = await Promise.all([
+                    emergencyAPI.getDashboard(),
+                    emergencyAPI.getCriticalPatients(),
+                    emergencyAPI.getWardStats()
+                ])
+                setDashboard(dashboardRes.data)
+                setCriticalPatients(patientsRes.data)
+                setWardStats(wardsRes.data)
+            } catch (error: any) {
+                toast({
+                    title: 'Error',
+                    description: error.response?.data?.message || 'Error al cargar datos',
+                    variant: 'destructive',
+                })
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadDashboardData()
     }, [])
 
-    const loadData = async () => {
-        try {
-            setLoading(true)
-            const [dashboardRes, patientsRes, wardsRes] = await Promise.all([
-                emergencyAPI.getDashboard().catch(() => ({ data: null })),
-                emergencyAPI.getCriticalPatients().catch(() => ({ data: [] })),
-                emergencyAPI.getWardStats().catch(() => ({ data: [] }))
-            ])
-            setDashboard(dashboardRes.data || {
-                criticalPatients: 8,
-                beds: { total: 50, available: 12, occupied: 38 }
-            })
-            setCriticalPatients(patientsRes.data || [])
-            setWardStats(wardsRes.data || [
-                { ward: 'UCI', total: 10, occupied: 8 },
-                { ward: 'Emergencia', total: 20, occupied: 15 },
-                { ward: 'General', total: 20, occupied: 15 },
-            ])
-        } catch (error: any) {
-            toast({
-                title: 'Error',
-                description: error.response?.data?.message || 'Error al cargar datos',
-                variant: 'destructive',
-            })
-        } finally {
-            setLoading(false)
-        }
-    }
-
+    // Simular análisis de triage con IA
     // Simular análisis de triage con IA
     const analyzeTriage = async () => {
         if (!symptoms.trim()) {
@@ -94,10 +87,10 @@ export default function EmergencyPage() {
 
         setAnalyzingTriage(true)
 
-        // Simular llamada a IA
-        setTimeout(() => {
-            const priority = Math.floor(Math.random() * 5) + 1 // 1-5
-            const waitTime = priority === 1 ? 0 : priority === 2 ? 10 : priority === 3 ? 30 : priority === 4 ? 60 : 120
+        try {
+            // Real AI Call
+            const response = await aiAPI.triage({ symptoms })
+            const data = response.data
 
             const colors: Record<number, { bg: string; text: string; label: string }> = {
                 1: { bg: 'bg-red-100', text: 'text-red-800', label: 'CRÍTICO' },
@@ -108,17 +101,20 @@ export default function EmergencyPage() {
             }
 
             setTriageResult({
-                priority,
-                waitTime,
-                color: colors[priority],
-                recommendations: [
-                    'Monitorear signos vitales cada 15 minutos',
-                    'Preparar acceso IV',
-                    'Alertar al médico de turno',
-                ],
+                priority: data.priority,
+                waitTime: data.waitTime,
+                color: colors[data.priority] || colors[3],
+                recommendations: data.recommendations,
             })
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Falló el análisis de IA',
+                variant: 'destructive',
+            })
+        } finally {
             setAnalyzingTriage(false)
-        }, 2000)
+        }
     }
 
     const getPriorityColor = (priority: number) => {
@@ -132,42 +128,8 @@ export default function EmergencyPage() {
         return colors[priority] || 'bg-gray-500'
     }
 
-    // Datos simulados de pacientes en ER
-    const erPatients = [
-        {
-            id: '1',
-            name: 'Juan Pérez',
-            age: 45,
-            bedNumber: 'ER-01',
-            priority: 1,
-            diagnosis: 'Dolor torácico',
-            doctor: 'Dr. Smith',
-            admittedAt: new Date(Date.now() - 3600000),
-            vitalSigns: { hr: 120, bp: '140/90', temp: 38.5, spo2: 95 },
-        },
-        {
-            id: '2',
-            name: 'María García',
-            age: 32,
-            bedNumber: 'ER-02',
-            priority: 2,
-            diagnosis: 'Cefalea intensa',
-            doctor: 'Dr. Johnson',
-            admittedAt: new Date(Date.now() - 7200000),
-            vitalSigns: { hr: 85, bp: '130/85', temp: 37.2, spo2: 98 },
-        },
-        {
-            id: '3',
-            name: 'Roberto Wilson',
-            age: 28,
-            bedNumber: 'ER-03',
-            priority: 3,
-            diagnosis: 'Esguince de tobillo',
-            doctor: 'Dr. Brown',
-            admittedAt: new Date(Date.now() - 10800000),
-            vitalSigns: { hr: 75, bp: '120/80', temp: 36.8, spo2: 99 },
-        },
-    ]
+    // Datos reales cargados desde API
+
 
     if (loading) {
         return (

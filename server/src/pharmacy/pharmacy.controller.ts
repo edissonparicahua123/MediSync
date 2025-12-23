@@ -58,12 +58,24 @@ export class PharmacyController {
     @Get('orders')
     @ApiOperation({ summary: 'Get pharmacy orders' })
     async getOrders() {
-        return { data: [], meta: { total: 0, page: 1, limit: 10 } };
+        return this.pharmacyService.getOrders();
     }
 
     @Get('kardex')
     @ApiOperation({ summary: 'Get kardex entries' })
     async getKardex() {
-        return { data: [], meta: { total: 0, page: 1, limit: 10 } };
+        return this.pharmacyService.getKardex();
+    }
+
+    @Patch('orders/:id/approve')
+    @ApiOperation({ summary: 'Approve order' })
+    async approveOrder(@Param('id') id: string) {
+        return this.pharmacyService.approveOrder(id, 'user-id-placeholder');
+    }
+
+    @Patch('orders/:id/reject')
+    @ApiOperation({ summary: 'Reject order' })
+    async rejectOrder(@Param('id') id: string, @Body('reason') reason: string) {
+        return this.pharmacyService.rejectOrder(id, reason);
     }
 }

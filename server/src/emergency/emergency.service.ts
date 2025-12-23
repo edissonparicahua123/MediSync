@@ -45,6 +45,12 @@ export class EmergencyService {
         });
     }
 
+    async getCaseById(id: string) {
+        return this.prisma.emergencyCase.findUnique({
+            where: { id }
+        });
+    }
+
     // [NEW] Get patient emergency history
     async getPatientHistory(patientId: string) {
         if (!patientId) return [];
