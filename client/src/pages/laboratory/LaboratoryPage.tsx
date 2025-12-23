@@ -34,7 +34,28 @@ import {
     AlertCircle,
     XCircle,
 } from 'lucide-react'
-import { laboratoryAPI } from '@/services/api'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { patientsAPI, doctorsAPI, laboratoryAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format, differenceInDays } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -48,6 +69,24 @@ export default function LaboratoryPage() {
     const [uploadingResult, setUploadingResult] = useState<string | null>(null)
     const { toast } = useToast()
 
+    // States for Dialogs and Data
+    const [isNewOrderOpen, setIsNewOrderOpen] = useState(false)
+    const [isEditOrderOpen, setIsEditOrderOpen] = useState(false)
+    const [deleteId, setDeleteId] = useState<string | null>(null)
+    const [selectedOrder, setSelectedOrder] = useState<any>(null)
+
+    const [patients, setPatients] = useState<any[]>([])
+    const [doctors, setDoctors] = useState<any[]>([])
+    const [tests, setTests] = useState<any[]>([])
+
+    const [formData, setFormData] = useState({
+        patientId: '',
+        doctorId: '',
+        testType: '',
+        priority: 'NORMAL',
+        notes: ''
+    })
+
     // Filtros
     const [filters, setFilters] = useState({
         status: 'all',
@@ -56,96 +95,133 @@ export default function LaboratoryPage() {
 
     useEffect(() => {
         loadData()
+        loadDropdownData()
     }, [])
+
+    const loadDropdownData = async () => {
+        try {
+            const [pRes, dRes, tRes] = await Promise.all([
+                patientsAPI.getAll(),
+                doctorsAPI.getAll(),
+                laboratoryAPI.getTests()
+            ])
+
+            const patientsList = Array.isArray(pRes.data) ? pRes.data : (pRes.data?.data || [])
+            const doctorsList = Array.isArray(dRes.data) ? dRes.data : (dRes.data?.data || [])
+            const testsList = Array.isArray(tRes.data) ? tRes.data : (tRes.data?.data || [])
+
+            setPatients(patientsList)
+            setDoctors(doctorsList)
+            setTests(testsList)
+        } catch (error) {
+            console.error("Error loading dropdowns", error)
+        }
+    }
 
     const loadData = async () => {
         try {
             setLoading(true)
-            const ordersRes = await laboratoryAPI.getOrders().catch(() => ({ data: { data: [] } }))
-
-            // Datos simulados profesionales
-            const simulatedOrders = [
-                {
-                    id: '1',
-                    examType: 'Hemograma Completo',
-                    doctor: 'Dr. Smith',
-                    patient: 'John Doe',
-                    status: 'PENDIENTE',
-                    requestedDate: new Date(),
-                    deliveryDate: new Date(Date.now() + 86400000 * 2),
-                    priority: 'NORMAL',
-                },
-                {
-                    id: '2',
-                    examType: 'Perfil Lipídico',
-                    doctor: 'Dr. Johnson',
-                    patient: 'Jane Smith',
-                    status: 'EN_PROCESO',
-                    requestedDate: new Date(Date.now() - 3600000),
-                    deliveryDate: new Date(Date.now() + 86400000),
-                    priority: 'NORMAL',
-                },
-                {
-                    id: '3',
-                    examType: 'Rayos X de Tórax',
-                    doctor: 'Dr. Williams',
-                    patient: 'Bob Wilson',
-                    status: 'COMPLETADO',
-                    requestedDate: new Date(Date.now() - 86400000),
-                    deliveryDate: new Date(Date.now() - 3600000),
-                    completedDate: new Date(Date.now() - 3600000),
-                    resultFile: 'resultado_rayosx.pdf',
-                    priority: 'URGENTE',
-                },
-                {
-                    id: '4',
-                    examType: 'Análisis de Orina',
-                    doctor: 'Dr. Brown',
-                    patient: 'Alice Johnson',
-                    status: 'COMPLETADO',
-                    requestedDate: new Date(Date.now() - 172800000),
-                    deliveryDate: new Date(Date.now() - 86400000),
-                    completedDate: new Date(Date.now() - 86400000),
-                    resultFile: 'resultado_orina.pdf',
-                    priority: 'NORMAL',
-                },
-                {
-                    id: '5',
-                    examType: 'Electrocardiograma',
-                    doctor: 'Dr. Davis',
-                    patient: 'Charlie Brown',
-                    status: 'PENDIENTE',
-                    requestedDate: new Date(Date.now() - 7200000),
-                    deliveryDate: new Date(Date.now() + 86400000),
-                    priority: 'URGENTE',
-                },
-            ]
-
-            setOrders(ordersRes.data?.data?.length > 0 ? ordersRes.data.data : simulatedOrders)
+            const ordersRes = await laboratoryAPI.getOrders()
+            // Ensure we extract the array correctly whether it's paginated or not
+            const ordersData = ordersRes.data?.data || (Array.isArray(ordersRes.data) ? ordersRes.data : [])
+            setOrders(ordersData)
         } catch (error: any) {
+            console.error(error)
             toast({
                 title: 'Error',
                 description: error.response?.data?.message || 'Error al cargar órdenes de laboratorio',
                 variant: 'destructive',
             })
+            setOrders([])
         } finally {
             setLoading(false)
         }
     }
 
+    const handleCreateOrder = async () => {
+        if (!formData.patientId || !formData.doctorId || !formData.testType) {
+            toast({ title: "Error", description: "Complete los campos obligatorios", variant: "destructive" })
+            return
+        }
+
+        try {
+            const selectedTest = tests.find(t => t.id === formData.testType)
+            await laboratoryAPI.createOrder({
+                patientId: formData.patientId,
+                doctorId: formData.doctorId,
+                testType: selectedTest?.category || 'General',
+                testName: selectedTest?.name || 'Examen',
+                priority: formData.priority,
+                notes: formData.notes
+            })
+            toast({ title: "Éxito", description: "Orden creada correctamente" })
+            setIsNewOrderOpen(false)
+            setFormData({ patientId: '', doctorId: '', testType: '', priority: 'NORMAL', notes: '' })
+            loadData()
+        } catch (error) {
+            toast({ title: "Error", description: "No se pudo crear la orden", variant: "destructive" })
+        }
+    }
+
+    const openEditDialog = (order: any) => {
+        setSelectedOrder(order)
+        setFormData({
+            patientId: order.patientId,
+            doctorId: order.doctorId,
+            testType: '', // Difficult to map back without ID, primarily for editing Status/Priority/Notes
+            priority: order.priority,
+            notes: order.notes || ''
+        })
+        setIsEditOrderOpen(true)
+    }
+
+    const handleUpdateOrder = async () => {
+        if (!selectedOrder) return
+
+        try {
+            await laboratoryAPI.updateOrder(selectedOrder.id, {
+                priority: formData.priority,
+                notes: formData.notes
+            })
+            toast({ title: "Éxito", description: "Orden actualizada" })
+            setIsEditOrderOpen(false)
+            setSelectedOrder(null)
+            loadData()
+        } catch (error) {
+            toast({ title: "Error", description: "Error al actualizar", variant: "destructive" })
+        }
+    }
+
+    const handleDeleteOrder = async () => {
+        if (!deleteId) return
+        try {
+            await laboratoryAPI.deleteOrder(deleteId)
+            toast({ title: "Éxito", description: "Orden eliminada" })
+            setDeleteId(null)
+            loadData()
+        } catch (error) {
+            toast({ title: "Error", description: "Error al eliminar", variant: "destructive" })
+        }
+    }
     const handleUploadResult = async (orderId: string, file: File) => {
         setUploadingResult(orderId)
+        try {
+            await laboratoryAPI.updateStatus(orderId, 'COMPLETED', {
+                resultFile: `archivo_simulado_${file.name}`
+            })
 
-        // Simular subida
-        setTimeout(() => {
             toast({
                 title: 'Resultado Subido',
-                description: 'El resultado de laboratorio ha sido subido y el paciente notificado',
+                description: 'El resultado de laboratorio ha sido registrado correctamente',
             })
             setUploadingResult(null)
             loadData()
-        }, 2000)
+        } catch (error) {
+            toast({ title: 'Error', description: 'No se pudo subir el resultado', variant: 'destructive' })
+            setUploadingResult(null)
+        }
     }
+
 
     const handleFileSelect = (orderId: string) => {
         const input = document.createElement('input')
@@ -285,7 +361,7 @@ export default function LaboratoryPage() {
                         </p>
                     </div>
                 </div>
-                <Button>
+                <Button onClick={() => setIsNewOrderOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Nueva Orden
                 </Button>
@@ -406,11 +482,19 @@ export default function LaboratoryPage() {
                                 ) : (
                                     filteredOrders.map((order: any) => (
                                         <TableRow key={order.id}>
-                                            <TableCell className="font-medium">{order.examType}</TableCell>
-                                            <TableCell>{order.patient}</TableCell>
-                                            <TableCell>{order.doctor}</TableCell>
-                                            <TableCell>{format(new Date(order.requestedDate), 'MMM dd, yyyy', { locale: es })}</TableCell>
-                                            <TableCell>{format(new Date(order.deliveryDate), 'MMM dd, yyyy', { locale: es })}</TableCell>
+                                            <TableCell className="font-medium">{order.testName || order.testType}</TableCell>
+                                            <TableCell>
+                                                {order.patient
+                                                    ? `${order.patient.firstName} ${order.patient.lastName}`
+                                                    : 'Desconocido'}
+                                            </TableCell>
+                                            <TableCell>-</TableCell>
+                                            <TableCell>{format(new Date(order.createdAt), 'MMM dd, yyyy', { locale: es })}</TableCell>
+                                            <TableCell>
+                                                {order.status === 'COMPLETADO'
+                                                    ? format(new Date(order.updatedAt), 'MMM dd, yyyy', { locale: es })
+                                                    : '-'}
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {getStatusIcon(order.status)}
@@ -547,6 +631,123 @@ export default function LaboratoryPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* ADD ORDER DIALOG */}
+            <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Nueva Orden de Laboratorio</DialogTitle>
+                        <DialogDescription>Cree una nueva solicitud para un paciente.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label>Paciente</Label>
+                            <Select onValueChange={(v) => setFormData({ ...formData, patientId: v })} value={formData.patientId}>
+                                <SelectTrigger><SelectValue placeholder="Seleccione paciente" /></SelectTrigger>
+                                <SelectContent>
+                                    {patients.map(p => (
+                                        <SelectItem key={p.id} value={p.id}>{p.firstName} {p.lastName}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Doctor</Label>
+                            <Select onValueChange={(v) => setFormData({ ...formData, doctorId: v })} value={formData.doctorId}>
+                                <SelectTrigger><SelectValue placeholder="Seleccione doctor" /></SelectTrigger>
+                                <SelectContent>
+                                    {doctors.map(d => (
+                                        <SelectItem key={d.id} value={d.id}>Dr. {d.user?.lastName || d.specialty}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Examen</Label>
+                            <Select onValueChange={(v) => setFormData({ ...formData, testType: v })} value={formData.testType}>
+                                <SelectTrigger><SelectValue placeholder="Seleccione examen" /></SelectTrigger>
+                                <SelectContent>
+                                    {tests.map(t => (
+                                        <SelectItem key={t.id} value={t.id}>{t.name} ({t.category})</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Prioridad</Label>
+                            <Select onValueChange={(v) => setFormData({ ...formData, priority: v })} value={formData.priority}>
+                                <SelectTrigger><SelectValue placeholder="Prioridad" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NORMAL">Normal</SelectItem>
+                                    <SelectItem value="URGENTE">Urgente</SelectItem>
+                                    <SelectItem value="STAT">STAT (Inmediato)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Notas Clínicas</Label>
+                            <Textarea
+                                value={formData.notes}
+                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                placeholder="Notas adicionales..."
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsNewOrderOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleCreateOrder}>Crear Orden</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* EDIT ORDER DIALOG */}
+            <Dialog open={isEditOrderOpen} onOpenChange={setIsEditOrderOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Editar Orden</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label>Prioridad</Label>
+                            <Select onValueChange={(v) => setFormData({ ...formData, priority: v })} value={formData.priority}>
+                                <SelectTrigger><SelectValue placeholder="Prioridad" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="NORMAL">Normal</SelectItem>
+                                    <SelectItem value="URGENTE">Urgente</SelectItem>
+                                    <SelectItem value="STAT">STAT (Inmediato)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Notas</Label>
+                            <Textarea
+                                value={formData.notes}
+                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditOrderOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleUpdateOrder}>Guardar Cambios</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* DELETE DIALOG */}
+            <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta acción eliminará la orden de laboratorio permanentemente.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteOrder} className="bg-red-600 hover:bg-red-700">Eliminar</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

@@ -38,12 +38,65 @@ import { format, differenceInHours, differenceInMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
 
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Pencil, Trash2, MoreHorizontal, FileText } from 'lucide-react'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+
 export default function HRPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('employees')
     const [selectedMonth, setSelectedMonth] = useState(new Date())
     const { toast } = useToast()
+
+    // Employee Modal State
+    const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null)
+    const [employeeForm, setEmployeeForm] = useState({
+        name: '',
+        email: '',
+        department: '',
+        role: '',
+        salary: '',
+        hireDate: format(new Date(), 'yyyy-MM-dd'),
+        status: 'ACTIVE'
+    })
+
+    // Shift Modal State
+    const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
+    const [shiftForm, setShiftForm] = useState({
+        employeeId: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        startTime: '08:00',
+        endTime: '17:00',
+        type: 'MORNING'
+    })
+
+    // Attendance Modal State
+    const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false)
+    const [attendanceForm, setAttendanceForm] = useState({
+        employeeId: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        checkIn: '08:00',
+        checkOut: '',
+        status: 'ON_TIME'
+    })
 
     // Datos de HR
     const [hrData, setHrData] = useState<any>({
@@ -56,6 +109,7 @@ export default function HRPage() {
     useEffect(() => {
         loadHRData()
     }, [])
+
 
     const loadHRData = async () => {
         try {
@@ -76,7 +130,6 @@ export default function HRPage() {
             const realData = {
                 employees: employeesRes.data.data.map((e: any) => ({
                     ...e,
-                    // Ensure fields match if backend differs slightly
                     area: e.area || e.department,
                     contract: e.contract || 'Tiempo Completo',
                     photo: e.photo || `https://ui-avatars.com/api/?name=${e.name}`
@@ -87,27 +140,41 @@ export default function HRPage() {
                     date: new Date(a.checkIn),
                     checkIn: new Date(a.checkIn),
                     checkOut: a.checkOut ? new Date(a.checkOut) : null,
-                    hoursWorked: a.hoursWorked || 0,
+                    hoursWorked: Number(a.hoursWorked) || 0,
                     tardiness: a.tardiness || 0,
                     status: a.status
                 })),
-                payroll: payrollRes.data.map((p: any) => ({
-                    id: p.id,
-                    employeeName: p.employee?.name || 'Unknown',
-                    baseSalary: parseFloat(p.baseSalary),
-                    pension: parseFloat(p.pension),
-                    discounts: parseFloat(p.discounts),
-                    bonuses: parseFloat(p.bonuses),
-                    finalAmount: parseFloat(p.netAmount)
-                })),
-                shifts: shiftsRes.data.map((s: any) => ({
-                    id: s.id,
-                    employeeName: s.employee?.name || 'Unknown',
-                    day: s.dayOfWeek,
-                    shift: s.shiftType,
-                    startTime: s.startTime,
-                    endTime: s.endTime
-                }))
+                payroll: payrollRes.data.map((p: any) => {
+                    const base = Number(p.baseSalary)
+                    const totalDeductions = Number(p.deductions)
+                    const pension = base * 0.13
+                    const otherDiscounts = totalDeductions - pension
+
+                    return {
+                        id: p.id,
+                        employeeName: p.employee?.name || 'Unknown',
+                        baseSalary: base,
+                        pension: pension,
+                        discounts: otherDiscounts > 0 ? otherDiscounts : 0,
+                        bonuses: Number(p.bonuses),
+                        finalAmount: Number(p.netSalary)
+                    }
+                }),
+                shifts: shiftsRes.data.map((s: any) => {
+                    const date = new Date(s.startTime)
+                    const dayName = format(date, 'eeee', { locale: es })
+                    // Capitalize first letter: lunes -> Lunes
+                    const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1)
+
+                    return {
+                        id: s.id,
+                        employeeName: s.employee?.name || 'Unknown',
+                        day: capitalizedDay,
+                        shift: s.type, // Schema uses 'type', see seed/schema
+                        startTime: format(date, 'HH:mm'),
+                        endTime: format(new Date(s.endTime), 'HH:mm')
+                    }
+                })
             }
 
             setHrData(realData)
@@ -163,6 +230,161 @@ export default function HRPage() {
         return colors[shift] || colors.MORNING
     }
 
+    const resetForm = () => {
+        setEmployeeForm({
+            name: '',
+            email: '',
+            department: '',
+            role: '',
+            salary: '',
+            hireDate: format(new Date(), 'yyyy-MM-dd'),
+            status: 'ACTIVE'
+        })
+        setIsEditing(false)
+        setCurrentEmployeeId(null)
+    }
+
+    const openNewEmployeeModal = () => {
+        resetForm()
+        setIsEmployeeModalOpen(true)
+    }
+
+    const handleEditEmployee = (employee: any) => {
+        setEmployeeForm({
+            name: employee.name,
+            email: employee.email,
+            department: employee.department || employee.area || '',
+            role: employee.role,
+            salary: employee.salary,
+            hireDate: employee.hireDate ? format(new Date(employee.hireDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+            status: employee.status
+        })
+        setCurrentEmployeeId(employee.id)
+        setIsEditing(true)
+        setIsEmployeeModalOpen(true)
+    }
+
+    const handleSaveEmployee = async () => {
+        try {
+            if (!employeeForm.name || !employeeForm.email || !employeeForm.salary) {
+                toast({
+                    title: 'Error de validación',
+                    description: 'Por favor completa los campos requeridos',
+                    variant: 'destructive',
+                })
+                return
+            }
+
+            const payload = {
+                ...employeeForm,
+                salary: Number(employeeForm.salary),
+                hireDate: new Date(employeeForm.hireDate).toISOString()
+            }
+
+            if (isEditing && currentEmployeeId) {
+                await hrAPI.updateEmployee(currentEmployeeId, payload)
+                toast({ title: 'Empleado actualizado', description: 'Los datos han sido guardados' })
+            } else {
+                await hrAPI.createEmployee(payload)
+                toast({ title: 'Empleado creado', description: 'El nuevo empleado ha sido registrado' })
+            }
+
+            setIsEmployeeModalOpen(false)
+            resetForm()
+            loadHRData()
+        } catch (error: any) {
+            console.error('Save error:', error)
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Error al guardar empleado',
+                variant: 'destructive',
+            })
+        }
+    }
+
+    const handleDeleteEmployee = async (id: string) => {
+        if (!confirm('¿Estás seguro de eliminar este empleado? Esta acción no se puede deshacer.')) return
+
+        try {
+            await hrAPI.deleteEmployee(id)
+            toast({ title: 'Empleado eliminado', description: 'El registro ha sido eliminado correctamente' })
+            loadHRData()
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Error al eliminar empleado',
+                variant: 'destructive',
+            })
+        }
+    }
+
+    const handleSaveShift = async () => {
+        try {
+            if (!shiftForm.employeeId) {
+                toast({ title: 'Error', description: 'Selecciona un empleado', variant: 'destructive' })
+                return
+            }
+
+            // Construct timestamps
+            const start = new Date(`${shiftForm.date}T${shiftForm.startTime}:00`)
+            const end = new Date(`${shiftForm.date}T${shiftForm.endTime}:00`)
+
+            await hrAPI.createShift({
+                employeeId: shiftForm.employeeId,
+                startTime: start.toISOString(),
+                endTime: end.toISOString(),
+                type: shiftForm.type
+            })
+
+            toast({ title: 'Turno asignado', description: 'El turno se ha guardado correctamente' })
+            setIsShiftModalOpen(false)
+            loadHRData()
+        } catch (error: any) {
+            toast({ title: 'Error', description: 'Error al asignar turno', variant: 'destructive' })
+        }
+    }
+
+    const handleGeneratePayroll = async () => {
+        try {
+            setLoading(true)
+            await hrAPI.generatePayroll()
+            toast({ title: 'Planilla Generada', description: 'Se ha procesado la planilla del mes actual' })
+            loadHRData()
+        } catch (error: any) {
+            toast({ title: 'Error', description: 'Error al generar planilla', variant: 'destructive' })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSaveAttendance = async () => {
+        try {
+            if (!attendanceForm.employeeId) {
+                toast({ title: 'Error', description: 'Selecciona un empleado', variant: 'destructive' })
+                return
+            }
+
+            const checkInDate = new Date(`${attendanceForm.date}T${attendanceForm.checkIn}:00`)
+            let checkOutDate = null
+            if (attendanceForm.checkOut) {
+                checkOutDate = new Date(`${attendanceForm.date}T${attendanceForm.checkOut}:00`).toISOString()
+            }
+
+            await hrAPI.createAttendance({
+                employeeId: attendanceForm.employeeId,
+                checkIn: checkInDate.toISOString(),
+                checkOut: checkOutDate,
+                status: attendanceForm.status
+            })
+
+            toast({ title: 'Asistencia registrada', description: 'El registro se ha guardado correctamente' })
+            setIsAttendanceModalOpen(false)
+            loadHRData()
+        } catch (error: any) {
+            toast({ title: 'Error', description: 'Error al registrar asistencia', variant: 'destructive' })
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-96">
@@ -186,7 +408,7 @@ export default function HRPage() {
                         </p>
                     </div>
                 </div>
-                <Button>
+                <Button onClick={openNewEmployeeModal}>
                     <Plus className="h-4 w-4 mr-2" />
                     Agregar Empleado
                 </Button>
@@ -296,6 +518,7 @@ export default function HRPage() {
                                         <TableHead>Salario</TableHead>
                                         <TableHead>Contrato</TableHead>
                                         <TableHead>Estado</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -323,6 +546,28 @@ export default function HRPage() {
                                                     } as Record<string, string>)[employee.status] || employee.status}
                                                 </span>
                                             </TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">Abrir menú</span>
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                        <DropdownMenuItem onClick={() => handleEditEmployee(employee)}>
+                                                            <Pencil className="mr-2 h-4 w-4" />
+                                                            Editar
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => handleDeleteEmployee(employee.id)} className="text-red-600">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Eliminar
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -335,8 +580,16 @@ export default function HRPage() {
                 <TabsContent value="attendance" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Control de Asistencia</CardTitle>
-                            <CardDescription>Asistencia diaria y horas trabajadas</CardDescription>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Control de Asistencia</CardTitle>
+                                    <CardDescription>Asistencia diaria y horas trabajadas</CardDescription>
+                                </div>
+                                <Button onClick={() => setIsAttendanceModalOpen(true)} variant="outline">
+                                    <Clock className="h-4 w-4 mr-2" />
+                                    Registrar Asistencia
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -428,8 +681,16 @@ export default function HRPage() {
                 <TabsContent value="payroll" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Gestión de Planilla</CardTitle>
-                            <CardDescription>Desglose de salarios y cálculos</CardDescription>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Gestión de Planilla</CardTitle>
+                                    <CardDescription>Desglose de salarios y cálculos</CardDescription>
+                                </div>
+                                <Button onClick={handleGeneratePayroll} variant="outline">
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Generar Planilla Mensual
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -481,8 +742,16 @@ export default function HRPage() {
                 <TabsContent value="shifts" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Programación de Turnos</CardTitle>
-                            <CardDescription>Asignación semanal de turnos</CardDescription>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Programación de Turnos</CardTitle>
+                                    <CardDescription>Asignación semanal de turnos</CardDescription>
+                                </div>
+                                <Button onClick={() => setIsShiftModalOpen(true)} variant="outline">
+                                    <CalendarIcon className="h-4 w-4 mr-2" />
+                                    Asignar Turno
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -522,6 +791,248 @@ export default function HRPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+            {/* Employee Modal */}
+            <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>{isEditing ? 'Editar Empleado' : 'Nuevo Empleado'}</DialogTitle>
+                        <DialogDescription>
+                            {isEditing ? 'Modifica los datos del empleado. Clic en guardar cuando termines.' : 'Ingresa los datos del nuevo empleado. Clic en guardar para crearlo.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Nombre</Label>
+                                <Input
+                                    id="name"
+                                    value={employeeForm.name}
+                                    onChange={(e) => setEmployeeForm({ ...employeeForm, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email</Label>
+                                <Input
+                                    id="email"
+                                    value={employeeForm.email}
+                                    onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="department">Departamento</Label>
+                                <Input
+                                    id="department"
+                                    value={employeeForm.department}
+                                    onChange={(e) => setEmployeeForm({ ...employeeForm, department: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="role">Rol / Puesto</Label>
+                                <Input
+                                    id="role"
+                                    value={employeeForm.role}
+                                    onChange={(e) => setEmployeeForm({ ...employeeForm, role: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="salary">Salario Base</Label>
+                                <Input
+                                    id="salary"
+                                    type="number"
+                                    value={employeeForm.salary}
+                                    onChange={(e) => setEmployeeForm({ ...employeeForm, salary: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="hireDate">Fecha Contratación</Label>
+                                <Input
+                                    id="hireDate"
+                                    type="date"
+                                    value={employeeForm.hireDate}
+                                    onChange={(e) => setEmployeeForm({ ...employeeForm, hireDate: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="status">Estado</Label>
+                            <Select
+                                value={employeeForm.status}
+                                onValueChange={(value) => setEmployeeForm({ ...employeeForm, status: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona un estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ACTIVE">Activo</SelectItem>
+                                    <SelectItem value="VACATION">Vacaciones</SelectItem>
+                                    <SelectItem value="SICK">Licencia Médica</SelectItem>
+                                    <SelectItem value="INACTIVE">Inactivo</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEmployeeModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleSaveEmployee}>Guardar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Shift Modal */}
+            <Dialog open={isShiftModalOpen} onOpenChange={setIsShiftModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Asignar Turno</DialogTitle>
+                        <DialogDescription>Crea un nuevo turno para un empleado.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Empleado</Label>
+                            <Select
+                                value={shiftForm.employeeId}
+                                onValueChange={(value) => setShiftForm({ ...shiftForm, employeeId: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar empleado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {hrData.employees.map((emp: any) => (
+                                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Fecha</Label>
+                                <Input
+                                    type="date"
+                                    value={shiftForm.date}
+                                    onChange={(e) => setShiftForm({ ...shiftForm, date: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Tipo</Label>
+                                <Select
+                                    value={shiftForm.type}
+                                    onValueChange={(value) => setShiftForm({ ...shiftForm, type: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="MORNING">Mañana</SelectItem>
+                                        <SelectItem value="AFTERNOON">Tarde</SelectItem>
+                                        <SelectItem value="NIGHT">Noche</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Hora Inicio</Label>
+                                <Input
+                                    type="time"
+                                    value={shiftForm.startTime}
+                                    onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Hora Fin</Label>
+                                <Input
+                                    type="time"
+                                    value={shiftForm.endTime}
+                                    onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsShiftModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleSaveShift}>Asignar Turno</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Attendance Modal */}
+            <Dialog open={isAttendanceModalOpen} onOpenChange={setIsAttendanceModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Registrar Asistencia</DialogTitle>
+                        <DialogDescription>
+                            Registra manualmente la entrada/salida de un empleado.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Empleado</Label>
+                            <Select
+                                value={attendanceForm.employeeId}
+                                onValueChange={(value) => setAttendanceForm({ ...attendanceForm, employeeId: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar empleado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {hrData.employees.map((emp: any) => (
+                                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Fecha</Label>
+                            <Input
+                                type="date"
+                                value={attendanceForm.date}
+                                onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Entrada</Label>
+                                <Input
+                                    type="time"
+                                    value={attendanceForm.checkIn}
+                                    onChange={(e) => setAttendanceForm({ ...attendanceForm, checkIn: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Salida (Opcional)</Label>
+                                <Input
+                                    type="time"
+                                    value={attendanceForm.checkOut}
+                                    onChange={(e) => setAttendanceForm({ ...attendanceForm, checkOut: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Estado</Label>
+                            <Select
+                                value={attendanceForm.status}
+                                onValueChange={(value) => setAttendanceForm({ ...attendanceForm, status: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ON_TIME">A Tiempo</SelectItem>
+                                    <SelectItem value="LATE">Tarde</SelectItem>
+                                    <SelectItem value="ABSENT">Ausente</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAttendanceModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleSaveAttendance}>Guardar Registro</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

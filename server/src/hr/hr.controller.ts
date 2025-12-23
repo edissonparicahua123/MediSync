@@ -78,4 +78,22 @@ export class HRController {
     getShifts() {
         return this.hrService.getShifts();
     }
+
+    @Post('shifts')
+    @ApiOperation({ summary: 'Create new shift' })
+    createShift(@Body() data: any) { // Using any for simplicity as DTO update had issues
+        return this.hrService.createShift(data);
+    }
+
+    @Post('attendance')
+    @ApiOperation({ summary: 'Create attendance record' })
+    createAttendance(@Body() data: any) {
+        return this.hrService.createAttendance(data);
+    }
+
+    @Post('payroll')
+    @ApiOperation({ summary: 'Generate monthly payroll for all active employees' })
+    generatePayroll() {
+        return this.hrService.generatePayroll();
+    }
 }

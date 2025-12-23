@@ -43,4 +43,34 @@ export class AnalyticsController {
     getDashboardData() {
         return this.analyticsService.getDashboardData();
     }
+
+    @Get('heatmap')
+    getHeatmapData() {
+        return this.analyticsService.getHeatmapData();
+    }
+
+    @Get('saturation')
+    getSaturationStats() {
+        return this.analyticsService.getSaturationStats();
+    }
+
+    @Get('area-comparison')
+    getAreaComparison() {
+        return this.analyticsService.getAreaComparison();
+    }
+
+    @Get('patient-cycle')
+    getPatientCycle() {
+        return this.analyticsService.getPatientCycle();
+    }
+
+    @Get('capacity')
+    getCapacityStats() {
+        return this.analyticsService.getCapacityStats();
+    }
+
+    @Get('historical')
+    getHistoricalTrends() {
+        return this.analyticsService.getHistoricalTrends();
+    }
 }

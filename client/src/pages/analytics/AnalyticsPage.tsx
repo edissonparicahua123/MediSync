@@ -64,75 +64,33 @@ export default function AnalyticsPage() {
         try {
             setLoading(true)
 
-            // Simular datos profesionales para analytics
-            const simulatedData = {
-                // 1. Heatmap de horas de alta demanda (7 días x 24 horas)
-                heatmap: generateHeatmapData(),
+            const [
+                heatmapRes,
+                saturationRes,
+                areaRes,
+                cycleRes,
+                capacityRes,
+                historicalRes
+            ] = await Promise.all([
+                analyticsAPI.getHeatmap(),
+                analyticsAPI.getSaturation(),
+                analyticsAPI.getAreaComparison(),
+                analyticsAPI.getPatientCycle(),
+                analyticsAPI.getCapacity(),
+                analyticsAPI.getHistorical()
+            ])
 
-                // 2. Predicción de saturación
-                saturation: [
-                    { hour: '8:00', current: 45, predicted: 52, capacity: 60 },
-                    { hour: '9:00', current: 58, predicted: 65, capacity: 60 },
-                    { hour: '10:00', current: 55, predicted: 62, capacity: 60 },
-                    { hour: '11:00', current: 52, predicted: 58, capacity: 60 },
-                    { hour: '12:00', current: 48, predicted: 54, capacity: 60 },
-                    { hour: '13:00', current: 42, predicted: 48, capacity: 60 },
-                    { hour: '14:00', current: 50, predicted: 56, capacity: 60 },
-                    { hour: '15:00', current: 54, predicted: 60, capacity: 60 },
-                    { hour: '16:00', current: 56, predicted: 63, capacity: 60 },
-                    { hour: '17:00', current: 52, predicted: 58, capacity: 60 },
-                ],
+            setAnalyticsData({
+                heatmap: heatmapRes.data,
+                saturation: saturationRes.data,
+                areaComparison: areaRes.data,
+                patientCycle: cycleRes.data,
+                capacity: capacityRes.data,
+                historical: historicalRes.data,
+            })
 
-                // 3. Comparación de áreas
-                areaComparison: [
-                    { area: 'Emergencia', patients: 245, revenue: 125000, satisfaction: 4.2 },
-                    { area: 'Cardiología', patients: 198, revenue: 145000, satisfaction: 4.8 },
-                    { area: 'Pediatría', patients: 312, revenue: 98000, satisfaction: 4.9 },
-                    { area: 'Cirugía', patients: 156, revenue: 235000, satisfaction: 4.5 },
-                    { area: 'Radiología', patients: 289, revenue: 112000, satisfaction: 4.6 },
-                    { area: 'Laboratorio', patients: 425, revenue: 78000, satisfaction: 4.7 },
-                ],
-
-                // 4. Ciclo de pacientes
-                patientCycle: [
-                    { stage: 'Registro', count: 1250, avgTime: 5 },
-                    { stage: 'Triaje', count: 1200, avgTime: 10 },
-                    { stage: 'Consulta', count: 1150, avgTime: 25 },
-                    { stage: 'Tratamiento', count: 980, avgTime: 45 },
-                    { stage: 'Facturación', count: 950, avgTime: 8 },
-                    { stage: 'Alta', count: 920, avgTime: 12 },
-                ],
-
-                // 5. Cupos vs Disponibilidad
-                capacity: [
-                    { day: 'Lun', available: 120, booked: 95, walkins: 15 },
-                    { day: 'Mar', available: 120, booked: 102, walkins: 12 },
-                    { day: 'Mié', available: 120, booked: 108, walkins: 8 },
-                    { day: 'Jue', available: 120, booked: 98, walkins: 14 },
-                    { day: 'Vie', available: 120, booked: 112, walkins: 6 },
-                    { day: 'Sáb', available: 80, booked: 65, walkins: 10 },
-                    { day: 'Dom', available: 60, booked: 42, walkins: 8 },
-                ],
-
-                // 6. Histórico de 12 meses
-                historical: [
-                    { month: 'Ene', patients: 1245, revenue: 125000, appointments: 1450 },
-                    { month: 'Feb', patients: 1298, revenue: 132000, appointments: 1520 },
-                    { month: 'Mar', patients: 1356, revenue: 145000, appointments: 1680 },
-                    { month: 'Abr', patients: 1289, revenue: 138000, appointments: 1590 },
-                    { month: 'May', patients: 1423, revenue: 152000, appointments: 1720 },
-                    { month: 'Jun', patients: 1467, revenue: 158000, appointments: 1780 },
-                    { month: 'Jul', patients: 1512, revenue: 165000, appointments: 1850 },
-                    { month: 'Ago', patients: 1489, revenue: 162000, appointments: 1820 },
-                    { month: 'Sep', patients: 1534, revenue: 168000, appointments: 1890 },
-                    { month: 'Oct', patients: 1578, revenue: 175000, appointments: 1920 },
-                    { month: 'Nov', patients: 1623, revenue: 182000, appointments: 1980 },
-                    { month: 'Dic', patients: 1689, revenue: 195000, appointments: 2050 },
-                ],
-            }
-
-            setAnalyticsData(simulatedData)
         } catch (error: any) {
+            console.error(error)
             toast({
                 title: 'Error',
                 description: error.response?.data?.message || 'Error al cargar analíticas',
@@ -143,29 +101,7 @@ export default function AnalyticsPage() {
         }
     }
 
-    // Generar datos de heatmap
-    const generateHeatmapData = () => {
-        const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-        const data = []
 
-        for (let hour = 8; hour <= 18; hour++) {
-            const row: any = { hour: `${hour}:00` }
-            days.forEach(day => {
-                // Simular demanda más alta en horas pico (9-11 y 15-17)
-                let demand = Math.floor(Math.random() * 30) + 20
-                if ((hour >= 9 && hour <= 11) || (hour >= 15 && hour <= 17)) {
-                    demand += 30
-                }
-                // Menos demanda los fines de semana
-                if (day === 'Sáb' || day === 'Dom') {
-                    demand = Math.floor(demand * 0.6)
-                }
-                row[day] = demand
-            })
-            data.push(row)
-        }
-        return data
-    }
 
     // Calcular estadísticas
     const stats = {

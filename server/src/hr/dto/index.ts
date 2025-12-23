@@ -46,6 +46,11 @@ export class CreateEmployeeDto {
     @IsOptional()
     @IsString()
     emergencyPhone?: string;
+
+    @ApiPropertyOptional({ example: 'ACTIVE', enum: ['ACTIVE', 'VACATION', 'SICK', 'INACTIVE'] })
+    @IsOptional()
+    @IsString()
+    status?: string;
 }
 
 export class UpdateEmployeeDto {
@@ -81,8 +86,18 @@ export class UpdateEmployeeDto {
 
     @ApiPropertyOptional()
     @IsOptional()
+    @IsDateString()
+    hireDate?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
     @IsBoolean()
     isActive?: boolean;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    status?: string;
 
     @ApiPropertyOptional()
     @IsOptional()
@@ -98,4 +113,41 @@ export class UpdateEmployeeDto {
     @IsOptional()
     @IsString()
     emergencyPhone?: string;
+}
+
+export class CreateShiftDto {
+    @ApiProperty({ example: 'uuid-123' })
+    @IsString()
+    employeeId: string;
+
+    @ApiProperty({ example: '2024-01-01T08:00:00Z' })
+    @IsDateString()
+    startTime: string;
+
+    @ApiProperty({ example: '2024-01-01T17:00:00Z' })
+    @IsDateString()
+    endTime: string;
+
+    @ApiProperty({ example: 'MORNING', enum: ['MORNING', 'AFTERNOON', 'NIGHT'] })
+    @IsString()
+    type: string;
+}
+
+export class CreateAttendanceDto {
+    @ApiProperty({ example: 'uuid-123' })
+    @IsString()
+    employeeId: string;
+
+    @ApiProperty({ example: '2024-01-01T08:00:00Z' })
+    @IsDateString()
+    checkIn: string;
+
+    @ApiPropertyOptional({ example: '2024-01-01T17:00:00Z' })
+    @IsOptional()
+    @IsDateString()
+    checkOut?: string;
+
+    @ApiProperty({ example: 'ON_TIME', enum: ['ON_TIME', 'LATE', 'ABSENT'] })
+    @IsString()
+    status: string;
 }

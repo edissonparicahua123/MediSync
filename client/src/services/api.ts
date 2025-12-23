@@ -93,7 +93,10 @@ export const hrAPI = {
     getStats: () => api.get('/hr/stats'),
     getAttendance: (date?: Date) => api.get('/hr/attendance', { params: { date } }),
     getPayroll: () => api.get('/hr/payroll'),
+    generatePayroll: () => api.post('/hr/payroll'),
     getShifts: () => api.get('/hr/shifts'),
+    createShift: (data: any) => api.post('/hr/shifts', data),
+    createAttendance: (data: any) => api.post('/hr/attendance', data),
 }
 
 // ============================================
@@ -152,13 +155,20 @@ export const messagesAPI = {
 // ANALYTICS API (NEW)
 // ============================================
 export const analyticsAPI = {
+    getDashboard: () => api.get('/analytics/dashboard'),
+    getHeatmap: () => api.get('/analytics/heatmap'),
+    getSaturation: () => api.get('/analytics/saturation'),
+    getAreaComparison: () => api.get('/analytics/area-comparison'),
+    getPatientCycle: () => api.get('/analytics/patient-cycle'),
+    getCapacity: () => api.get('/analytics/capacity'),
+    getHistorical: () => api.get('/analytics/historical'),
+    // Kept for backward compatibility if needed, but these might be redundant now
     getAppointmentsByDay: (days?: number) =>
         api.get('/analytics/appointments/by-day', { params: { days } }),
     getAppointmentsByPriority: () => api.get('/analytics/appointments/by-priority'),
     getAppointmentsByStatus: () => api.get('/analytics/appointments/by-status'),
     getPatientStats: () => api.get('/analytics/patients/stats'),
     getRevenueStats: () => api.get('/analytics/revenue/stats'),
-    getDashboard: () => api.get('/analytics/dashboard'),
 }
 
 // ============================================
@@ -211,10 +221,17 @@ export const billingAPI = {
 // REPORTS API
 // ============================================
 export const reportsAPI = {
+    getDashboardStats: () => api.get('/reports/dashboard'),
+    getAppointmentStats: () => api.get('/reports/appointments'),
+    getPatientStats: () => api.get('/reports/patients'),
+    getFinancialStats: () => api.get('/reports/finance'),
+    getMedicationStats: () => api.get('/reports/medications'),
+    getDoctorStats: () => api.get('/reports/doctors'),
+    getEmergencyStats: () => api.get('/reports/emergencies'),
+    getComparisonStats: () => api.get('/reports/comparison'),
+    getAiPredictions: () => api.get('/reports/ai-predictions'),
+    // Legacy/Unused for now but kept for compatibility if needed
     getPatientReport: (patientId: string) => api.get(`/reports/patient/${patientId}`),
-    getAppointmentReport: (params?: any) => api.get('/reports/appointments', { params }),
-    getRevenueReport: (params?: any) => api.get('/reports/revenue', { params }),
-    getInventoryReport: () => api.get('/reports/inventory'),
     exportReport: (type: string, params?: any) =>
         api.get(`/reports/export/${type}`, { params, responseType: 'blob' }),
 }

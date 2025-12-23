@@ -41,6 +41,15 @@ export class CreateUserDto {
     @IsBoolean()
     @IsOptional()
     isActive?: boolean;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    preferences?: any;
+
+    @ApiProperty({ required: false })
+    @IsString()
+    @IsOptional()
+    address?: string;
 }
 
 export class UpdateUserDto extends PartialType(CreateUserDto) { }

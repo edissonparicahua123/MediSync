@@ -27,6 +27,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
+  preferences Json?
 
   // Relations
   roleId String

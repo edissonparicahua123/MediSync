@@ -133,4 +133,92 @@ export class HRService {
             orderBy: [{ startTime: 'asc' }],
         });
     }
+
+    async createShift(data: any) {
+        return this.prisma.employeeShift.create({
+            data: {
+                employeeId: data.employeeId,
+                startTime: new Date(data.startTime),
+                endTime: new Date(data.endTime),
+                type: data.type
+            }
+        });
+    }
+
+    // [NEW] Attendance Creation
+    async createAttendance(data: any) {
+        const checkIn = new Date(data.checkIn);
+        const checkOut = data.checkOut ? new Date(data.checkOut) : null;
+        let hoursWorked = 0;
+        let tardiness = 0;
+
+        if (checkOut) {
+            hoursWorked = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
+        }
+
+        if (data.status === 'LATE') {
+            tardiness = 15; // Default 15 mins for manual late entry
+        }
+
+        return this.prisma.attendance.create({
+            data: {
+                employeeId: data.employeeId,
+                checkIn,
+                checkOut,
+                status: data.status,
+                hoursWorked: Number(hoursWorked.toFixed(2)),
+                tardiness
+            }
+        });
+    }
+
+    // [NEW] Payroll Generation
+    async generatePayroll() {
+        const activeEmployees = await this.prisma.employee.findMany({
+            where: { isActive: true, deletedAt: null }
+        });
+
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const payrolls = [];
+
+        for (const emp of activeEmployees) {
+            // Check if payroll already exists for this period
+            const existing = await this.prisma.payroll.findFirst({
+                where: {
+                    employeeId: emp.id,
+                    periodStart: startOfMonth
+                }
+            });
+
+            if (existing) continue;
+
+            // Simple calculation logic
+            const baseSalary = Number(emp.salary) || 0;
+            const pension = baseSalary * 0.13;
+            // Random bonuses for demo
+            const bonuses = Math.floor(Math.random() * 200);
+            const totalDeductions = pension;
+            const netSalary = baseSalary + bonuses - totalDeductions;
+
+            const payroll = await this.prisma.payroll.create({
+                data: {
+                    employeeId: emp.id,
+                    baseSalary,
+                    bonuses,
+                    deductions: totalDeductions,
+                    netSalary,
+                    periodStart: startOfMonth,
+                    periodEnd: endOfMonth,
+                    paidDate: now,
+                    status: 'PAID'
+                }
+            });
+            payrolls.push(payroll);
+        }
+
+        return payrolls;
+    }
 }

@@ -57,93 +57,39 @@ export default function ReportsPage() {
         try {
             setLoading(true)
 
-            // Simular datos profesionales para cada reporte
-            const simulatedData = {
-                // 1. Reporte de citas por mes
-                appointments: [
-                    { month: 'Ene', total: 145, completed: 120, cancelled: 25 },
-                    { month: 'Feb', total: 168, completed: 142, cancelled: 26 },
-                    { month: 'Mar', total: 192, completed: 165, cancelled: 27 },
-                    { month: 'Abr', total: 178, completed: 155, cancelled: 23 },
-                    { month: 'May', total: 205, completed: 180, cancelled: 25 },
-                    { month: 'Jun', total: 220, completed: 195, cancelled: 25 },
-                ],
+            const [
+                appointmentsRes,
+                patientsRes,
+                financeRes,
+                medicationsRes,
+                doctorsRes,
+                emergenciesRes,
+                comparisonRes,
+                aiPredictionsRes
+            ] = await Promise.all([
+                reportsAPI.getAppointmentStats(),
+                reportsAPI.getPatientStats(),
+                reportsAPI.getFinancialStats(),
+                reportsAPI.getMedicationStats(),
+                reportsAPI.getDoctorStats(),
+                reportsAPI.getEmergencyStats(),
+                reportsAPI.getComparisonStats(),
+                reportsAPI.getAiPredictions()
+            ])
 
-                // 2. Reporte de pacientes nuevos
-                newPatients: [
-                    { month: 'Ene', count: 45 },
-                    { month: 'Feb', count: 52 },
-                    { month: 'Mar', count: 68 },
-                    { month: 'Abr', count: 55 },
-                    { month: 'May', count: 72 },
-                    { month: 'Jun', count: 80 },
-                ],
+            setReportsData({
+                appointments: appointmentsRes.data,
+                newPatients: patientsRes.data,
+                emergencies: emergenciesRes.data,
+                medications: medicationsRes.data,
+                economic: financeRes.data,
+                doctors: doctorsRes.data,
+                comparison: comparisonRes.data,
+                aiPredictions: aiPredictionsRes.data,
+            })
 
-                // 3. Reporte de emergencias
-                emergencies: [
-                    { type: 'Crítica', count: 45, avgTime: 5 },
-                    { type: 'Urgente', count: 120, avgTime: 15 },
-                    { type: 'Semi-Urgente', count: 200, avgTime: 30 },
-                    { type: 'No Urgente', count: 150, avgTime: 60 },
-                ],
-
-                // 4. Reporte de medicamentos consumidos
-                medications: [
-                    { name: 'Paracetamol', quantity: 1500, cost: 7500 },
-                    { name: 'Amoxicilina', quantity: 800, cost: 12000 },
-                    { name: 'Insulina', quantity: 300, cost: 13500 },
-                    { name: 'Ibuprofeno', quantity: 1200, cost: 6000 },
-                    { name: 'Aspirina', quantity: 900, cost: 4500 },
-                ],
-
-                // 5. Reporte económico general
-                economic: {
-                    totalRevenue: 485000,
-                    totalExpenses: 320000,
-                    netProfit: 165000,
-                    profitMargin: 34,
-                    monthlyBreakdown: [
-                        { month: 'Ene', revenue: 75000, expenses: 50000 },
-                        { month: 'Feb', revenue: 78000, expenses: 52000 },
-                        { month: 'Mar', revenue: 82000, expenses: 54000 },
-                        { month: 'Abr', revenue: 80000, expenses: 53000 },
-                        { month: 'May', revenue: 85000, expenses: 55000 },
-                        { month: 'Jun', revenue: 85000, expenses: 56000 },
-                    ],
-                },
-
-                // 6. Reporte de doctores por rendimiento
-                doctors: [
-                    { name: 'Dr. Smith', patients: 245, satisfaction: 4.8, revenue: 125000 },
-                    { name: 'Dr. Johnson', patients: 220, satisfaction: 4.7, revenue: 110000 },
-                    { name: 'Dr. Williams', patients: 198, satisfaction: 4.9, revenue: 105000 },
-                    { name: 'Dr. Brown', patients: 185, satisfaction: 4.6, revenue: 95000 },
-                    { name: 'Dr. Davis', patients: 165, satisfaction: 4.5, revenue: 85000 },
-                ],
-
-                // 7. Reporte comparativo mensual
-                comparison: [
-                    { month: 'Ene', current: 75000, previous: 68000 },
-                    { month: 'Feb', current: 78000, previous: 72000 },
-                    { month: 'Mar', current: 82000, previous: 75000 },
-                    { month: 'Abr', current: 80000, previous: 77000 },
-                    { month: 'May', current: 85000, previous: 79000 },
-                    { month: 'Jun', current: 85000, previous: 80000 },
-                ],
-
-                // 8. Reporte de IA (predicciones)
-                aiPredictions: [
-                    { month: 'Jul', predicted: 88000, confidence: 85 },
-                    { month: 'Ago', predicted: 92000, confidence: 82 },
-                    { month: 'Sep', predicted: 95000, confidence: 80 },
-                    { month: 'Oct', predicted: 90000, confidence: 78 },
-                    { month: 'Nov', predicted: 93000, confidence: 75 },
-                    { month: 'Dic', predicted: 98000, confidence: 73 },
-                ],
-            }
-
-            setReportsData(simulatedData)
         } catch (error: any) {
+            console.error(error)
             toast({
                 title: 'Error',
                 description: error.response?.data?.message || 'Error al cargar reportes',
