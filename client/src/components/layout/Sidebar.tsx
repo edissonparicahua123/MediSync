@@ -21,6 +21,7 @@ import {
     BarChart3,
     ChevronDown,
     ChevronRight,
+    Clock,
 } from 'lucide-react'
 
 // Tipos de roles profesionales
@@ -68,6 +69,12 @@ const menuSections: MenuSection[] = [
                 icon: Calendar,
                 label: 'Citas',
                 path: '/appointments',
+                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST']
+            },
+            {
+                icon: Clock,
+                label: 'Sala de Espera',
+                path: '/waiting-room',
                 roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST']
             },
             {

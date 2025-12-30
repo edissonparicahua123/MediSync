@@ -48,4 +48,25 @@ export class AuthController {
             changePasswordDto.newPassword,
         );
     }
+
+    @Post('forgot-password')
+    @ApiOperation({ summary: 'Request password reset' })
+    async forgotPassword(@Body() body: { email: string }) {
+        return this.authService.forgotPassword(body.email);
+    }
+
+    @Post('reset-password')
+    @ApiOperation({ summary: 'Reset password with token' })
+    async resetPassword(@Body() body: { token: string; newPassword: string }) {
+        return this.authService.resetPassword(body.token, body.newPassword);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @Post('logout')
+    @ApiOperation({ summary: 'Logout and blacklist token' })
+    async logout(@Request() req) {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        return this.authService.logout(token);
+    }
 }

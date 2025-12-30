@@ -27,4 +27,10 @@ export class AiController {
     predictDemand(@Body() data: { medication_id: string }) {
         return this.aiService.predictPharmacyDemand(data.medication_id);
     }
+
+    @Post('chat')
+    @ApiOperation({ summary: 'Medical AI Chat' })
+    chat(@Body() data: { message: string; context?: string }) {
+        return this.aiService.chat(data);
+    }
 }

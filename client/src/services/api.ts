@@ -38,11 +38,17 @@ api.interceptors.response.use(
 // AUTH API
 // ============================================
 export const authAPI = {
-    login: (email: string, password: string) =>
-        api.post('/auth/login', { email, password }),
+    login: (data: { email: string; password: string }) =>
+        api.post('/auth/login', data),
     register: (data: any) => api.post('/auth/register', data),
     me: () => api.get('/auth/me'),
     refresh: () => api.post('/auth/refresh'),
+    forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+    resetPassword: (token: string, newPassword: string) =>
+        api.post('/auth/reset-password', { token, newPassword }),
+    logout: () => api.post('/auth/logout'),
+    changePassword: (oldPassword: string, newPassword: string) =>
+        api.post('/auth/change-password', { oldPassword, newPassword }),
 }
 
 // ============================================
@@ -55,6 +61,43 @@ export const patientsAPI = {
     update: (id: string, data: any) => api.patch(`/patients/${id}`, data),
     delete: (id: string) => api.delete(`/patients/${id}`),
     getMedicalHistory: (id: string) => api.get(`/patients/${id}/medical-history`),
+    // Timeline
+    getTimeline: (id: string) => api.get(`/patients/${id}/timeline`),
+    // Allergies
+    getAllergies: (id: string) => api.get(`/patients/${id}/allergies`),
+    addAllergy: (id: string, data: any) => api.post(`/patients/${id}/allergies`, data),
+    updateAllergy: (id: string, allergyId: string, data: any) =>
+        api.patch(`/patients/${id}/allergies/${allergyId}`, data),
+    deleteAllergy: (id: string, allergyId: string) =>
+        api.delete(`/patients/${id}/allergies/${allergyId}`),
+    // Vital Signs
+    getVitalSigns: (id: string, limit?: number) =>
+        api.get(`/patients/${id}/vital-signs`, { params: { limit } }),
+    addVitalSign: (id: string, data: any) => api.post(`/patients/${id}/vital-signs`, data),
+    getVitalSignsChart: (id: string) => api.get(`/patients/${id}/vital-signs/chart`),
+    // Medications
+    getMedications: (id: string, activeOnly?: boolean) =>
+        api.get(`/patients/${id}/medications`, { params: { activeOnly } }),
+    addMedication: (id: string, data: any) => api.post(`/patients/${id}/medications`, data),
+    updateMedication: (id: string, medicationId: string, data: any) =>
+        api.patch(`/patients/${id}/medications/${medicationId}`, data),
+    // Diagnoses
+    getDiagnoses: (id: string) => api.get(`/patients/${id}/diagnoses`),
+    addDiagnosis: (id: string, data: any) => api.post(`/patients/${id}/diagnoses`, data),
+    updateDiagnosis: (id: string, diagnosisId: string, data: any) =>
+        api.patch(`/patients/${id}/diagnoses/${diagnosisId}`, data),
+    // Family Members
+    getFamilyMembers: (id: string) => api.get(`/patients/${id}/family-members`),
+    addFamilyMember: (id: string, data: any) => api.post(`/patients/${id}/family-members`, data),
+    updateFamilyMember: (id: string, memberId: string, data: any) =>
+        api.patch(`/patients/${id}/family-members/${memberId}`, data),
+    deleteFamilyMember: (id: string, memberId: string) =>
+        api.delete(`/patients/${id}/family-members/${memberId}`),
+    // Documents
+    getDocuments: (id: string) => api.get(`/patients/${id}/documents`),
+    addDocument: (id: string, data: any) => api.post(`/patients/${id}/documents`, data),
+    deleteDocument: (id: string, documentId: string) =>
+        api.delete(`/patients/${id}/documents/${documentId}`),
 }
 
 // ============================================
@@ -79,6 +122,7 @@ export const appointmentsAPI = {
     updateStatus: (id: string, status: string, notes?: string) =>
         api.patch(`/appointments/${id}/status`, { status, notes }),
     delete: (id: string) => api.delete(`/appointments/${id}`),
+    cancel: (id: string) => api.patch(`/appointments/${id}/status`, { status: 'CANCELLED' }),
 }
 
 // ============================================
@@ -252,6 +296,7 @@ export const aiAPI = {
     summarize: (text: string) => api.post('/ai/summarize', { text }),
     predictDemand: (medicationId: string) =>
         api.post('/ai/pharmacy/demand', { medication_id: medicationId }),
+    chat: (data: { message: string; context?: string }) => api.post('/ai/chat', data),
 }
 
 // ============================================
@@ -259,9 +304,14 @@ export const aiAPI = {
 // ============================================
 export const notificationsAPI = {
     getAll: (params?: any) => api.get('/notifications', { params }),
-    markAsRead: (id: string) => api.patch(`/notifications/${id}/read`),
-    markAllAsRead: () => api.patch('/notifications/read-all'),
-    getUnreadCount: () => api.get('/notifications/unread/count'),
+    markAsRead: (id: string) => api.put(`/notifications/${id}/read`),
+    markAllAsRead: () => api.put('/notifications/mark-all-read'),
+    getUnreadCount: () => api.get('/notifications/unread-count'),
+    delete: (id: string) => api.delete(`/notifications/${id}`),
+    getPreferences: () => api.get('/notifications/preferences'),
+    updatePreferences: (data: any) => api.put('/notifications/preferences', data),
+    getTemplates: () => api.get('/notifications/templates'),
+    getLogs: (params?: any) => api.get('/notifications/logs', { params }),
 }
 
 // ============================================

@@ -72,4 +72,152 @@ export class PatientsController {
     remove(@Param('id') id: string) {
         return this.patientsService.remove(id);
     }
+
+    // ============================================
+    // TIMELINE
+    // ============================================
+    @Get(':id/timeline')
+    @ApiOperation({ summary: 'Get patient timeline of all events' })
+    getTimeline(@Param('id') id: string) {
+        return this.patientsService.getTimeline(id);
+    }
+
+    // ============================================
+    // ALLERGIES
+    // ============================================
+    @Get(':id/allergies')
+    @ApiOperation({ summary: 'Get patient allergies' })
+    getAllergies(@Param('id') id: string) {
+        return this.patientsService.getAllergies(id);
+    }
+
+    @Post(':id/allergies')
+    @ApiOperation({ summary: 'Add patient allergy' })
+    addAllergy(@Param('id') id: string, @Body() data: any) {
+        return this.patientsService.addAllergy(id, data);
+    }
+
+    @Patch(':id/allergies/:allergyId')
+    @ApiOperation({ summary: 'Update patient allergy' })
+    updateAllergy(@Param('id') id: string, @Param('allergyId') allergyId: string, @Body() data: any) {
+        return this.patientsService.updateAllergy(id, allergyId, data);
+    }
+
+    @Delete(':id/allergies/:allergyId')
+    @ApiOperation({ summary: 'Delete patient allergy' })
+    deleteAllergy(@Param('id') id: string, @Param('allergyId') allergyId: string) {
+        return this.patientsService.deleteAllergy(id, allergyId);
+    }
+
+    // ============================================
+    // VITAL SIGNS
+    // ============================================
+    @Get(':id/vital-signs')
+    @ApiOperation({ summary: 'Get patient vital signs history' })
+    getVitalSigns(@Param('id') id: string, @Query('limit') limit?: string) {
+        return this.patientsService.getVitalSigns(id, limit ? parseInt(limit) : 50);
+    }
+
+    @Post(':id/vital-signs')
+    @ApiOperation({ summary: 'Add patient vital sign record' })
+    addVitalSign(@Param('id') id: string, @Body() data: any) {
+        return this.patientsService.addVitalSign(id, data);
+    }
+
+    @Get(':id/vital-signs/chart')
+    @ApiOperation({ summary: 'Get patient vital signs chart data (last 6 months)' })
+    getVitalSignsChart(@Param('id') id: string) {
+        return this.patientsService.getVitalSignsChart(id);
+    }
+
+    // ============================================
+    // MEDICATIONS
+    // ============================================
+    @Get(':id/medications')
+    @ApiOperation({ summary: 'Get patient medications' })
+    @ApiQuery({ name: 'activeOnly', required: false, type: Boolean })
+    getMedications(@Param('id') id: string, @Query('activeOnly') activeOnly?: string) {
+        return this.patientsService.getMedications(id, activeOnly === 'true');
+    }
+
+    @Post(':id/medications')
+    @ApiOperation({ summary: 'Add patient medication' })
+    addMedication(@Param('id') id: string, @Body() data: any) {
+        return this.patientsService.addMedication(id, data);
+    }
+
+    @Patch(':id/medications/:medicationId')
+    @ApiOperation({ summary: 'Update patient medication' })
+    updateMedication(@Param('id') id: string, @Param('medicationId') medicationId: string, @Body() data: any) {
+        return this.patientsService.updateMedication(id, medicationId, data);
+    }
+
+    // ============================================
+    // DIAGNOSES
+    // ============================================
+    @Get(':id/diagnoses')
+    @ApiOperation({ summary: 'Get patient diagnoses' })
+    getDiagnoses(@Param('id') id: string) {
+        return this.patientsService.getDiagnoses(id);
+    }
+
+    @Post(':id/diagnoses')
+    @ApiOperation({ summary: 'Add patient diagnosis' })
+    addDiagnosis(@Param('id') id: string, @Body() data: any) {
+        return this.patientsService.addDiagnosis(id, data);
+    }
+
+    @Patch(':id/diagnoses/:diagnosisId')
+    @ApiOperation({ summary: 'Update patient diagnosis' })
+    updateDiagnosis(@Param('id') id: string, @Param('diagnosisId') diagnosisId: string, @Body() data: any) {
+        return this.patientsService.updateDiagnosis(id, diagnosisId, data);
+    }
+
+    // ============================================
+    // FAMILY MEMBERS
+    // ============================================
+    @Get(':id/family-members')
+    @ApiOperation({ summary: 'Get patient family members' })
+    getFamilyMembers(@Param('id') id: string) {
+        return this.patientsService.getFamilyMembers(id);
+    }
+
+    @Post(':id/family-members')
+    @ApiOperation({ summary: 'Add family member' })
+    addFamilyMember(@Param('id') id: string, @Body() data: any) {
+        return this.patientsService.addFamilyMember(id, data);
+    }
+
+    @Patch(':id/family-members/:memberId')
+    @ApiOperation({ summary: 'Update family member' })
+    updateFamilyMember(@Param('id') id: string, @Param('memberId') memberId: string, @Body() data: any) {
+        return this.patientsService.updateFamilyMember(id, memberId, data);
+    }
+
+    @Delete(':id/family-members/:memberId')
+    @ApiOperation({ summary: 'Delete family member' })
+    deleteFamilyMember(@Param('id') id: string, @Param('memberId') memberId: string) {
+        return this.patientsService.deleteFamilyMember(id, memberId);
+    }
+
+    // ============================================
+    // DOCUMENTS
+    // ============================================
+    @Get(':id/documents')
+    @ApiOperation({ summary: 'Get patient documents' })
+    getDocuments(@Param('id') id: string) {
+        return this.patientsService.getDocuments(id);
+    }
+
+    @Post(':id/documents')
+    @ApiOperation({ summary: 'Add patient document' })
+    addDocument(@Param('id') id: string, @Body() data: any) {
+        return this.patientsService.addDocument(id, data);
+    }
+
+    @Delete(':id/documents/:documentId')
+    @ApiOperation({ summary: 'Delete patient document' })
+    deleteDocument(@Param('id') id: string, @Param('documentId') documentId: string) {
+        return this.patientsService.deleteDocument(id, documentId);
+    }
 }

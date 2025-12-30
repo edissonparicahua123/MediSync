@@ -49,3 +49,16 @@ class TextGeneratorInput(BaseModel):
 class TextGeneratorOutput(BaseModel):
     generated_text: str = Field(..., description="Generated medical text")
     template_type: str
+
+
+class ChatInput(BaseModel):
+    message: str = Field(..., description="User message to the medical AI assistant")
+    context: Optional[str] = Field(default="", description="Additional context for the conversation")
+    history: Optional[List[Dict]] = Field(default=[], description="Chat history")
+
+
+class ChatOutput(BaseModel):
+    response: str = Field(..., description="AI assistant response")
+    confidence: float = Field(default=0.85, ge=0, le=1, description="Response confidence")
+    suggestions: Optional[List[str]] = Field(default=[], description="Follow-up suggestions")
+

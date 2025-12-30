@@ -48,10 +48,34 @@ model User {
   
   // Bed Management Activities
   bedActivities    BedActivity[]
+  
+  // Auth tokens
+  passwordResetTokens PasswordResetToken[]
 
   @@index([email])
   @@index([roleId])
   @@map("users")
+}
+
+// Password Reset Tokens
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@map("password_reset_tokens")
+}
+
+// Token Blacklist for Logout
+model TokenBlacklist {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  
+  @@map("token_blacklist")
 }
 
 model Role {
@@ -136,11 +160,131 @@ model Patient {
   assignedBedStatus BedStatus?
   beds            Bed[]
   pharmacyOrders  PharmacyOrder[]
+  
+  // Extended patient data
+  documents       PatientDocument[]
+  familyMembers   PatientFamilyMember[]
+  allergyRecords  PatientAllergy[]
+  vitalSigns      PatientVitalSign[]
+  medications     PatientMedication[]
+  diagnoses       PatientDiagnosis[]
 
   @@index([firstName, lastName])
   @@index([phone])
   @@index([email])
   @@map("patients")
+}
+
+// Patient Documents
+model PatientDocument {
+  id         String   @id @default(uuid())
+  patientId  String
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type       String   // LAB_RESULT, PRESCRIPTION, IMAGING, CONSENT, OTHER
+  name       String
+  url        String
+  mimeType   String?
+  size       Int?
+  uploadedBy String?
+  uploadedAt DateTime @default(now())
+  
+  @@index([patientId])
+  @@map("patient_documents")
+}
+
+// Patient Family Members
+model PatientFamilyMember {
+  id                 String  @id @default(uuid())
+  patientId          String
+  patient            Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  firstName          String
+  lastName           String
+  relationship       String  // SPOUSE, PARENT, CHILD, SIBLING, OTHER
+  phone              String?
+  email              String?
+  isEmergencyContact Boolean @default(false)
+  
+  @@index([patientId])
+  @@map("patient_family_members")
+}
+
+// Patient Allergies (detailed)
+model PatientAllergy {
+  id          String    @id @default(uuid())
+  patientId   String
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  allergen    String
+  reaction    String?
+  severity    String    @default("MODERATE") // MILD, MODERATE, SEVERE
+  diagnosedAt DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  
+  @@index([patientId])
+  @@map("patient_allergies")
+}
+
+// Patient Vital Signs History
+model PatientVitalSign {
+  id                     String   @id @default(uuid())
+  patientId              String
+  patient                Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  recordedAt             DateTime @default(now())
+  recordedBy             String?
+  height                 Float?   // cm
+  weight                 Float?   // kg
+  temperature            Float?   // Celsius
+  bloodPressureSystolic  Int?
+  bloodPressureDiastolic Int?
+  heartRate              Int?     // bpm
+  respiratoryRate        Int?
+  oxygenSaturation       Float?   // %
+  glucose                Float?   // mg/dL
+  notes                  String?
+  
+  @@index([patientId])
+  @@index([recordedAt])
+  @@map("patient_vital_signs")
+}
+
+// Patient Current/Historical Medications
+model PatientMedication {
+  id           String    @id @default(uuid())
+  patientId    String
+  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medicationId String?
+  name         String
+  dosage       String
+  frequency    String
+  route        String?   // ORAL, IV, IM, TOPICAL, etc
+  startDate    DateTime
+  endDate      DateTime?
+  prescribedBy String?
+  isActive     Boolean   @default(true)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  
+  @@index([patientId])
+  @@index([isActive])
+  @@map("patient_medications")
+}
+
+// Patient Diagnoses
+model PatientDiagnosis {
+  id            String   @id @default(uuid())
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  diagnosisCode String?  // ICD-10
+  diagnosisName String
+  diagnosedBy   String?
+  diagnosedDate DateTime @default(now())
+  status        String   @default("ACTIVE") // ACTIVE, RESOLVED, CHRONIC
+  notes         String?
+  createdAt     DateTime @default(now())
+  
+  @@index([patientId])
+  @@index([status])
+  @@map("patient_diagnoses")
 }
 
 // ============================================
@@ -254,6 +398,69 @@ model AppointmentHistory {
 
   @@index([appointmentId])
   @@map("appointment_history")
+}
+
+// Check-in/Check-out tracking for appointments
+model AppointmentCheckIn {
+  id            String    @id @default(uuid())
+  appointmentId String    @unique
+  checkedInAt   DateTime  @default(now())
+  checkedInBy   String?
+  checkedOutAt  DateTime?
+  waitTimeMinutes Int?
+  notes         String?
+  
+  @@map("appointment_check_ins")
+}
+
+// Notification Templates
+model NotificationTemplate {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  type      String   // APPOINTMENT_REMINDER, LAB_READY, PRESCRIPTION_READY, PAYMENT_DUE
+  channel   String   // EMAIL, SMS, PUSH
+  subject   String?
+  body      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("notification_templates")
+}
+
+// Notification Preferences per User
+model NotificationPreference {
+  id                           String  @id @default(uuid())
+  userId                       String  @unique
+  emailEnabled                 Boolean @default(true)
+  smsEnabled                   Boolean @default(false)
+  pushEnabled                  Boolean @default(true)
+  appointmentReminders         Boolean @default(true)
+  labResultsReady              Boolean @default(true)
+  prescriptionReady            Boolean @default(true)
+  paymentDue                   Boolean @default(true)
+  reminderTimeBeforeAppointment Int    @default(24) // hours
+  
+  @@map("notification_preferences")
+}
+
+// Notification Log for sent notifications
+model NotificationLog {
+  id         String    @id @default(uuid())
+  userId     String?
+  type       String
+  channel    String    // EMAIL, SMS, PUSH
+  recipient  String
+  subject    String?
+  message    String
+  status     String    @default("PENDING") // PENDING, SENT, FAILED
+  sentAt     DateTime?
+  error      String?
+  createdAt  DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([status])
+  @@map("notification_logs")
 }
 
 // ============================================

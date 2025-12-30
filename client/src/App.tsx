@@ -25,6 +25,17 @@ import BedManagementPage from '@/pages/beds/BedManagementPage'
 import AdminPage from '@/pages/admin/AdminPage'
 import MessagesPage from '@/pages/messages/MessagesPage'
 import AnalyticsPage from '@/pages/analytics/AnalyticsPage'
+import WaitingRoomPage from '@/pages/waiting-room/WaitingRoomPage'
+
+// Patient Portal imports
+import PatientLoginPage from '@/pages/patient-portal/PatientLoginPage'
+import PatientDashboardPage from '@/pages/patient-portal/PatientDashboardPage'
+import PatientAppointmentsPage from '@/pages/patient-portal/PatientAppointmentsPage'
+import PatientMedicalHistoryPage from '@/pages/patient-portal/PatientMedicalHistoryPage'
+import PatientLabResultsPage from '@/pages/patient-portal/PatientLabResultsPage'
+import PatientBillingPage from '@/pages/patient-portal/PatientBillingPage'
+import PatientProfilePagePortal from '@/pages/patient-portal/PatientProfilePage'
+import PatientPortalLayout from '@/components/patient-portal/PatientPortalLayout'
 
 function App() {
     return (
@@ -33,6 +44,21 @@ function App() {
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/public-screen" element={<PublicScreenPage />} />
+
+                    {/* Patient Portal Routes */}
+                    <Route path="/patient-portal/login" element={<PatientLoginPage />} />
+                    <Route path="/patient-portal/*" element={
+                        <PatientPortalLayout>
+                            <Routes>
+                                <Route path="dashboard" element={<PatientDashboardPage />} />
+                                <Route path="appointments" element={<PatientAppointmentsPage />} />
+                                <Route path="history" element={<PatientMedicalHistoryPage />} />
+                                <Route path="lab-results" element={<PatientLabResultsPage />} />
+                                <Route path="billing" element={<PatientBillingPage />} />
+                                <Route path="profile" element={<PatientProfilePagePortal />} />
+                            </Routes>
+                        </PatientPortalLayout>
+                    } />
 
                     <Route element={<ProtectedRoute />}>
                         <Route element={<Layout />}>
@@ -43,6 +69,7 @@ function App() {
                             <Route path="/doctors/:id" element={<DoctorProfilePage />} />
                             <Route path="/appointments" element={<AppointmentsPage />} />
                             <Route path="/appointments/:id" element={<AppointmentDetailsPage />} />
+                            <Route path="/waiting-room" element={<WaitingRoomPage />} />
                             <Route path="/hr" element={<HRPage />} />
                             <Route path="/emergency" element={<EmergencyPage />} />
                             <Route path="/emergency/:id" element={<EmergencyCaseProfilePage />} />
@@ -68,3 +95,4 @@ function App() {
 }
 
 export default App
+

@@ -140,4 +140,240 @@ export class PatientsService {
             },
         });
     }
+
+    // ============================================
+    // PATIENT TIMELINE
+    // ============================================
+    async getTimeline(id: string) {
+        await this.findOne(id);
+
+        const [appointments, diagnoses, medications, labOrders, vitalSigns] = await Promise.all([
+            this.prisma.appointment.findMany({
+                where: { patientId: id },
+                orderBy: { appointmentDate: 'desc' },
+                take: 50,
+                include: { doctor: { include: { user: true } } },
+            }),
+            (this.prisma as any).patientDiagnosis.findMany({
+                where: { patientId: id },
+                orderBy: { diagnosedDate: 'desc' },
+                take: 50,
+            }),
+            (this.prisma as any).patientMedication.findMany({
+                where: { patientId: id },
+                orderBy: { startDate: 'desc' },
+                take: 50,
+            }),
+            this.prisma.labOrder.findMany({
+                where: { patientId: id },
+                orderBy: { createdAt: 'desc' },
+                take: 50,
+            }),
+            (this.prisma as any).patientVitalSign.findMany({
+                where: { patientId: id },
+                orderBy: { recordedAt: 'desc' },
+                take: 50,
+            }),
+        ]);
+
+        // Combine and sort all events
+        const events = [
+            ...appointments.map(a => ({ type: 'APPOINTMENT', date: a.appointmentDate, data: a })),
+            ...diagnoses.map(d => ({ type: 'DIAGNOSIS', date: d.diagnosedDate, data: d })),
+            ...medications.map(m => ({ type: 'MEDICATION', date: m.startDate, data: m })),
+            ...labOrders.map(l => ({ type: 'LAB_ORDER', date: l.createdAt, data: l })),
+            ...vitalSigns.map(v => ({ type: 'VITAL_SIGN', date: v.recordedAt, data: v })),
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        return events;
+    }
+
+    // ============================================
+    // PATIENT ALLERGIES
+    // ============================================
+    async getAllergies(id: string) {
+        await this.findOne(id);
+        return (this.prisma as any).patientAllergy.findMany({
+            where: { patientId: id },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async addAllergy(id: string, data: { allergen: string; reaction?: string; severity?: string; notes?: string }) {
+        await this.findOne(id);
+        return (this.prisma as any).patientAllergy.create({
+            data: { patientId: id, ...data },
+        });
+    }
+
+    async updateAllergy(patientId: string, allergyId: string, data: any) {
+        await this.findOne(patientId);
+        return (this.prisma as any).patientAllergy.update({
+            where: { id: allergyId },
+            data,
+        });
+    }
+
+    async deleteAllergy(patientId: string, allergyId: string) {
+        await this.findOne(patientId);
+        return (this.prisma as any).patientAllergy.delete({
+            where: { id: allergyId },
+        });
+    }
+
+    // ============================================
+    // PATIENT VITAL SIGNS
+    // ============================================
+    async getVitalSigns(id: string, limit: number = 50) {
+        await this.findOne(id);
+        return (this.prisma as any).patientVitalSign.findMany({
+            where: { patientId: id },
+            orderBy: { recordedAt: 'desc' },
+            take: limit,
+        });
+    }
+
+    async addVitalSign(id: string, data: any) {
+        await this.findOne(id);
+        return (this.prisma as any).patientVitalSign.create({
+            data: { patientId: id, ...data },
+        });
+    }
+
+    async getVitalSignsChart(id: string) {
+        await this.findOne(id);
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const vitals = await (this.prisma as any).patientVitalSign.findMany({
+            where: {
+                patientId: id,
+                recordedAt: { gte: sixMonthsAgo },
+            },
+            orderBy: { recordedAt: 'asc' },
+        });
+
+        return {
+            weight: vitals.filter(v => v.weight).map(v => ({ date: v.recordedAt, value: v.weight })),
+            bloodPressure: vitals.filter(v => v.bloodPressureSystolic).map(v => ({
+                date: v.recordedAt,
+                systolic: v.bloodPressureSystolic,
+                diastolic: v.bloodPressureDiastolic,
+            })),
+            glucose: vitals.filter(v => v.glucose).map(v => ({ date: v.recordedAt, value: v.glucose })),
+            heartRate: vitals.filter(v => v.heartRate).map(v => ({ date: v.recordedAt, value: v.heartRate })),
+        };
+    }
+
+    // ============================================
+    // PATIENT MEDICATIONS
+    // ============================================
+    async getMedications(id: string, activeOnly: boolean = false) {
+        await this.findOne(id);
+        const where: any = { patientId: id };
+        if (activeOnly) where.isActive = true;
+
+        return (this.prisma as any).patientMedication.findMany({
+            where,
+            orderBy: { startDate: 'desc' },
+        });
+    }
+
+    async addMedication(id: string, data: any) {
+        await this.findOne(id);
+        return (this.prisma as any).patientMedication.create({
+            data: { patientId: id, isActive: true, ...data },
+        });
+    }
+
+    async updateMedication(patientId: string, medicationId: string, data: any) {
+        await this.findOne(patientId);
+        return (this.prisma as any).patientMedication.update({
+            where: { id: medicationId },
+            data,
+        });
+    }
+
+    // ============================================
+    // PATIENT DIAGNOSES
+    // ============================================
+    async getDiagnoses(id: string) {
+        await this.findOne(id);
+        return (this.prisma as any).patientDiagnosis.findMany({
+            where: { patientId: id },
+            orderBy: { diagnosedDate: 'desc' },
+        });
+    }
+
+    async addDiagnosis(id: string, data: any) {
+        await this.findOne(id);
+        return (this.prisma as any).patientDiagnosis.create({
+            data: { patientId: id, ...data },
+        });
+    }
+
+    async updateDiagnosis(patientId: string, diagnosisId: string, data: any) {
+        await this.findOne(patientId);
+        return (this.prisma as any).patientDiagnosis.update({
+            where: { id: diagnosisId },
+            data,
+        });
+    }
+
+    // ============================================
+    // PATIENT FAMILY MEMBERS
+    // ============================================
+    async getFamilyMembers(id: string) {
+        await this.findOne(id);
+        return (this.prisma as any).patientFamilyMember.findMany({
+            where: { patientId: id },
+        });
+    }
+
+    async addFamilyMember(id: string, data: any) {
+        await this.findOne(id);
+        return (this.prisma as any).patientFamilyMember.create({
+            data: { patientId: id, ...data },
+        });
+    }
+
+    async updateFamilyMember(patientId: string, memberId: string, data: any) {
+        await this.findOne(patientId);
+        return (this.prisma as any).patientFamilyMember.update({
+            where: { id: memberId },
+            data,
+        });
+    }
+
+    async deleteFamilyMember(patientId: string, memberId: string) {
+        await this.findOne(patientId);
+        return (this.prisma as any).patientFamilyMember.delete({
+            where: { id: memberId },
+        });
+    }
+
+    // ============================================
+    // PATIENT DOCUMENTS
+    // ============================================
+    async getDocuments(id: string) {
+        await this.findOne(id);
+        return (this.prisma as any).patientDocument.findMany({
+            where: { patientId: id },
+            orderBy: { uploadedAt: 'desc' },
+        });
+    }
+
+    async addDocument(id: string, data: { name: string; type: string; url: string; mimeType?: string; size?: number; uploadedBy?: string }) {
+        await this.findOne(id);
+        return (this.prisma as any).patientDocument.create({
+            data: { patientId: id, ...data },
+        });
+    }
+
+    async deleteDocument(patientId: string, documentId: string) {
+        await this.findOne(patientId);
+        return (this.prisma as any).patientDocument.delete({
+            where: { id: documentId },
+        });
+    }
 }

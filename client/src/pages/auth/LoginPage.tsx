@@ -35,7 +35,7 @@ export default function LoginPage() {
         try {
             setLoading(true)
             setError('')
-            const response = await authAPI.login(data.email, data.password)
+            const response = await authAPI.login({ email: data.email, password: data.password })
             login(response.data.user, response.data.accessToken)
             navigate('/dashboard')
         } catch (err: any) {
