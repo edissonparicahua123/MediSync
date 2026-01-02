@@ -1,191 +1,265 @@
-# 🏥 MediSync Enterprise
+# 🏥 MediSync Enterprise - Sistema Integral de Gestión Hospitalaria
 
-> **Comprehensive Hospital Management System with AI Integration**
+> **La Solución Definitiva para la Gestión de Hospitales con Inteligencia Artificial Avanzada**
 
-A production-ready, full-stack SaaS platform for hospital management featuring patient care, doctor scheduling, pharmacy, laboratory, billing, and **next-generation AI capabilities powered by Google Gemini**.
-
----
-
-## 🚀 Key Features
-
-### 🏥 Core Modules
-- **Patient Management**: Complete digital health records, medical history, and file attachments.
-- **Doctor Management**: Detailed profiles, specialty management, and dynamic scheduling.
-- **Appointment System**: Smart scheduling with status tracking and automated reminders.
-- **Bed Management System** (NEW 🛏️): 
-    - Interactive visual map of hospital beds.
-    - Drag-and-drop bed assignment.
-    - Real-time status tracking (Occupied, Available, Cleaning, Maintenance).
-- **Patient Portal** (NEW 👤): 
-    - Dedicated interface for patients.
-    - View lab results, upcoming appointments, and billing history.
-- **Pharmacy**: Inventory management, stock alerts, and movement tracking.
-- **Laboratory**: Comprehensive lab test orders, result entry, and PDF report generation.
-- **Billing & Invoicing**: Automated invoice generation, payment tracking, and financial reporting.
-- **Attendance Tracking**: Staff check-in/out system with shift management.
-
-### 🤖 Advanced AI Features
-- **Google Gemini Integration** (NEW ✨): 
-    - **Intelligent Assistant**: Context-aware chat for medical queries and system navigation.
-    - **Smart Summaries**: Automated clinical note summarization.
-- **AI Triage**: Machine learning models for patient prioritization based on symptoms.
-- **Predictive Analytics**: Pharmacy stock demand forecasting and trend analysis.
-- **Document Generation**: AI-assisted medical report writing.
-
-### 🛡️ Security & Enterprise Ready
-- **Authentication**: Secure JWT-based auth with refresh token rotation.
-- **RBAC**: Granular Role-Based Access Control + Permission Guards.
-- **Audit Logging**: Complete trail of all system activities.
-- **Data Privacy**: Regulation-compliant data handling.
+**MediSync Enterprise** es una plataforma SaaS (Software as a Service) de clase mundial, diseñada para revolucionar la administración hospitalaria. Combina una arquitectura robusta y escalable con el poder de la Inteligencia Artificial de Google Gemini, ofreciendo una experiencia sin precedentes para médicos, pacientes y administradores.
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## 🚀 Características Principales
 
-### Backend
-- **Framework**: NestJS (Node.js)
-- **Language**: TypeScript
-- **Database**: PostgreSQL 15+
-- **ORM**: Prisma
-- **Caching**: Redis
-- **Docs**: Swagger/OpenAPI
+### 🏥 Módulos Clínicos y Administrativos (Core)
 
-### Frontend
-- **Framework**: React 18 + Vite
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui + Lucide Icons
-- **State Management**: Zustand + React Query
-- **Routing**: React Router DOM v6
-- **Forms**: React Hook Form + Zod
-- **Visualization**: Recharts
+#### 1. Gestión Integral de Pacientes
+-   **Expediente Clínico Electrónico (ECE)**: Historial médico completo, alergias, diagnósticos previos y antecedentes familiares.
+-   **Gestión de Archivos**: Subida y visualización segura de documentos (Rayos X, PDFs, resultados externos).
+-   **Búsqueda Avanzada**: Localización instantánea de pacientes por nombre, DNI o historial.
 
-### AI Service
-- **Framework**: FastAPI (Python)
-- **LLM**: Google Gemini Pro
-- **ML Libraries**: Scikit-learn, Pandas, NumPy
-- **Validation**: Pydantic
+#### 2. Portal del Paciente (Nueva Generación 👤)
+-   **Autogestión**: Los pacientes pueden agendar sus propias citas y ver su historial.
+-   **Resultados en Línea**: Descarga directa de resultados de laboratorio e informes médicos.
+-   **Facturación Transparente**: Visualización de facturas pendientes y pagos realizados.
 
-### DevOps
-- **Containerization**: Docker + Docker Compose
-- **Reverse Proxy**: Traefik
-- **CI/CD**: GitHub Actions
+#### 3. Gestión de Camas Hospitalarias (Bed Management System 🛏️)
+-   **Mapa Visual Interactivo**: Vista de planta del hospital con estado real de cada cama (Ocupada, Disponible, Limpieza, Mantenimiento).
+-   **Asignación Drag-and-Drop**: Interfaz intuitiva para mover pacientes entre camas o habitaciones.
+-   **Control de Capacidad**: Métricas en tiempo real sobre la ocupación del hospital.
+
+#### 4. Sistema de Citas Inteligente
+-   **Triaje con IA**: Priorización automática de citas basada en la gravedad de los síntomas reportados.
+-   **Recordatorios Automáticos**: Notificaciones para reducir el ausentismo.
+-   **Agenda Dinámica**: Vista de calendario para médicos con gestión de bloqueos y horarios.
+
+#### 5. Farmacia e Inventario
+-   **Control de Stock en Tiempo Real**: Seguimiento preciso de medicamentos e insumos.
+-   **Alertas de Caducidad y Stock Bajo**: Notificaciones proactivas para evitar desabastecimiento.
+-   **Trazabilidad**: Registro detallado de cada movimiento (entrada, salida, ajuste) por usuario.
+
+#### 6. Laboratorio Clínico
+-   **Gestión de Órdenes**: Creación y seguimiento de órdenes de laboratorio.
+-   **Ingreso de Resultados**: Plantillas personalizables para diferentes tipos de análisis.
+-   **Generación de Informes**: Creación automática de PDFs profesionales con los resultados para entregar al paciente.
+
+#### 7. Facturación y Finanzas
+-   **Facturación Automática**: Generación de facturas basada en servicios prestados, farmacia y honorarios médicos.
+-   **Control de Caja**: Registro de pagos parciales, totales y gestión de métodos de pago.
+-   **Reportes Financieros**: Análisis de ingresos por departamento, médico o servicio.
+
+#### 8. Control de Asistencia y Personal
+-   **Reloj Checador Digital**: Registro de entrada y salida del personal médico y administrativo.
+-   **Gestión de Turnos**: Asignación y visualización de horarios laborales.
+-   **Reportes de Puntualidad**: Cálculos automáticos de tardanzas y horas extra.
 
 ---
 
-## 📁 Project Structure
+### 🤖 Inteligencia Artificial (Powered by Google Gemini ✨)
 
-```
+MediSync no es solo un software de gestión; es un asistente inteligente activo.
+
+-   **Asistente Médico Virtual (Chatbot)**: Un chat siempre disponible capaz de responder dudas sobre protocolos médicos, información de medicamentos o navegación por el sistema, manteniendo el contexto de la conversación.
+-   **Resúmenes Clínicos Automáticos**: La IA analiza las notas desestructuradas del médico y genera un resumen clínico conciso y estandarizado, ahorrando horas de documentación.
+-   **Triaje Predictivo**: Análisis de síntomas ingresados para sugerir la prioridad de atención (Emergencia, Urgencia, Consulta General).
+-   **Predicción de Demanda Farmacéutica**: Algoritmos que analizan el consumo histórico para predecir qué medicamentos se necesitarán la próxima semana.
+
+---
+
+## 🏗️ Arquitectura Tecnológica (Tech Stack)
+
+El proyecto está construido sobre un stack moderno, robusto y escalable, siguiendo las mejores prácticas de la industria.
+
+### Backend (Servidor API)
+-   **Framework**: [NestJS](https://nestjs.com/) (Node.js) - Arquitectura modular y escalable.
+-   **Lenguaje**: TypeScript - Tipado estático para mayor seguridad.
+-   **Base de Datos**: PostgreSQL 15+ - Motor relacional robusto.
+-   **ORM**: Prisma - Gestión de base de datos segura y moderna.
+-   **Caché**: Redis - Para alto rendimiento en sesiones y datos frecuentes.
+-   **Documentación API**: Swagger/OpenAPI - Interfaz interactiva para probar endpoints.
+
+### Frontend (Cliente Web)
+-   **Framework**: React 18 + Vite - Velocidad de desarrollo y rendimiento extremo.
+-   **Lenguaje**: TypeScript.
+-   **Estilos**: 
+    -   **Tailwind CSS**: Diseño utility-first.
+    -   **shadcn/ui**: Componentes accesibles y personalizables de alta calidad.
+    -   **Lucide Icons**: Iconografía moderna y consistente.
+-   **Estado Global**: Zustand - Gestión de estado ligera y potente.
+-   **Gestión de Datos**: React Query (TanStack Query) - Caché, sincronización y actualizaciones en segundo plano.
+-   **Visualización de Datos**: Recharts - Gráficos estadísticos avanzados.
+
+### Servicio de IA (Microservicio)
+-   **Framework**: FastAPI (Python) - El framework de Python más rápido para APIs.
+-   **Modelo LLM**: **Google Gemini Pro** - El modelo más capaz de Google.
+-   **Ciencia de Datos**: Scikit-learn, Pandas, NumPy - Para modelos predictivos locales.
+
+### Infraestructura y DevOps
+-   **Contenerización**: Docker y Docker Compose - Despliegue consistente en cualquier entorno.
+-   **Proxy Inverso**: Traefik - Gestión de tráfico y enrutamiento avanzado.
+-   **Integración Continua (CI/CD)**: GitHub Actions - Automatización de pruebas y despliegue.
+
+---
+
+## 📁 Estructura del Proyecto
+
+Entender la estructura es clave para navegar por el código fuente.
+
+```bash
 medisync/
-├── client/                 # React frontend application
+├── client/                 # 🖥️ Aplicación Frontend (React)
 │   ├── src/
-│   │   ├── components/    # Reusable UI components
-│   │   ├── pages/         # Application pages (Dashboard, Patients, Beds, etc.)
-│   │   ├── hooks/         # Custom React hooks
-│   │   ├── services/      # API integration services
-│   │   └── stores/        # Zustand state stores
+│   │   ├── components/    # Componentes UI reutilizables (Botones, Modales, Tablas)
+│   │   ├── pages/         # Vistas principales (Dashboard, Pacientes, Camas)
+│   │   ├── hooks/         # Hooks personalizados de React
+│   │   ├── services/      # Lógica de comunicación con la API (Axios)
+│   │   ├── stores/        # Estado global de la aplicación (Zustand)
+│   │   └── lib/           # Utilidades y configuración
+│   ├── Dockerfile         # Configuración de imagen Docker para frontend
+│   └── package.json       # Dependencias del cliente
 │
-├── server/                 # NestJS backend API
+├── server/                 # ⚙️ API Backend (NestJS)
 │   ├── src/
-│   │   ├── auth/          # Authentication & Guard logic
-│   │   ├── prisma/        # Database schema and service
-│   │   └── [modules]/     # Feature modules (patients, beds, ai, etc.)
+│   │   ├── auth/          # Módulo de Autenticación y Guardias (JWT)
+│   │   ├── prisma/        # Servicio de base de datos
+│   │   ├── users/         # Gestión de usuarios
+│   │   ├── patients/      # Lógica de negocio para pacientes
+│   │   ├── beds/          # Lógica para gestión de camas
+│   │   ├── ai/            # Integración con el microservicio de IA
+│   │   └── [otros]/       # Módulos para cada entidad del sistema
+│   ├── prisma/
+│   │   └── schema.prisma  # Definición de la base de datos completa
+│   ├── Dockerfile
+│   └── package.json
 │
-├── ai/                     # Python AI microservice
+├── ai/                     # 🧠 Microservicio de Inteligencia Artificial (Python)
 │   ├── app/
-│   │   ├── services/      # Gemini & ML model services
-│   │   └── routers/       # AI Endpoints
+│   │   ├── services/      # Lógica de Gemini y Modelos ML
+│   │   ├── routers/       # Endpoints de la API de IA
+│   │   └── models/        # Schemas de validación (Pydantic)
+│   ├── requirements.txt   # Dependencias de Python
+│   └── Dockerfile
 │
-└── docker-compose.yml      # Container orchestration
+└── docker-compose.yml      # 🐳 Orquestación de todos los servicios
 ```
 
 ---
 
-## 🚦 Quick Start
+## 🚦 Guía de Instalación (Paso a Paso)
 
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 20+ (for local dev)
-- Python 3.11+ (for AI dev)
-- Google Gemini API Key
+Sigue estos pasos para levantar el proyecto en tu entorno local.
 
-### Installation
+### 📋 Prerrequisitos
+Asegúrate de tener instalado:
+1.  **Docker Desktop** (Esencial para ejecutar todo junto).
+2.  **Node.js 20+** (Solo si vas a desarrollar localmente sin Docker).
+3.  **Git**.
+4.  Una **API Key de Google Gemini** (Consíguela en Google AI Studio).
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd medisync
-   ```
+### 🚀 Opción 1: Despliegue Rápido con Docker (Recomendada)
 
-2. **Environment Setup**
-   ```bash
-   cp .env.example .env
-   # Update .env with your GEMINI_API_KEY and DB credentials
-   ```
+Esta opción levanta todo el sistema (Base de datos, Backend, Frontend, Redis, IA) con un solo comando.
 
-3. **Start with Docker (Recommended)**
-   ```bash
-   docker-compose up -d
-   ```
-   *Starts: Postgres, Redis, Backend (3000), AI Service (8000), Client (5173)*
+1.  **Clonar el repositorio**:
+    ```bash
+    git clone https://github.com/edissonparicahua123/MediSync.git
+    cd medisync
+    ```
 
-4. **Initialize Database**
-   ```bash
-   docker-compose exec server npm run prisma:migrate
-   docker-compose exec server npm run prisma:seed
-   ```
+2.  **Configurar Variables de Entorno**:
+    Copia el archivo de ejemplo y configúralo.
+    ```bash
+    cp .env.example .env
+    ```
+    ⚠️ **IMPORTANTE**: Abre el archivo `.env` y coloca tu `GEMINI_API_KEY`.
 
-5. **Access the Application**
-   - **Frontend**: http://localhost:5173
-   - **Interactive API Docs**: http://localhost:3000/api/docs
+3.  **Iniciar los Servicios**:
+    ```bash
+    docker-compose up -d
+    ```
+    *Esto descargará las imágenes y levantará los contenedores. Puede tardar unos minutos la primera vez.*
+
+4.  **Inicializar la Base de Datos**:
+    Ejecuta las migraciones y carga los datos de prueba (seeds) dentro del contenedor:
+    ```bash
+    docker-compose exec server npm run prisma:migrate
+    docker-compose exec server npm run prisma:seed
+    ```
+
+5.  **¡Listo! Accede al sistema**:
+    -   🖥️ **Frontend (App Web)**: http://localhost:5173
+    -   ⚙️ **Backend API**: http://localhost:3000
+    -   📚 **Documentación API**: http://localhost:3000/api/docs
+    -   🧠 **Servicio IA**: http://localhost:8000
 
 ---
 
-## 🔧 Development Commands
+### 🛠️ Opción 2: Desarrollo Local (Manual)
 
-### Backend (`/server`)
+Si deseas ejecutar cada servicio individualmente para desarrollo.
+
+#### 1. Backend (`/server`)
 ```bash
-npm install
-npm run prisma:generate
-npm run start:dev
+cd server
+npm install                 # Instalar dependencias
+npm run prisma:generate     # Generar cliente de base de datos
+npm run start:dev           # Iniciar en modo desarrollo
 ```
 
-### Frontend (`/client`)
+#### 2. Frontend (`/client`)
 ```bash
+cd client
 npm install
 npm run dev
 ```
 
-### AI Service (`/ai`)
+#### 3. Servicio de IA (`/ai`)
 ```bash
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
+cd ai
+python -m venv venv         # Crear entorno virtual
+source venv/bin/activate    # Activar (En Windows: venv\Scripts\activate)
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
 ---
 
-## 📊 Database Schema Highlights
-The system uses a relational schema with **25+ models**. Key entities include:
-- `User`, `Role`, `Permission`
-- `Patient`, `MedicalRecord`
-- `Bed`, `Room`, `Department`
-- `Appointment`, `DoctorSchedule`
-- `Inventory`, `PharmacyMovement`
+## 🔐 Seguridad y Acceso
+
+El sistema utiliza estándares de seguridad empresarial:
+
+-   **Autenticación JWT**: Tokens de acceso seguros con rotación de refresh tokens.
+-   **RBAC (Role-Based Access Control)**:
+    -   **Admin**: Acceso total al sistema.
+    -   **Médico**: Acceso a pacientes, citas y sus propios horarios.
+    -   **Enfermera**: Gestión de triaje, signos vitales y administración de camas.
+    -   **Farmacéutico**: Control de inventario y despacho de recetas.
+    -   **Paciente**: Acceso limitado a su propio portal.
+-   **Guards**: Protección de rutas a nivel de servidor para asegurar que nadie acceda a datos no autorizados.
 
 ---
 
-## 🧪 Testing
+## 📅 Roadmap (Próximos Pasos)
 
-- **Backend**: `npm run test:e2e` (Jest)
-- **Frontend**: `npm run test` (Vitest)
-- **AI**: `pytest`
-
----
-
-## 📝 License
-This project is proprietary software. All rights reserved.
+-   [ ] **App Móvil**: Aplicación nativa para médicos (React Native).
+-   [ ] **Telemedicina**: Videollamadas integradas en el navegador (WebRTC).
+-   [ ] **Integración con Dispositivos IoT**: Lectura automática de signos vitales.
+-   [ ] **Soporte Multi-idioma**: Inglés, Portugués y Quechua.
 
 ---
 
-**Made with 💙 by the MediSync Team**
+## 🤝 Contribuir
+
+¡Las contribuciones son bienvenidas!
+1.  Haz un Fork del proyecto.
+2.  Crea tu rama de funcionalidad (`git checkout -b feature/AmazingFeature`).
+3.  Haz Commit de tus cambios (`git commit -m 'Add some AmazingFeature'`).
+4.  Haz Push a la rama (`git push origin feature/AmazingFeature`).
+5.  Abre un Pull Request.
+
+---
+
+## 📝 Licencia
+
+Este proyecto es software propietario desarrollado por el equipo de MediSync. Todos los derechos reservados.
+
+---
+
+**Desarrollado con pasión 💙 por el Equipo de MediSync**
