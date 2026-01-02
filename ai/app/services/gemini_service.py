@@ -10,10 +10,20 @@ class GeminiService:
     """
     
     def __init__(self):
+        # Debug: Print current working directory and env vars
+        print(f"Current working directory: {os.getcwd()}")
+        from dotenv import load_dotenv
+        
+        # Standard load_dotenv call (looks in CWD or parents)
+        load_dotenv(override=True)
+        
         self.api_key = os.getenv("GEMINI_API_KEY")
+        # print(f"GEMINI_API_KEY present: {bool(self.api_key)}")
+        
         if self.api_key:
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-pro')
+            # Use the newer, faster model as recommended
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
         else:
             self.model = None
             print("WARNING: GEMINI_API_KEY not found in environment variables.")
