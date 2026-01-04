@@ -36,6 +36,19 @@ export default function LoginPage() {
             setLoading(true)
             setError('')
             const response = await authAPI.login({ email: data.email, password: data.password })
+
+            // Failsafe: Save to localStorage immediately
+            if (response.data.accessToken) {
+                localStorage.setItem('token', response.data.accessToken)
+
+                // Also save basic user info just in case
+                try {
+                    localStorage.setItem('medisync-user-backup', JSON.stringify(response.data.user))
+                } catch (e) {
+                    console.error('Failed to save user backup', e)
+                }
+            }
+
             login(response.data.user, response.data.accessToken)
             navigate('/dashboard')
         } catch (err: any) {

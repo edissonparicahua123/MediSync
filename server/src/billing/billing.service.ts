@@ -14,6 +14,9 @@ export class BillingService {
             if (status && status !== 'all') {
                 where.status = status;
             }
+            if (query?.patientId) {
+                where.patientId = query.patientId;
+            }
 
             const [data, total] = await Promise.all([
                 this.prisma.invoice.findMany({

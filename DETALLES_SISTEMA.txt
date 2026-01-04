@@ -1,0 +1,161 @@
+================================================================================
+INVENTARIO COMPLETO DEL SISTEMA MEDISYNC ENTERPRISE
+Fecha: 02 de Enero de 2026
+Versión del Documento: 1.0
+================================================================================
+
+Este documento detalla EXHAUSTIVAMENTE todos los componentes, páginas, módulos y
+servicios que componen el sistema MediSync Enterprise.
+
+--------------------------------------------------------------------------------
+1. RESUMEN DE ARQUITECTURA
+--------------------------------------------------------------------------------
+El sistema es una plataforma Monorepo con tres componentes principales:
+1. CLIENTE (Frontend): React 18, Vite, TypeScript, Tailwind CSS.
+2. SERVIDOR (Backend): NestJS, TypeScript, Prisma, PostgreSQL.
+3. INTELIGENCIA ARTIFICIAL: Python, FastAPI, Google Gemini Pro.
+
+--------------------------------------------------------------------------------
+2. CLIENTE (FRONTEND) - Estructura Visual y Funcional
+--------------------------------------------------------------------------------
+Ruta Base: /client/src
+
+2.1. PÁGINAS PRINCIPALES (/pages)
+Estas son las vistas completas a las que navega el usuario:
+
+[DASHBOARD Y GENERAL]
+- DashboardPage.tsx: Panel de control con métricas en tiempo real.
+- PublicScreenPage.tsx: Pantalla para salas de espera (TV).
+- GlobalSearch.tsx: Buscador global (accesible con Ctrl+K).
+
+[MÓDULO DE PACIENTES]
+- /patients/
+    - PatientListPage.tsx: Tabla de pacientes con filtros.
+    - PatientProfilePage.tsx: Perfil completo (historia, archivos).
+
+[MÓDULO DE CAMAS (BED MANAGEMENT)]
+- /beds/
+    - BedManagementPage.tsx: Mapa visual de camas del hospital.
+    - BedList.tsx: Lista tabular de estados de camas.
+    - Components/BedAssignmentDialog.tsx: Modal de asignación.
+    - Components/BedMap.tsx: Componente visual del mapa.
+
+[MÓDULO DE EMERGENCIAS]
+- /emergency/
+    - EmergencyPage.tsx: Panel de control de urgencias y triaje.
+    - EmergencyCaseProfilePage.tsx: Detalle de caso de emergencia.
+
+[MÓDULO DE CITAS MÉDICAS]
+- /appointments/
+    - AppointmentCalendar.tsx: Calendario interactivo para médicos.
+    - AppointmentList.tsx: Lista de citas y estados.
+
+[MÓDULO DE MÉDICOS]
+- /doctors/
+    - DoctorListPage.tsx: Directorio de personal médico.
+    - DoctorProfilePage.tsx: Perfil, especialidades y horarios.
+
+[MÓDULO DE PORTAL DEL PACIENTE (NUEVO)]
+- /patient-portal/ (Vistas exclusivas para pacientes)
+    - PatientDashboardPage.tsx: Resumen para el paciente.
+    - PatientVisualHealthPage.tsx: Gráficos de salud personal.
+    - PatientLabResultsPage.tsx: Descarga de resultados.
+    - PatientAppointmentsPage.tsx: Autogestión de citas.
+    - PatientBillingPage.tsx: Historial de pagos.
+    - PatientProfilePage.tsx: Datos personales.
+    - WaitingRoomPage.tsx: Estado de turno en sala de espera.
+
+[OTROS MÓDULOS]
+- /pharmacy/: Gestión de inventario y despacho.
+- /laboratory/: Órdenes de laboratorio y resultados.
+- /billing/: Facturación y caja.
+- /reports/: Generador de reportes Excel/PDF.
+- /settings/: Configuración del sistema.
+- /admin/: Panel de administración de usuarios.
+- /hr/: Recursos humanos y asistencia.
+- /messages/: Chat interno y notificaciones.
+
+2.2. COMPONENTES REUTILIZABLES (/components)
+Bloques de construcción de la interfaz:
+
+[UI - BASE (shadcn/ui)]
+- Accordion, Alert, Avatar, Badge, Button, Calendar...
+- Card, Checkbox, Dialog (Modals), DropdownMenu.
+- Input, Label, Popover, Progress, RadioGroup.
+- ScrollArea, Select, Separator, Sheet (Safety panel).
+- Skeleton (Carga), Slider, Switch, Table, Tabs.
+- Textarea, Toast (Notificaciones), Tooltip.
+
+[COMPONENTES DE NEGOCIO]
+- /modals: BedModal, AppointmentModal, PatientModal, PaymentModal.
+- /layout: Sidebar.tsx (Navegación), Topbar.tsx, MainLayout.tsx.
+- NotificationCenter.tsx: Centro de notificaciones en tiempo real.
+- ThemeProvider.tsx: Manejador de modo oscuro/claro.
+
+--------------------------------------------------------------------------------
+3. SERVIDOR (BACKEND) - Lógica de Negocio y API
+--------------------------------------------------------------------------------
+Ruta Base: /server/src
+Tecnología: NestJS (Modular)
+
+3.1. MÓDULOS DEL SISTEMA
+Cada carpeta representa un dominio de negocio completo:
+
+- /auth: Autenticación JWT, Login, Registro, Guardias de seguridad.
+- /users: Gestión de usuarios del sistema y roles.
+- /patients: CRUD de pacientes e historiales médicos.
+- /appointments: Lógica de citas y calendarios.
+- /doctors: Gestión de médicos y especialidades.
+- /beds: Lógica de asignación de camas y ocupación.
+- /emergency: Triaje y admisión de urgencia.
+- /pharmacy: Inventario, stock y movimientos de farmacia.
+- /laboratory: Órdenes de examen y resultados.
+- /billing: Facturación, pagos e impuestos.
+- /notifications: Sistema de alertas y websockets.
+- /attendance: Control de asistencia (entrada/salida).
+- /reports: Generación de reportes complejos.
+- /ai: Servicio puente para comunicar con el módulo de IA.
+- /prisma: Conexión con base de datos PostgreSQL.
+
+3.2. BASE DE DATOS (MODELOS)
+Entidades principales en PostgreSQL:
+- User, Role, Permission.
+- Patient, MedicalRecord.
+- Doctor, Specialty, DoctorSchedule.
+- Appointment, AppointmentHistory.
+- Bed, Room, Department, BedAssignment.
+- Inventory, PharmacyMovement.
+- LabOrder, LabResult.
+- Invoice, Payment.
+
+--------------------------------------------------------------------------------
+4. INTELIGENCIA ARTIFICIAL - El Cerebro del Sistema
+--------------------------------------------------------------------------------
+Ruta Base: /ai
+Tecnología: Python (FastAPI) + Google Gemini Pro
+
+4.1. CAPACIDADES
+- /app/services/chat_service.py:
+  Interactúa directamente con Google Gemini Pro para responder preguntas
+  médicas y operativas en lenguaje natural.
+
+- /app/services/triage_service.py:
+  Analiza síntomas y signos vitales para recomendar prioridad (1-5).
+
+- /app/services/summarize_service.py:
+  Toma notas médicas desordenadas y genera resúmenes clínicos estructurados.
+
+- /app/services/prediction_service.py:
+  Utiliza Scikit-learn para predecir demanda de farmacia.
+
+--------------------------------------------------------------------------------
+5. INTEGRACIONES Y SERVICIOS EXTERNOS
+--------------------------------------------------------------------------------
+- Google Gemini API: Motor de IA Generativa.
+- Redis: Caché de alto rendimiento.
+- Docker: Contenerización de todos los servicios.
+- Traefik: Proxy inverso para gestión de rutas.
+
+================================================================================
+FIN DEL INVENTARIO
+================================================================================

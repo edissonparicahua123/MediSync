@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AppointmentsService {
     constructor(
         private prisma: PrismaService,
         private aiService: AiService,
+        private notificationsService: NotificationsService,
     ) { }
 
     async create(data: any) {
@@ -58,6 +60,18 @@ export class AppointmentsService {
                     notes: 'Appointment created',
                 },
             });
+
+            // Create notification for the doctor
+            if (appointment.doctor?.user?.id) {
+                await this.notificationsService.create({
+                    userId: appointment.doctor.user.id,
+                    title: 'Nueva Cita Agendada',
+                    message: `Tienes una nueva cita con ${appointment.patient.firstName} ${appointment.patient.lastName} para el ${new Date(appointment.startTime).toLocaleDateString()} a las ${appointment.startTime.toString().split('T')[1]?.substring(0, 5) || 'hora agendada'}.`,
+                    type: 'APPOINTMENT_REMINDER',
+                    relatedEntityType: 'APPOINTMENT',
+                    relatedEntityId: appointment.id,
+                });
+            }
 
             return appointment;
         } catch (error) {

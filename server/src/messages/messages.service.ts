@@ -109,4 +109,60 @@ export class MessagesService {
 
         return Array.from(conversationsMap.values());
     }
+
+    // Eliminar un mensaje (solo el autor puede eliminar)
+    async deleteMessage(messageId: string, userId: string) {
+        const message = await this.prisma.message.findUnique({
+            where: { id: messageId },
+        });
+
+        if (!message || message.fromUserId !== userId) {
+            throw new Error('No tienes permiso para eliminar este mensaje');
+        }
+
+        return this.prisma.message.update({
+            where: { id: messageId },
+            data: { deletedAt: new Date() },
+        });
+    }
+
+    // Editar un mensaje (solo el autor puede editar, máximo 15 min después de enviar)
+    async editMessage(messageId: string, userId: string, newContent: string) {
+        const message = await this.prisma.message.findUnique({
+            where: { id: messageId },
+        });
+
+        if (!message || message.fromUserId !== userId) {
+            throw new Error('No tienes permiso para editar este mensaje');
+        }
+
+        // Solo permitir edición dentro de los primeros 15 minutos
+        const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+        if (message.createdAt < fifteenMinutesAgo) {
+            throw new Error('Solo puedes editar mensajes dentro de los primeros 15 minutos');
+        }
+
+        return this.prisma.message.update({
+            where: { id: messageId },
+            data: { content: newContent },
+            include: {
+                fromUser: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+                toUser: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            },
+        });
+    }
+
+    // Eliminar toda la conversación con un usuario (soft delete)
+    async deleteConversation(userId: string, otherUserId: string) {
+        return this.prisma.message.updateMany({
+            where: {
+                OR: [
+                    { fromUserId: userId, toUserId: otherUserId },
+                    { fromUserId: otherUserId, toUserId: userId },
+                ],
+                deletedAt: null,
+            },
+            data: { deletedAt: new Date() },
+        });
+    }
 }

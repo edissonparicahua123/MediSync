@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,7 @@ import {
     Camera,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { usersAPI, patientsAPI } from '@/services/api'
 import { Switch } from '@/components/ui/switch'
 
 export default function PatientProfilePage() {
@@ -50,15 +51,80 @@ export default function PatientProfilePage() {
         confirm: '',
     })
 
+    // Fetch real patient data
+    useEffect(() => {
+        const loadProfileData = async () => {
+            if (!user.patientId) return
+
+            try {
+                setLoading(true)
+                // Fetch patient details
+                const patientRes = await patientsAPI.getOne(user.patientId)
+                const patient = patientRes.data
+
+                setProfile(prev => ({
+                    ...prev,
+                    dateOfBirth: patient.dateOfBirth ? new Date(patient.dateOfBirth).toISOString().split('T')[0] : '',
+                    bloodType: patient.bloodType || '',
+                    emergencyContact: patient.emergencyContactName || '',
+                    emergencyPhone: patient.emergencyContactPhone || '',
+                    // Update user info from patient record if it's more recent, or keep from local storage
+                    // Note: Patient record includes 'user' relation
+                    firstName: patient.user?.firstName || prev.firstName,
+                    lastName: patient.user?.lastName || prev.lastName,
+                    email: patient.user?.email || prev.email,
+                    phone: patient.user?.phone || prev.phone,
+                    address: patient.user?.address || prev.address,
+                }))
+            } catch (error) {
+                console.error('Error loading profile:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadProfileData()
+    }, [])
+
     const handleSaveProfile = async () => {
         setLoading(true)
-        // Simulate API call
-        await new Promise(r => setTimeout(r, 1000))
-        toast({
-            title: 'Perfil actualizado',
-            description: 'Tus datos han sido guardados correctamente',
-        })
-        setLoading(false)
+        try {
+            // Update User record
+            await usersAPI.updateProfile({
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                phone: profile.phone,
+                address: profile.address,
+            })
+
+            // Update Patient record if we have an ID
+            if (user.patientId) {
+                await patientsAPI.update(user.patientId, {
+                    dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth) : undefined,
+                    bloodType: profile.bloodType,
+                    emergencyContactName: profile.emergencyContact,
+                    emergencyContactPhone: profile.emergencyPhone,
+                })
+            }
+
+            toast({
+                title: 'Perfil actualizado',
+                description: 'Tus datos han sido guardados correctamente',
+            })
+
+            // Update local storage user
+            const updatedUser = { ...user, ...profile }
+            localStorage.setItem('user', JSON.stringify(updatedUser))
+
+        } catch (error) {
+            console.error('Error saving profile:', error)
+            toast({
+                title: 'Error',
+                description: 'Error al actualizar el perfil',
+                variant: 'destructive',
+            })
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleChangePassword = async () => {

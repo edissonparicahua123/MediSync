@@ -49,6 +49,23 @@ export class NotificationsService {
         return { message: 'All notifications marked as read' };
     }
 
+    async create(data: {
+        userId: string;
+        title: string;
+        message: string;
+        type: string;
+        relatedEntityType?: string;
+        relatedEntityId?: string;
+        link?: string;
+    }) {
+        return (this.prisma as any).notification.create({
+            data: {
+                ...data,
+                isRead: false,
+            },
+        });
+    }
+
     async deleteNotification(notificationId: string) {
         return (this.prisma as any).notification.delete({
             where: { id: notificationId },

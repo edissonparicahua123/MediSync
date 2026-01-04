@@ -24,6 +24,16 @@ import {
     Download,
     Plus,
 } from 'lucide-react'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { format } from 'date-fns'
 import { useToast } from '@/components/ui/use-toast'
 import PatientModal from '@/components/modals/PatientModal'
@@ -34,6 +44,27 @@ export default function PatientProfilePage() {
     const { toast } = useToast()
     const [activeTab, setActiveTab] = useState('general')
     const [editModalOpen, setEditModalOpen] = useState(false)
+    const [showPortalModal, setShowPortalModal] = useState(false)
+    const [credentials, setCredentials] = useState<{ email: string, password: string } | null>(null)
+
+    const handleEnablePortal = async (e: any) => {
+        e.preventDefault() // prevent dialog from closing automatically
+        try {
+            const res = await patientsAPI.enablePortal(id!)
+            setCredentials(res.data.credentials)
+            toast({
+                title: "Acceso Habilitado",
+                description: "Las credenciales han sido generadas correctamente.",
+            })
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "No se pudo habilitar el acceso. Intente nuevamente.",
+                variant: 'destructive'
+            })
+            setShowPortalModal(false)
+        }
+    }
 
     // Cargar datos del paciente
     const { data: patientData, isLoading, refetch } = useQuery({
@@ -136,12 +167,58 @@ export default function PatientProfilePage() {
                         <Download className="h-4 w-4 mr-2" />
                         Descargar Registros
                     </Button>
+                    {!patient.userId && (
+                        <Button variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => setShowPortalModal(true)}>
+                            <Shield className="h-4 w-4 mr-2" />
+                            Habilitar Portal
+                        </Button>
+                    )}
                     <Button onClick={() => setEditModalOpen(true)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar Perfil
                     </Button>
                 </div>
             </div>
+
+            {/* Credential Modal */}
+            <AlertDialog open={showPortalModal} onOpenChange={setShowPortalModal}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Habilitar Acceso al Portal</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            ¿Estás seguro? Esto creará una cuenta de usuario para <b>{patient.firstName} {patient.lastName}</b> y generará credenciales de acceso.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    {credentials ? (
+                        <div className="my-4 p-4 bg-slate-100 rounded-md border border-slate-200">
+                            <p className="font-semibold text-sm mb-2 text-slate-700">Credenciales Generadas:</p>
+                            <div className="grid grid-cols-[80px_1fr] gap-2 text-sm">
+                                <span className="text-muted-foreground">Usuario:</span>
+                                <code className="bg-white px-2 py-0.5 rounded border">{credentials.email}</code>
+                                <span className="text-muted-foreground">Pass:</span>
+                                <code className="bg-white px-2 py-0.5 rounded border">{credentials.password}</code>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-3">
+                                * Copia estas credenciales y entrégalas al paciente. No se volverán a mostrar.
+                            </p>
+                        </div>
+                    ) : null}
+                    <AlertDialogFooter>
+                        {!credentials ? (
+                            <>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleEnablePortal}>
+                                    Generar Acceso
+                                </AlertDialogAction>
+                            </>
+                        ) : (
+                            <AlertDialogAction onClick={() => { setShowPortalModal(false); setCredentials(null); refetch(); }}>
+                                Cerrar y Actualizar
+                            </AlertDialogAction>
+                        )}
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Patient Header Card */}
             <Card>

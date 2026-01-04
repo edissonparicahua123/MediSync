@@ -47,10 +47,55 @@ export class CreateEmployeeDto {
     @IsString()
     emergencyPhone?: string;
 
-    @ApiPropertyOptional({ example: 'ACTIVE', enum: ['ACTIVE', 'VACATION', 'SICK', 'INACTIVE'] })
+    @ApiPropertyOptional()
     @IsOptional()
     @IsString()
     status?: string;
+
+    @ApiPropertyOptional({ example: 'https://example.com/photo.jpg' })
+    @IsOptional()
+    @IsString()
+    photo?: string;
+
+    @ApiPropertyOptional({ example: 5000 })
+    @IsOptional()
+    @IsNumber()
+    bonus?: number;
+
+    @ApiPropertyOptional({ description: 'DNI or Passport' })
+    @IsOptional()
+    @IsString()
+    documentId?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsDateString()
+    birthDate?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    gender?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    bankAccount?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    contract?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    area?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    notes?: string;
 }
 
 export class UpdateEmployeeDto {
@@ -113,6 +158,51 @@ export class UpdateEmployeeDto {
     @IsOptional()
     @IsString()
     emergencyPhone?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    documentId?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    photo?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsNumber()
+    bonus?: number;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsDateString()
+    birthDate?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    gender?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    bankAccount?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    contract?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    area?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    notes?: string;
 }
 
 export class CreateShiftDto {

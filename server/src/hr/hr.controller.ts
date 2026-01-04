@@ -85,6 +85,18 @@ export class HRController {
         return this.hrService.createShift(data);
     }
 
+    @Delete('shifts/:id')
+    @ApiOperation({ summary: 'Delete shift' })
+    deleteShift(@Param('id') id: string) {
+        return this.hrService.deleteShift(id);
+    }
+
+    @Put('shifts/:id')
+    @ApiOperation({ summary: 'Update shift' })
+    updateShift(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateShift(id, data);
+    }
+
     @Post('attendance')
     @ApiOperation({ summary: 'Create attendance record' })
     createAttendance(@Body() data: any) {
@@ -95,5 +107,17 @@ export class HRController {
     @ApiOperation({ summary: 'Generate monthly payroll for all active employees' })
     generatePayroll() {
         return this.hrService.generatePayroll();
+    }
+
+    @Put('payroll/:id/pay')
+    @ApiOperation({ summary: 'Mark payroll as paid' })
+    payPayroll(@Param('id') id: string) {
+        return this.hrService.payPayroll(id);
+    }
+
+    @Delete('payroll/:id')
+    @ApiOperation({ summary: 'Delete payroll record' })
+    deletePayroll(@Param('id') id: string) {
+        return this.hrService.deletePayroll(id);
     }
 }

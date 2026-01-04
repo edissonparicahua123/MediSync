@@ -11,6 +11,7 @@ export class HRService {
             data: {
                 ...data,
                 hireDate: new Date(data.hireDate),
+                birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
             },
         });
     }
@@ -109,6 +110,7 @@ export class HRService {
             where,
             include: {
                 employee: true,
+                user: true,
             },
             orderBy: { checkIn: 'desc' },
         });
@@ -120,7 +122,23 @@ export class HRService {
             include: {
                 employee: true,
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { periodStart: 'desc' },
+        });
+    }
+
+    async payPayroll(id: string) {
+        return this.prisma.payroll.update({
+            where: { id },
+            data: {
+                status: 'PAID',
+                paidDate: new Date()
+            }
+        });
+    }
+
+    async deletePayroll(id: string) {
+        return this.prisma.payroll.delete({
+            where: { id }
         });
     }
 
@@ -131,6 +149,24 @@ export class HRService {
                 employee: true,
             },
             orderBy: [{ startTime: 'asc' }],
+        });
+    }
+
+    async deleteShift(id: string) {
+        return this.prisma.employeeShift.delete({
+            where: { id }
+        });
+    }
+
+    async updateShift(id: string, data: any) {
+        return this.prisma.employeeShift.update({
+            where: { id },
+            data: {
+                employeeId: data.employeeId,
+                startTime: new Date(data.startTime),
+                endTime: new Date(data.endTime),
+                type: data.type
+            }
         });
     }
 
@@ -149,15 +185,27 @@ export class HRService {
     async createAttendance(data: any) {
         const checkIn = new Date(data.checkIn);
         const checkOut = data.checkOut ? new Date(data.checkOut) : null;
-        let hoursWorked = 0;
-        let tardiness = 0;
 
+        let hoursWorked = 0;
         if (checkOut) {
             hoursWorked = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60);
         }
 
-        if (data.status === 'LATE') {
-            tardiness = 15; // Default 15 mins for manual late entry
+        // Dynamic tardiness calculation
+        // Default standard start time: 08:00 AM of the check-in day
+        const standardStart = new Date(checkIn);
+        standardStart.setHours(8, 0, 0, 0);
+
+        let tardiness = 0;
+        let status = data.status;
+
+        if (checkIn > standardStart) {
+            tardiness = Math.floor((checkIn.getTime() - standardStart.getTime()) / (1000 * 60));
+            if (!status || status === 'PRESENT') {
+                status = 'LATE';
+            }
+        } else if (!status) {
+            status = 'ON_TIME';
         }
 
         return this.prisma.attendance.create({
@@ -165,9 +213,13 @@ export class HRService {
                 employeeId: data.employeeId,
                 checkIn,
                 checkOut,
-                status: data.status,
+                status: status || 'ON_TIME',
                 hoursWorked: Number(hoursWorked.toFixed(2)),
-                tardiness
+                tardiness: Math.max(0, tardiness),
+                notes: data.notes
+            },
+            include: {
+                employee: true
             }
         });
     }
@@ -198,8 +250,8 @@ export class HRService {
             // Simple calculation logic
             const baseSalary = Number(emp.salary) || 0;
             const pension = baseSalary * 0.13;
-            // Random bonuses for demo
-            const bonuses = Math.floor(Math.random() * 200);
+            // No simulated bonuses. Future: Calculate based on performance/overtime
+            const bonuses = 0;
             const totalDeductions = pension;
             const netSalary = baseSalary + bonuses - totalDeductions;
 
@@ -212,8 +264,8 @@ export class HRService {
                     netSalary,
                     periodStart: startOfMonth,
                     periodEnd: endOfMonth,
-                    paidDate: now,
-                    status: 'PAID'
+                    paidDate: null,
+                    status: 'DRAFT'
                 }
             });
             payrolls.push(payroll);

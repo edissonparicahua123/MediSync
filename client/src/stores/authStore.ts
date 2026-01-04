@@ -36,13 +36,29 @@ export const useAuthStore = create<AuthState>()(
                     ? (user.role as any).name
                     : user.role
 
+                const normalizedRole = String(roleRaw).toUpperCase() as UserRole
+
+                // Security Check: Patients are NOT allowed in the main system
+                if (normalizedRole === 'PATIENT' as any) {
+                    console.warn('Security Alert: Patient attempted to access Staff Portal')
+                    // Do not set user/token
+                    // Could potentially throw or handle via UI, but for now just don't authenticate
+                    return
+                }
+
                 const normalizedUser = {
                     ...user,
-                    role: String(roleRaw).toUpperCase() as UserRole
+                    role: normalizedRole
                 }
                 set({ user: normalizedUser, token, isAuthenticated: true })
+                // Ensure token is immediately available in localStorage for API interceptors
+                // (Zustand persist can be async, but the next page load needs the token NOW)
+                localStorage.setItem('token', token)
             },
-            logout: () => set({ user: null, token: null, isAuthenticated: false }),
+            logout: () => {
+                localStorage.removeItem('token')
+                set({ user: null, token: null, isAuthenticated: false })
+            },
         }),
         {
             name: 'medisync-auth',

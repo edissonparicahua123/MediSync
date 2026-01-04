@@ -13,7 +13,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-    const token = useAuthStore.getState().token
+    const token = useAuthStore.getState().token || localStorage.getItem('token')
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
@@ -60,6 +60,7 @@ export const patientsAPI = {
     create: (data: any) => api.post('/patients', data),
     update: (id: string, data: any) => api.patch(`/patients/${id}`, data),
     delete: (id: string) => api.delete(`/patients/${id}`),
+    enablePortal: (id: string) => api.post(`/patients/${id}/enable-portal`, {}),
     getMedicalHistory: (id: string) => api.get(`/patients/${id}/medical-history`),
     // Timeline
     getTimeline: (id: string) => api.get(`/patients/${id}/timeline`),
@@ -138,8 +139,12 @@ export const hrAPI = {
     getAttendance: (date?: Date) => api.get('/hr/attendance', { params: { date } }),
     getPayroll: () => api.get('/hr/payroll'),
     generatePayroll: () => api.post('/hr/payroll'),
+    payPayroll: (id: string) => api.put(`/hr/payroll/${id}/pay`),
+    deletePayroll: (id: string) => api.delete(`/hr/payroll/${id}`),
     getShifts: () => api.get('/hr/shifts'),
     createShift: (data: any) => api.post('/hr/shifts', data),
+    updateShift: (id: string, data: any) => api.put(`/hr/shifts/${id}`, data),
+    deleteShift: (id: string) => api.delete(`/hr/shifts/${id}`),
     createAttendance: (data: any) => api.post('/hr/attendance', data),
 }
 
@@ -201,7 +206,18 @@ export const messagesAPI = {
     markAsRead: (id: string) => api.put(`/messages/${id}/read`),
     getUnreadCount: () => api.get('/messages/unread/count'),
     getConversations: () => api.get('/messages/conversations'),
+    deleteMessage: (id: string) => api.delete(`/messages/${id}`),
+    editMessage: (id: string, content: string) => api.put(`/messages/${id}`, { content }),
+    deleteConversation: (otherUserId: string) => api.delete(`/messages/conversation/${otherUserId}`),
+    uploadFile: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/files/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
 }
+
 
 // ============================================
 // ANALYTICS API (NEW)
@@ -322,6 +338,8 @@ export const attendanceAPI = {
     clockIn: () => api.post('/attendance/clock-in'),
     clockOut: () => api.post('/attendance/clock-out'),
     getMyAttendance: () => api.get('/attendance/me'),
+    kioskClock: (documentId: string) => api.post('/attendance/kiosk', { documentId }),
+    getKioskStats: () => api.get('/attendance/kiosk-stats'),
 }
 
 // ============================================

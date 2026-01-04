@@ -39,15 +39,16 @@ export class AdminService {
         return this.prisma.systemConfig.groupBy({
             by: ['category'],
             _count: true,
-            _avg: { price: true },
+            // _avg: { price: true }, // price doesn't exist on SystemConfig, check if this was meant for a Service model?
+            // Assuming this was a placeholder. SystemConfig has no price. Removing _avg to prevent error.
         });
     }
 
     // New Organization Config Methods
     async getOrganizationConfig() {
-        const config = await (this.prisma as any).organizationConfig.findFirst();
+        const config = await this.prisma.organizationConfig.findFirst();
         if (!config) {
-            return (this.prisma as any).organizationConfig.create({
+            return this.prisma.organizationConfig.create({
                 data: {
                     hospitalName: 'MediSync Hospital',
                     email: 'contact@medisync.com',
@@ -79,7 +80,7 @@ export class AdminService {
 
     async updateOrganizationConfig(data: any) {
         const config = await this.getOrganizationConfig();
-        return (this.prisma as any).organizationConfig.update({
+        return this.prisma.organizationConfig.update({
             where: { id: config.id },
             data,
         });
@@ -87,7 +88,7 @@ export class AdminService {
 
     // Backup Methods
     async getBackups() {
-        return (this.prisma as any).backupLog.findMany({
+        return this.prisma.backupLog.findMany({
             orderBy: { createdAt: 'desc' },
         });
     }
@@ -95,7 +96,7 @@ export class AdminService {
     async createBackup() {
         // Stimulate backup creation
         const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '_');
-        return (this.prisma as any).backupLog.create({
+        return this.prisma.backupLog.create({
             data: {
                 name: `backup_${dateStr}_full.sql`,
                 type: 'FULL',

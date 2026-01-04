@@ -30,34 +30,29 @@ export default function PatientMedicalHistoryPage() {
     const { toast } = useToast()
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('timeline')
-    const [data, setData] = useState({
-        timeline: [] as any[],
-        diagnoses: [] as any[],
-        medications: [] as any[],
-        allergies: [] as any[],
-        vitalSigns: [] as any[],
+    const [data, setData] = useState<any>({
+        timeline: [],
+        diagnoses: [],
+        medications: [],
+        allergies: [],
+        vitals: [],
     })
 
-    // For demo, we'll use a patient ID from URL or context
-    // In real app, get from auth context
-    const patientId = 'demo-patient-id'
+    // Get current user for real patient ID
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const patientId = user.patientId
 
     useEffect(() => {
-        loadMedicalHistory()
-    }, [])
+        if (patientId) {
+            loadMedicalHistory()
+        }
+    }, [patientId])
 
     const loadMedicalHistory = async () => {
         try {
             setLoading(true)
-            // In real implementation, these would be patient-specific calls
-            // For now, show structure
-            setData({
-                timeline: [],
-                diagnoses: [],
-                medications: [],
-                allergies: [],
-                vitalSigns: [],
-            })
+            const res = await patientsAPI.getTimeline(patientId)
+            setData(res.data)
         } catch (error) {
             toast({
                 title: 'Error',
@@ -132,7 +127,11 @@ export default function PatientMedicalHistoryPage() {
                             <CardTitle>Línea de Tiempo</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {data.timeline.length > 0 ? (
+                            {!data?.timeline?.length ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    No hay historial médico registrado.
+                                </div>
+                            ) : (
                                 <div className="relative">
                                     <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
                                     <div className="space-y-6">
@@ -156,11 +155,6 @@ export default function PatientMedicalHistoryPage() {
                                         ))}
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="text-center py-8 text-gray-500">
-                                    <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                    <p>No hay eventos en tu historial</p>
-                                </div>
                             )}
                         </CardContent>
                     </Card>
@@ -173,7 +167,12 @@ export default function PatientMedicalHistoryPage() {
                             <CardTitle>Diagnósticos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {data.diagnoses.length > 0 ? (
+                            {!data?.diagnoses?.length ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <Stethoscope className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                    <p>No hay diagnósticos registrados</p>
+                                </div>
+                            ) : (
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -195,8 +194,8 @@ export default function PatientMedicalHistoryPage() {
                                                 <TableCell>{diag.diagnosedBy}</TableCell>
                                                 <TableCell>
                                                     <span className={`text-xs px-2 py-1 rounded-full ${diag.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                                                            diag.status === 'RESOLVED' ? 'bg-gray-100 text-gray-700' :
-                                                                'bg-blue-100 text-blue-700'
+                                                        diag.status === 'RESOLVED' ? 'bg-gray-100 text-gray-700' :
+                                                            'bg-blue-100 text-blue-700'
                                                         }`}>
                                                         {diag.status}
                                                     </span>
@@ -205,11 +204,6 @@ export default function PatientMedicalHistoryPage() {
                                         ))}
                                     </TableBody>
                                 </Table>
-                            ) : (
-                                <div className="text-center py-8 text-gray-500">
-                                    <Stethoscope className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                    <p>No hay diagnósticos registrados</p>
-                                </div>
                             )}
                         </CardContent>
                     </Card>
@@ -226,7 +220,9 @@ export default function PatientMedicalHistoryPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                {data.medications.filter((m: any) => m.isActive).length > 0 ? (
+                                {!data?.medications?.length ? (
+                                    <p className="text-center text-gray-500 py-4">No hay medicamentos activos</p>
+                                ) : (
                                     <div className="space-y-3">
                                         {data.medications.filter((m: any) => m.isActive).map((med: any) => (
                                             <div key={med.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
@@ -241,9 +237,10 @@ export default function PatientMedicalHistoryPage() {
                                                 </span>
                                             </div>
                                         ))}
+                                        {data.medications.filter((m: any) => m.isActive).length === 0 && (
+                                            <p className="text-center text-gray-500 py-4">No hay medicamentos activos</p>
+                                        )}
                                     </div>
-                                ) : (
-                                    <p className="text-center text-gray-500 py-4">No hay medicamentos activos</p>
                                 )}
                             </CardContent>
                         </Card>
@@ -260,7 +257,12 @@ export default function PatientMedicalHistoryPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {data.allergies.length > 0 ? (
+                            {!data?.allergies?.length ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                    <p>No se han registrado alergias</p>
+                                </div>
+                            ) : (
                                 <div className="grid gap-3">
                                     {data.allergies.map((allergy: any) => (
                                         <div key={allergy.id} className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
@@ -271,11 +273,6 @@ export default function PatientMedicalHistoryPage() {
                                             {getSeverityBadge(allergy.severity)}
                                         </div>
                                     ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-gray-500">
-                                    <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                    <p>No se han registrado alergias</p>
                                 </div>
                             )}
                         </CardContent>
@@ -292,7 +289,12 @@ export default function PatientMedicalHistoryPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {data.vitalSigns.length > 0 ? (
+                            {!data?.vitalSigns?.length ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <HeartPulse className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                    <p>No hay registros de signos vitales</p>
+                                </div>
+                            ) : (
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -321,11 +323,6 @@ export default function PatientMedicalHistoryPage() {
                                         ))}
                                     </TableBody>
                                 </Table>
-                            ) : (
-                                <div className="text-center py-8 text-gray-500">
-                                    <HeartPulse className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                    <p>No hay registros de signos vitales</p>
-                                </div>
                             )}
                         </CardContent>
                     </Card>

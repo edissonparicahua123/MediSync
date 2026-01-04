@@ -33,13 +33,31 @@ export class UsersService {
 
         const [users, total] = await Promise.all([
             this.prisma.user.findMany({
-                where: { deletedAt: null },
+                where: {
+                    deletedAt: null,
+                    role: {
+                        name: {
+                            not: 'PATIENT',
+                            mode: 'insensitive' // Optional: ensure casing doesn't bypass
+                        }
+                    }
+                },
                 include: { role: true },
                 skip,
                 take: limit,
                 orderBy: { createdAt: 'desc' },
             }),
-            this.prisma.user.count({ where: { deletedAt: null } }),
+            this.prisma.user.count({
+                where: {
+                    deletedAt: null,
+                    role: {
+                        name: {
+                            not: 'PATIENT',
+                            mode: 'insensitive'
+                        }
+                    }
+                }
+            }),
         ]);
 
         return {
@@ -75,7 +93,14 @@ export class UsersService {
     }
 
     async getRoles() {
-        return this.prisma.role.findMany();
+        return this.prisma.role.findMany({
+            where: {
+                name: {
+                    not: 'PATIENT',
+                    mode: 'insensitive'
+                }
+            }
+        });
     }
 
     async update(id: string, updateUserDto: UpdateUserDto) {

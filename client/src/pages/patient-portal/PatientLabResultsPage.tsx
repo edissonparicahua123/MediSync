@@ -25,7 +25,7 @@ import {
     Clock,
     AlertCircle,
 } from 'lucide-react'
-import { laboratoryAPI } from '@/services/api'
+import { usersAPI, patientsAPI, laboratoryAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -37,14 +37,22 @@ export default function PatientLabResultsPage() {
     const [selectedOrder, setSelectedOrder] = useState<any>(null)
     const [showResults, setShowResults] = useState(false)
 
+    // Get current user
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+
     useEffect(() => {
-        loadLabOrders()
+        if (user.patientId) {
+            loadLabOrders()
+        }
     }, [])
 
     const loadLabOrders = async () => {
         try {
             setLoading(true)
-            const res = await laboratoryAPI.getOrders({ limit: 50 })
+            const res = await laboratoryAPI.getOrders({
+                patientId: user.patientId,
+                limit: 50
+            })
             setLabOrders(res.data.data || res.data || [])
         } catch (error) {
             console.error('Error loading lab orders:', error)

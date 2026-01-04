@@ -14,7 +14,15 @@ export class AuthService {
     ) { }
 
     async validateUser(email: string, password: string): Promise<any> {
-        const user = await this.usersService.findByEmail(email);
+        // We need to fetch the user with patient relation to check if they are a patient
+        const user = await this.prisma.user.findUnique({
+            where: { email },
+            include: {
+                role: true,
+                patient: true
+            }
+        });
+
         if (!user) {
             throw new UnauthorizedException('Invalid credentials');
         }
@@ -26,6 +34,20 @@ export class AuthService {
 
         if (!user.isActive) {
             throw new UnauthorizedException('Account is inactive');
+        }
+
+        if (user.deletedAt) {
+            // EMERGENCY RECOVERY: If main admin is deleted, restore them automatically
+            if (email === 'admin@medisync.com') {
+                console.log('🚨 EMERGENCY: Resurrecting soft-deleted Admin user');
+                await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: { deletedAt: null }
+                });
+                user.deletedAt = null; // Update local object
+            } else {
+                throw new UnauthorizedException('Account has been deleted');
+            }
         }
 
         const { password: _, ...result } = user;
@@ -51,6 +73,7 @@ export class AuthService {
                 firstName: user.firstName,
                 lastName: user.lastName,
                 role: user.role,
+                patientId: (user as any).patient?.id, // Return patientId if exists
             },
         };
     }

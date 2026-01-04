@@ -37,6 +37,89 @@ async function main() {
         },
     });
 
+
+
+    const patientRole = await prisma.role.upsert({
+        where: { name: 'Patient' },
+        update: {},
+        create: {
+            name: 'Patient',
+            description: 'Patient with portal access',
+            isSystem: true,
+        },
+    });
+
+    // NEW ROLES
+    const receptionistRole = await prisma.role.upsert({
+        where: { name: 'Receptionist' },
+        update: {},
+        create: {
+            name: 'Receptionist',
+            description: 'Front desk and admission',
+            isSystem: true,
+        },
+    });
+
+    const labRole = await prisma.role.upsert({
+        where: { name: 'Lab' },
+        update: {},
+        create: {
+            name: 'Lab',
+            description: 'Laboratory staff',
+            isSystem: true,
+        },
+    });
+
+    const pharmacyRole = await prisma.role.upsert({
+        where: { name: 'Pharmacy' },
+        update: {},
+        create: {
+            name: 'Pharmacy',
+            description: 'Pharmacy staff',
+            isSystem: true,
+        },
+    });
+
+    const billingRole = await prisma.role.upsert({
+        where: { name: 'Billing' },
+        update: {},
+        create: {
+            name: 'Billing',
+            description: 'Billing and finance',
+            isSystem: true,
+        },
+    });
+
+    const hrRole = await prisma.role.upsert({
+        where: { name: 'HR' },
+        update: {},
+        create: {
+            name: 'HR',
+            description: 'Human Resources',
+            isSystem: true,
+        },
+    });
+
+    const managementRole = await prisma.role.upsert({
+        where: { name: 'Management' },
+        update: {},
+        create: {
+            name: 'Management',
+            description: 'Hospital management / Director',
+            isSystem: true,
+        },
+    });
+
+    const auditRole = await prisma.role.upsert({
+        where: { name: 'Audit' },
+        update: {},
+        create: {
+            name: 'Audit',
+            description: 'Auditor / IT Support',
+            isSystem: true,
+        },
+    });
+
     console.log('✅ Roles created');
 
     // Create Admin User
@@ -108,7 +191,27 @@ async function main() {
     ];
 
     for (const patient of patients) {
-        await prisma.patient.create({ data: patient });
+        const createdPatient = await prisma.patient.create({ data: patient });
+
+        // Create User for John Doe to test Patient Portal
+        if (patient.email === 'john.doe@example.com') {
+            const hashedPatientPw = await bcrypt.hash('password123', 10);
+            await prisma.user.create({
+                data: {
+                    email: patient.email,
+                    password: hashedPatientPw,
+                    firstName: patient.firstName,
+                    lastName: patient.lastName,
+                    phone: patient.phone,
+                    roleId: patientRole.id,
+                    patient: {
+                        connect: { id: createdPatient.id }
+                    },
+                    isActive: true,
+                }
+            });
+            console.log('✅ Created Patient User: john.doe@example.com / password123');
+        }
     }
 
     console.log('✅ Sample patients created');

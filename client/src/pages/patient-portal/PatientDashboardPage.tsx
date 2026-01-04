@@ -41,8 +41,16 @@ export default function PatientDashboardPage() {
         try {
             setLoading(true)
 
-            // Fetch appointments
-            const appointmentsRes = await appointmentsAPI.getAll({ limit: 10 })
+            if (!user.patientId) {
+                console.error('User has no patient ID linked');
+                return;
+            }
+
+            // Fetch appointments for THIS patient
+            const appointmentsRes = await appointmentsAPI.getAll({
+                patientId: user.patientId,
+                limit: 10
+            })
             const appointments = appointmentsRes.data.data || []
 
             // Find next upcoming appointment
@@ -51,15 +59,20 @@ export default function PatientDashboardPage() {
                 .filter((a: any) => new Date(a.appointmentDate) >= now && a.status !== 'CANCELLED')
                 .sort((a: any, b: any) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())
 
-            // Fetch pending invoices
-            const invoicesRes = await billingAPI.getInvoices({ status: 'PENDING', limit: 100 })
+            // Fetch pending invoices for THIS patient
+            // Note: API needs to support patientId filter for invoices too
+            const invoicesRes = await billingAPI.getInvoices({
+                patientId: user.patientId,
+                status: 'PENDING',
+                limit: 100
+            })
             const pendingInvoices = invoicesRes.data.data || []
             const totalPending = pendingInvoices.reduce((sum: number, inv: any) => sum + parseFloat(inv.total || 0), 0)
 
             setData({
                 nextAppointment: upcoming[0] || null,
                 recentAppointments: appointments.slice(0, 5),
-                pendingLabResults: 0, // Would need lab API
+                pendingLabResults: 0, // Placeholder until Lab API supports filtering
                 pendingInvoices: {
                     count: pendingInvoices.length,
                     total: totalPending,

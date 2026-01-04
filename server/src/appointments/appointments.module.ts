@@ -6,8 +6,10 @@ import { AiModule } from '../ai/ai.module';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
-    imports: [AiModule, AuthModule, PrismaModule],
+    imports: [AiModule, AuthModule, PrismaModule, NotificationsModule],
     controllers: [AppointmentsController],
     providers: [AppointmentsService],
     exports: [AppointmentsService],

@@ -40,14 +40,22 @@ export default function PatientBillingPage() {
     const [showInvoice, setShowInvoice] = useState(false)
     const [showPayment, setShowPayment] = useState(false)
 
+    // Get current user
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+
     useEffect(() => {
-        loadInvoices()
+        if (user.patientId) {
+            loadInvoices()
+        }
     }, [])
 
     const loadInvoices = async () => {
         try {
             setLoading(true)
-            const res = await billingAPI.getInvoices({ limit: 50 })
+            const res = await billingAPI.getInvoices({
+                patientId: user.patientId,
+                limit: 50
+            })
             setInvoices(res.data.data || res.data || [])
         } catch (error) {
             console.error('Error loading invoices:', error)

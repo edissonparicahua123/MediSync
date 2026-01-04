@@ -15,6 +15,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog'
 import {
     Calendar,
@@ -38,14 +39,73 @@ export default function PatientAppointmentsPage() {
     const [showDetails, setShowDetails] = useState(false)
     const [activeTab, setActiveTab] = useState('upcoming')
 
+    // New Appointment State
+    const [doctors, setDoctors] = useState<any[]>([])
+    const [showNewAppointment, setShowNewAppointment] = useState(false)
+    const [newAppointment, setNewAppointment] = useState({
+        doctorId: '',
+        date: '',
+        time: '',
+        reason: '',
+        type: 'CHECKUP'
+    })
+
+    // Get current user
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+
     useEffect(() => {
-        loadAppointments()
+        if (user.patientId) {
+            loadAppointments()
+            loadDoctors()
+        }
     }, [])
+
+    const loadDoctors = async () => {
+        try {
+            // Using doctorsAPI imported from api.ts (need to import it)
+            // Assuming doctorsAPI is available and imported
+            const res = await import('@/services/api').then(m => m.doctorsAPI.getAll())
+            setDoctors(res.data.data || [])
+        } catch (error) {
+            console.error("Error loading doctors", error)
+        }
+    }
+
+    const handleCreateAppointment = async () => {
+        try {
+            if (!newAppointment.doctorId || !newAppointment.date || !newAppointment.time || !newAppointment.reason) {
+                toast({ title: 'Error', description: 'Por favor complete todos los campos', variant: 'destructive' })
+                return
+            }
+
+            const appointmentDate = new Date(`${newAppointment.date}T${newAppointment.time}`)
+
+            await appointmentsAPI.create({
+                patientId: user.patientId,
+                doctorId: newAppointment.doctorId,
+                appointmentDate: appointmentDate.toISOString(),
+                time: newAppointment.time,
+                reason: newAppointment.reason,
+                type: newAppointment.type,
+                status: 'SCHEDULED'
+            })
+
+            toast({ title: 'Cita agendada', description: 'Tu cita ha sido programada exitosamente.' })
+            setShowNewAppointment(false)
+            setNewAppointment({ doctorId: '', date: '', time: '', reason: '', type: 'CHECKUP' })
+            loadAppointments()
+        } catch (error) {
+            toast({ title: 'Error', description: 'No se pudo agendar la cita', variant: 'destructive' })
+        }
+    }
 
     const loadAppointments = async () => {
         try {
             setLoading(true)
-            const res = await appointmentsAPI.getAll({ limit: 100 })
+            const res = await appointmentsAPI.getAll({
+                patientId: user.patientId,
+                limit: 100
+            })
             setAppointments(res.data.data || [])
         } catch (error) {
             toast({
@@ -114,7 +174,7 @@ export default function PatientAppointmentsPage() {
                     <h1 className="text-3xl font-bold">Mis Citas</h1>
                     <p className="text-gray-500">Gestiona tus citas médicas</p>
                 </div>
-                <Button>
+                <Button onClick={() => setShowNewAppointment(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Agendar Nueva Cita
                 </Button>
@@ -199,7 +259,7 @@ export default function PatientAppointmentsPage() {
                                 <p className="text-gray-500 mb-4">
                                     Agenda tu próxima cita con nuestros especialistas
                                 </p>
-                                <Button>
+                                <Button onClick={() => setShowNewAppointment(true)}>
                                     <Plus className="h-4 w-4 mr-2" />
                                     Agendar Cita
                                 </Button>
@@ -258,6 +318,7 @@ export default function PatientAppointmentsPage() {
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Detalles de la Cita</DialogTitle>
+                        <DialogDescription>Consulta la información detallada de tu cita</DialogDescription>
                     </DialogHeader>
                     {selectedAppointment && (
                         <div className="space-y-4">
@@ -307,6 +368,69 @@ export default function PatientAppointmentsPage() {
                             )}
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* New Appointment Dialog */}
+            <Dialog open={showNewAppointment} onOpenChange={setShowNewAppointment}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Agendar Nueva Cita</DialogTitle>
+                        <DialogDescription>Completa el formulario para reservar tu cita</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Doctor / Especialidad</label>
+                            <select
+                                className="w-full p-2 border rounded-md"
+                                value={newAppointment.doctorId}
+                                onChange={(e) => setNewAppointment({ ...newAppointment, doctorId: e.target.value })}
+                            >
+                                <option value="">Seleccione un doctor</option>
+                                {doctors.map((doc) => (
+                                    <option key={doc.id} value={doc.id}>
+                                        Dr. {doc.user?.firstName} {doc.user?.lastName} - {doc.specialty?.name || 'General'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Fecha</label>
+                                <input
+                                    type="date"
+                                    className="w-full p-2 border rounded-md"
+                                    value={newAppointment.date}
+                                    onChange={(e) => setNewAppointment({ ...newAppointment, date: e.target.value })}
+                                    min={new Date().toISOString().split('T')[0]}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Hora</label>
+                                <input
+                                    type="time"
+                                    className="w-full p-2 border rounded-md"
+                                    value={newAppointment.time}
+                                    onChange={(e) => setNewAppointment({ ...newAppointment, time: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Motivo de consulta</label>
+                            <textarea
+                                className="w-full p-2 border rounded-md"
+                                placeholder="Describa sus síntomas o razón de la visita"
+                                value={newAppointment.reason}
+                                onChange={(e) => setNewAppointment({ ...newAppointment, reason: e.target.value })}
+                            />
+                        </div>
+
+                        <Button className="w-full" onClick={handleCreateAppointment}>
+                            Confirmar Cita
+                        </Button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

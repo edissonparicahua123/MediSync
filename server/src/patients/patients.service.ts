@@ -141,6 +141,66 @@ export class PatientsService {
         });
     }
 
+    async enablePortalAccess(id: string) {
+        const patient = await this.findOne(id) as any;
+
+        if (patient.userId) {
+            throw new ConflictException('Patient already has portal access');
+        }
+
+        // 1. Get Patient Role
+        const patientRole = await this.prisma.role.findFirst({
+            where: { name: 'Patient' },
+        });
+
+        if (!patientRole) {
+            throw new NotFoundException('Patient role not configured in system');
+        }
+
+        // 2. Generate Credentials
+        // Use part of email or name as base, fallback to random if no email
+        const baseEmail = patient.email || `patient${patient.documentNumber || patient.id.substring(0, 6)}@medisync.portal`;
+
+        // Ensure email uniqueness (simple check, improve for prod)
+        let email = baseEmail;
+        const existingUser = await this.prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            email = `${patient.id.substring(0, 4)}.${baseEmail}`;
+        }
+
+        const tempPassword = `Portal${new Date().getFullYear()}!`; // Simple formatting
+        const hashedPassword = await import('bcrypt').then(m => m.hash(tempPassword, 10));
+
+        // 3. Create User linked to Patient
+        // We use a transaction to ensure both user creation and patient update happen
+        return this.prisma.$transaction(async (tx) => {
+            const newUser = await tx.user.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    firstName: patient.firstName,
+                    lastName: patient.lastName,
+                    phone: patient.phone,
+                    roleId: patientRole.id,
+                    isActive: true,
+                    // Link to patient
+                    patient: {
+                        connect: { id: patient.id }
+                    }
+                } as any
+            });
+
+            // Return credentials to be shown ONCE
+            return {
+                message: 'Portal access enabled successfully',
+                credentials: {
+                    email: newUser.email,
+                    password: tempPassword
+                }
+            };
+        });
+    }
+
     // ============================================
     // PATIENT TIMELINE
     // ============================================

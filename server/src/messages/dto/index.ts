@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsOptional } from 'class-validator';
+import { IsString, IsUUID, IsOptional, IsNumber } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SendMessageDto {
@@ -19,4 +19,24 @@ export class SendMessageDto {
     @IsOptional()
     @IsString()
     priority?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    attachmentUrl?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    attachmentName?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    attachmentType?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsNumber()
+    attachmentSize?: number;
 }

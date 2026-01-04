@@ -166,14 +166,21 @@ export default function GlobalSearch() {
             {/* Trigger Button */}
             <Button
                 variant="outline"
-                className="relative w-full max-w-sm justify-start text-gray-400"
+                className="relative w-full max-w-md justify-between bg-muted/30 hover:bg-background border-muted-foreground/20 hover:border-primary/50 text-muted-foreground hover:text-foreground shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden"
                 onClick={() => setOpen(true)}
             >
-                <Search className="h-4 w-4 mr-2" />
-                <span>Buscar...</span>
-                <kbd className="absolute right-2 pointer-events-none hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
-                    <span className="text-xs">⌘</span>K
-                </kbd>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+
+                <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:text-primary transition-all" />
+                    <span className="font-normal tracking-wide">Buscar en MediSync...</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded bg-background border border-border px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-70 group-hover:opacity-100 transition-opacity">
+                        <span className="text-xs">Ctrl</span>K
+                    </kbd>
+                </div>
             </Button>
 
             {/* Search Dialog */}

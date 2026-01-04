@@ -35,6 +35,8 @@ model User {
 
   // User can be a doctor
   doctor Doctor?
+  // User can be a patient
+  patient Patient?
 
   // Activity tracking
   auditLogs     AuditLog[]
@@ -121,6 +123,70 @@ model RolePermission {
 }
 
 // ============================================
+// ADMIN & LOGGING
+// ============================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  resource    String
+  resourceId  String?
+  changes     Json?
+  ipAddress   String?
+  userAgent   String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  category    String
+  key         String   @unique
+  value       String
+  type        String   // STRING, NUMBER, BOOLEAN, JSON
+  description String?
+  isPublic    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
+model OrganizationConfig {
+  id           String   @id @default(uuid())
+  hospitalName String
+  email        String
+  phone        String
+  address      String?
+  logo         String?
+  branding     Json?    // Colors, specialized settings
+  openingHours Json?
+  billing      Json?
+  ai           Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("organization_configs")
+}
+
+model BackupLog {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // FULL, PARTIAL
+  size      String
+  status    String   // PENDING, COMPLETED, FAILED
+  url       String?
+  createdAt DateTime @default(now())
+
+  @@map("backup_logs")
+}
+
+// ============================================
 // PATIENTS
 // ============================================
 
@@ -152,6 +218,8 @@ model Patient {
   deletedAt       DateTime?
 
   // Relations
+  userId          String?   @unique
+  user            User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments    Appointment[]
   medicalRecords  MedicalRecord[]
   labOrders       LabOrder[]
@@ -744,46 +812,25 @@ model Attendance {
 // ============================================
 
 model Notification {
-  id        String   @id @default(uuid())
-  title     String
-  message   String
-  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
-  isRead    Boolean  @default(false)
-  link      String?
-  createdAt DateTime @default(now())
-
-  // Relations
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  type              String    // APPOINTMENT_REMINDER, SYSTEM_ALERT, etc.
+  title             String
+  message           String
+  isRead            Boolean   @default(false)
+  readAt            DateTime?
+  relatedEntityType String?   // APPOINTMENT, LAB_RESULT, BILLING
+  relatedEntityId   String?
+  link              String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([userId])
   @@index([isRead])
   @@map("notifications")
 }
 
-// ============================================
-// AUDIT LOGS
-// ============================================
-
-model AuditLog {
-  id        String   @id @default(uuid())
-  action    String // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
-  resource  String // patients, appointments, etc.
-  resourceId String?
-  changes   Json? // before/after data
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-
-  // Relations
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([resource])
-  @@index([createdAt])
-  @@map("audit_logs")
-}
 
 // ============================================
 // FILE STORAGE
@@ -827,7 +874,11 @@ model Employee {
   department       String
   email            String    @unique
   phone            String?
+  documentId       String?   @unique // [NEW] DNI/Passport
+  birthDate        DateTime? // [NEW]
+  gender           String?   // [NEW]
   salary           Decimal?  @db.Decimal(10, 2)
+  bonus            Decimal?  @default(0) @db.Decimal(10, 2) // [NEW] Fixed bonus
   contract         String?   // [NEW] From frontend mock (e.g. "Tiempo Completo")
   hireDate         DateTime
   isActive         Boolean   @default(true)
@@ -835,6 +886,8 @@ model Employee {
   address          String?
   emergencyContact String?
   emergencyPhone   String?
+  bankAccount      String?   // [NEW]
+  notes            String?   // [NEW]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
@@ -981,43 +1034,28 @@ model EmergencyCase {
 }
 
 // ============================================
-// ADMINISTRATION & CONFIG
-// ============================================
-
-model SystemConfig {
-  id          String   @id @default(uuid())
-  serviceName String   @unique
-  price       Decimal  @db.Decimal(10, 2)
-  category    String
-  isActive    Boolean  @default(true)
-  description String?
-  duration    Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([category])
-  @@index([isActive])
-  @@map("system_configs")
-}
-
-// ============================================
 // MESSAGING
 // ============================================
 
 model Message {
-  id         String    @id @default(uuid())
-  fromUserId String
-  fromUser   User      @relation("SentMessages", fields: [fromUserId], references: [id])
-  toUserId   String
-  toUser     User      @relation("ReceivedMessages", fields: [toUserId], references: [id])
-  subject    String?
-  content    String
-  isRead     Boolean   @default(false)
-  readAt     DateTime?
-  priority   String    @default("NORMAL")
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
+  id           String    @id @default(uuid())
+  fromUserId   String
+  fromUser     User      @relation("SentMessages", fields: [fromUserId], references: [id])
+  toUserId     String
+  toUser       User      @relation("ReceivedMessages", fields: [toUserId], references: [id])
+  subject      String?
+  content      String
+  isRead       Boolean   @default(false)
+  readAt       DateTime?
+  priority     String    @default("NORMAL")
+  // Attachment fields
+  attachmentUrl      String?
+  attachmentName     String?
+  attachmentType     String?   // MIME type
+  attachmentSize     Int?      // Size in bytes
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
 
   @@index([fromUserId])
   @@index([toUserId])
@@ -1026,32 +1064,3 @@ model Message {
   @@map("messages")
 }
 
-// ============================================
-// SYSTEM ADMINISTRATION
-// ============================================
-
-model OrganizationConfig {
-  id          String   @id @default(uuid())
-  hospitalName String  @default("MediSync Hospital")
-  email       String?
-  phone       String?
-  address     String?
-  logo        String?
-  openingHours Json?
-  billing     Json?
-  ai          Json?
-  updatedAt   DateTime @updatedAt
-  
-  @@map("organization_configs")
-}
-
-model BackupLog {
-  id        String   @id @default(uuid())
-  name      String
-  type      String   @default("FULL")
-  size      String
-  status    String   @default("COMPLETED")
-  createdAt DateTime @default(now())
-  
-  @@map("backup_logs")
-}

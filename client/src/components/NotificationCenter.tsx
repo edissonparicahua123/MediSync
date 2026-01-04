@@ -19,6 +19,7 @@ import {
 import { notificationsAPI } from '@/services/api'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { NotificationsDialog } from '@/components/notifications/NotificationsDialog'
 
 interface Notification {
     id: string
@@ -33,6 +34,7 @@ interface Notification {
 
 export default function NotificationCenter() {
     const [open, setOpen] = useState(false)
+    const [openModal, setOpenModal] = useState(false)
     const [loading, setLoading] = useState(false)
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
@@ -151,23 +153,23 @@ export default function NotificationCenter() {
                                         }
                                     }}
                                 >
-                                    <div className="flex gap-3">
-                                        <div className="flex-shrink-0 mt-1">
+                                    <div className="flex gap-4">
+                                        <div className="flex-shrink-0 mt-1 text-muted-foreground">
                                             {getNotificationIcon(notification.type)}
                                         </div>
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 space-y-1">
                                             <div className="flex items-start justify-between gap-2">
-                                                <p className={`text-sm ${!notification.isRead ? 'font-semibold' : ''}`}>
+                                                <p className={`text-sm leading-tight ${!notification.isRead ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
                                                     {notification.title}
                                                 </p>
                                                 {!notification.isRead && (
-                                                    <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></span>
+                                                    <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1"></span>
                                                 )}
                                             </div>
-                                            <p className="text-sm text-gray-500 truncate">
+                                            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                                                 {notification.message}
                                             </p>
-                                            <p className="text-xs text-gray-400 mt-1">
+                                            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wide pt-1">
                                                 {formatDistanceToNow(new Date(notification.createdAt), {
                                                     addSuffix: true,
                                                     locale: es,
@@ -187,12 +189,21 @@ export default function NotificationCenter() {
                 </ScrollArea>
 
                 {/* Footer */}
-                <div className="p-3 border-t">
-                    <Button variant="ghost" className="w-full text-sm" asChild>
-                        <a href="/notifications">Ver todas las notificaciones</a>
+                <div className="p-3 border-t bg-muted/20">
+                    <Button
+                        variant="ghost"
+                        className="w-full text-sm hover:text-primary transition-colors hover:bg-primary/5"
+                        onClick={() => {
+                            setOpen(false); // Close popover
+                            setOpenModal(true); // Open dialog
+                        }}
+                    >
+                        Gestionar todas las notificaciones
                     </Button>
                 </div>
             </PopoverContent>
+
+            <NotificationsDialog open={openModal} onOpenChange={setOpenModal} />
         </Popover>
     )
 }

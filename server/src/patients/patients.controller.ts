@@ -8,23 +8,34 @@ import {
     Delete,
     UseGuards,
     Query,
+    UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto, UpdatePatientDto, SearchPatientsDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Audit } from '../common/decorators/audit.decorator';
 
 @ApiTags('Patients')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(AuditInterceptor)
 @Controller('patients')
 export class PatientsController {
     constructor(private readonly patientsService: PatientsService) { }
 
     @Post()
     @ApiOperation({ summary: 'Create new patient' })
+    @Audit('CREATE_PATIENT', 'patients')
     create(@Body() createPatientDto: CreatePatientDto) {
         return this.patientsService.create(createPatientDto);
+    }
+
+    @Post(':id/enable-portal')
+    @ApiOperation({ summary: 'Enable portal access for patient' })
+    enablePortal(@Param('id') id: string) {
+        return this.patientsService.enablePortalAccess(id);
     }
 
     @Get()
@@ -51,24 +62,28 @@ export class PatientsController {
 
     @Get(':id')
     @ApiOperation({ summary: 'Get patient by ID with complete history' })
+    @Audit('VIEW_PATIENT', 'patients')
     findOne(@Param('id') id: string) {
         return this.patientsService.findOne(id);
     }
 
     @Get(':id/medical-history')
     @ApiOperation({ summary: 'Get patient medical history' })
+    @Audit('VIEW_MEDICAL_HISTORY', 'patients')
     getMedicalHistory(@Param('id') id: string) {
         return this.patientsService.getMedicalHistory(id);
     }
 
     @Patch(':id')
     @ApiOperation({ summary: 'Update patient' })
+    @Audit('UPDATE_PATIENT', 'patients')
     update(@Param('id') id: string, @Body() updatePatientDto: UpdatePatientDto) {
         return this.patientsService.update(id, updatePatientDto);
     }
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete patient (soft delete)' })
+    @Audit('DELETE_PATIENT', 'patients')
     remove(@Param('id') id: string) {
         return this.patientsService.remove(id);
     }

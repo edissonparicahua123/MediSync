@@ -17,7 +17,7 @@ import {
     XCircle,
     AlertCircle,
 } from 'lucide-react'
-import { analyticsAPI, appointmentsAPI, patientsAPI, doctorsAPI } from '@/services/api'
+import { analyticsAPI, appointmentsAPI, patientsAPI, doctorsAPI, usersAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import {
     LineChart,
@@ -53,6 +53,7 @@ const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#1
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true)
+    const [dashboardLayout, setDashboardLayout] = useState<'grid' | 'list' | 'compact'>('grid')
     const [kpis, setKpis] = useState({
         patientsToday: 0,
         activeAppointments: 0,
@@ -90,6 +91,16 @@ export default function DashboardPage() {
     const loadDashboardData = async () => {
         try {
             setLoading(true)
+
+            // Cargar preferencias del usuario para el layout
+            try {
+                const profileRes = await usersAPI.getProfile()
+                if (profileRes.data?.preferences?.theme?.dashboardLayout) {
+                    setDashboardLayout(profileRes.data.preferences.theme.dashboardLayout)
+                }
+            } catch (e) {
+                console.log('Could not load user preferences')
+            }
 
             // Cargar datos reales del backend
             const [
@@ -308,21 +319,27 @@ export default function DashboardPage() {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Panel Empresarial</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                 <p className="text-muted-foreground">
                     Visión general de gestión hospitalaria en tiempo real • Última actualización: {format(new Date(), 'HH:mm:ss')}
                 </p>
             </div>
 
             {/* ========== A. KPIs (6 Cards) ========== */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pacientes Hoy</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
+            <div className={
+                dashboardLayout === 'list'
+                    ? 'grid gap-4 grid-cols-1'
+                    : dashboardLayout === 'compact'
+                        ? 'grid gap-2 md:grid-cols-3 lg:grid-cols-6'
+                        : 'grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'
+            }>
+                <Card className={dashboardLayout === 'compact' ? 'p-2' : ''}>
+                    <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${dashboardLayout === 'compact' ? 'pb-1 pt-2 px-3' : 'pb-2'}`}>
+                        <CardTitle className={`font-medium ${dashboardLayout === 'compact' ? 'text-xs' : 'text-sm'}`}>Pacientes Hoy</CardTitle>
+                        <Users className={`text-muted-foreground ${dashboardLayout === 'compact' ? 'h-3 w-3' : 'h-4 w-4'}`} />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{kpis.patientsToday}</div>
+                    <CardContent className={dashboardLayout === 'compact' ? 'px-3 pb-2' : ''}>
+                        <div className={`font-bold ${dashboardLayout === 'compact' ? 'text-lg' : 'text-2xl'}`}>{kpis.patientsToday}</div>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <TrendingUp className="h-3 w-3 text-green-500" /> +12% vs ayer
                         </p>

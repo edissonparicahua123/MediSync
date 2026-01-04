@@ -1,41 +1,36 @@
-import { IsString, IsNumber, IsBoolean, IsOptional, IsInt } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsEnum } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateConfigDto {
-    @ApiProperty({ example: 'General Consultation' })
-    @IsString()
-    serviceName: string;
-
-    @ApiProperty({ example: 50.00 })
-    @IsNumber()
-    price: number;
-
-    @ApiProperty({ example: 'CONSULTATION' })
+    @ApiProperty({ example: 'SYSTEM' })
     @IsString()
     category: string;
 
-    @ApiPropertyOptional({ example: 'Standard consultation fee' })
+    @ApiProperty({ example: 'MAX_UPLOAD_SIZE' })
+    @IsString()
+    key: string;
+
+    @ApiProperty({ example: '1024' })
+    @IsString()
+    value: string;
+
+    @ApiProperty({ example: 'NUMBER', enum: ['STRING', 'NUMBER', 'BOOLEAN', 'JSON'] })
+    @IsString()
+    @IsEnum(['STRING', 'NUMBER', 'BOOLEAN', 'JSON'])
+    type: string;
+
+    @ApiPropertyOptional({ example: 'Maximum file upload size in MB' })
     @IsOptional()
     @IsString()
     description?: string;
 
-    @ApiPropertyOptional({ example: 30 })
+    @ApiPropertyOptional({ example: true })
     @IsOptional()
-    @IsInt()
-    duration?: number;
+    @IsBoolean()
+    isPublic?: boolean;
 }
 
 export class UpdateConfigDto {
-    @ApiPropertyOptional()
-    @IsOptional()
-    @IsString()
-    serviceName?: string;
-
-    @ApiPropertyOptional()
-    @IsOptional()
-    @IsNumber()
-    price?: number;
-
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()
@@ -43,8 +38,19 @@ export class UpdateConfigDto {
 
     @ApiPropertyOptional()
     @IsOptional()
-    @IsBoolean()
-    isActive?: boolean;
+    @IsString()
+    key?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    value?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    @IsEnum(['STRING', 'NUMBER', 'BOOLEAN', 'JSON'])
+    type?: string;
 
     @ApiPropertyOptional()
     @IsOptional()
@@ -53,6 +59,6 @@ export class UpdateConfigDto {
 
     @ApiPropertyOptional()
     @IsOptional()
-    @IsInt()
-    duration?: number;
+    @IsBoolean()
+    isPublic?: boolean;
 }

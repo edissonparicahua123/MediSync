@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/lib/utils'
 import {
     LayoutDashboard,
@@ -22,6 +23,7 @@ import {
     ChevronDown,
     ChevronRight,
     Clock,
+    Shield,
 } from 'lucide-react'
 
 // Tipos de roles profesionales
@@ -32,6 +34,7 @@ interface MenuItem {
     label: string
     path: string
     roles?: UserRole[] // Si no se especifica, está disponible para todos
+    permission?: string // Permiso granular (e.g. "PATIENTS")
 }
 
 interface MenuSection {
@@ -49,39 +52,44 @@ const menuSections: MenuSection[] = [
         items: [
             {
                 icon: LayoutDashboard,
-                label: 'Panel Principal',
+                label: 'Dashboard',
                 path: '/dashboard',
-                // Todos los roles pueden ver el dashboard
+                permission: 'DASHBOARD'
             },
             {
                 icon: Users,
                 label: 'Pacientes',
                 path: '/patients',
-                roles: ['ADMIN', 'DOCTOR', 'LAB', 'PHARMACY', 'RECEPTIONIST']
+                roles: ['ADMIN', 'DOCTOR', 'LAB', 'PHARMACY', 'RECEPTIONIST'],
+                permission: 'PATIENTS'
             },
             {
                 icon: Stethoscope,
                 label: 'Doctores',
                 path: '/doctors',
-                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST']
+                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'],
+                permission: 'DOCTORS'
             },
             {
                 icon: Calendar,
                 label: 'Citas',
                 path: '/appointments',
-                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST']
+                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'],
+                permission: 'APPOINTMENTS'
             },
             {
                 icon: Clock,
                 label: 'Sala de Espera',
                 path: '/waiting-room',
-                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST']
+                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'],
+                permission: 'WAITING_ROOM'
             },
             {
                 icon: Bed,
                 label: 'Camas',
                 path: '/beds',
-                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'HR']
+                roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'HR'],
+                permission: 'BEDS'
             },
         ],
     },
@@ -93,19 +101,22 @@ const menuSections: MenuSection[] = [
                 icon: AlertTriangle,
                 label: 'Emergencia',
                 path: '/emergency',
-                roles: ['ADMIN', 'DOCTOR']
+                roles: ['ADMIN', 'DOCTOR'],
+                permission: 'EMERGENCY'
             },
             {
                 icon: Pill,
                 label: 'Farmacia',
                 path: '/pharmacy',
-                roles: ['ADMIN', 'PHARMACY']
+                roles: ['ADMIN', 'PHARMACY'],
+                permission: 'PRESCRIPTIONS'
             },
             {
                 icon: FlaskConical,
                 label: 'Laboratorio',
                 path: '/laboratory',
-                roles: ['ADMIN', 'DOCTOR', 'LAB']
+                roles: ['ADMIN', 'DOCTOR', 'LAB'],
+                permission: 'LAB_RESULTS'
             },
         ],
     },
@@ -117,31 +128,43 @@ const menuSections: MenuSection[] = [
                 icon: Receipt,
                 label: 'Facturación',
                 path: '/billing',
-                roles: ['ADMIN']
+                roles: ['ADMIN'],
+                permission: 'BILLING'
             },
             {
                 icon: FileText,
                 label: 'Reportes',
                 path: '/reports',
-                roles: ['ADMIN', 'DOCTOR', 'LAB', 'PHARMACY', 'HR']
+                roles: ['ADMIN', 'DOCTOR', 'LAB', 'PHARMACY', 'HR'],
+                permission: 'REPORTS'
             },
             {
                 icon: BarChart3,
                 label: 'Analítica',
                 path: '/analytics',
-                roles: ['ADMIN', 'HR']
+                roles: ['ADMIN', 'HR'],
+                permission: 'ANALYTICS'
             },
             {
                 icon: UserCog,
                 label: 'Recursos Humanos',
                 path: '/hr',
-                roles: ['ADMIN', 'HR']
+                roles: ['ADMIN', 'HR'],
+                permission: 'HR'
+            },
+            {
+                icon: Shield,
+                label: 'Auditoría',
+                path: '/admin/audit',
+                roles: ['ADMIN'],
+                permission: 'AUDIT'
             },
             {
                 icon: Sliders,
                 label: 'Sistema',
                 path: '/admin',
-                roles: ['ADMIN', 'HR']
+                roles: ['ADMIN', 'HR'],
+                permission: 'SYSTEM'
             },
         ],
     },
@@ -153,7 +176,8 @@ const menuSections: MenuSection[] = [
                 icon: Brain,
                 label: 'IA Médica',
                 path: '/ai',
-                roles: ['ADMIN', 'DOCTOR', 'LAB']
+                roles: ['ADMIN', 'DOCTOR', 'LAB'],
+                permission: 'AI'
             },
         ],
     },
@@ -165,7 +189,7 @@ const menuSections: MenuSection[] = [
                 icon: MessageSquare,
                 label: 'Mensajes',
                 path: '/messages',
-                // Todos los roles pueden ver mensajes
+                permission: 'MESSAGES'
             },
         ],
     },
@@ -177,9 +201,18 @@ interface SidebarProps {
 
 export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
     // Safety check: ensure role is a string. If it's an object (from backend relation), extract name.
-    const safeRole: string = (typeof userRole === 'object' && userRole !== null)
-        ? (userRole as any).name
-        : String(userRole);
+    // Also handle case where role might be undefined in the object
+    let rawRole = (typeof userRole === 'object' && userRole !== null)
+        ? (userRole as any).name || (userRole as any).role || 'ADMIN' // Fallback to 'ADMIN' if name is missing
+        : String(userRole || 'ADMIN');
+
+    // Critical Fix: If the string itself is "undefined" or "null" (artifact of bad storage), force ADMIN
+    if (rawRole.toLowerCase() === 'undefined' || rawRole.toLowerCase() === 'null') {
+        rawRole = 'ADMIN';
+    }
+
+    const safeRole = String(rawRole).toUpperCase(); // Normalize to ADMIN, DOCTOR, etc.
+    // Display name can keep original casing or be formatted differently, but for checks we use safeRole
 
     const location = useLocation()
     const [expandedSections, setExpandedSections] = useState<string[]>([
@@ -197,9 +230,17 @@ export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
     }
 
     // Filtrar items según el rol del usuario
+    const { user } = useAuthStore()
+
     const canAccessItem = (item: MenuItem) => {
+        // 1. Check Explicit Permission Grant (from 'switches')
+        if (item.permission && (user as any)?.preferences?.permissions?.includes(item.permission)) {
+            return true;
+        }
+
+        // 2. Fallback to Role-based Access
         if (!item.roles) return true // Sin restricción
-        return item.roles.includes(userRole)
+        return item.roles.includes(safeRole as UserRole)
     }
 
     const canAccessSection = (section: MenuSection) => {
@@ -207,7 +248,7 @@ export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
             // Si la sección no tiene roles, verificar si al menos un item es accesible
             return section.items.some(canAccessItem)
         }
-        return section.roles.includes(userRole)
+        return section.roles.includes(safeRole as UserRole)
     }
 
     return (
