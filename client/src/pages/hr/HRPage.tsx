@@ -41,7 +41,12 @@ import {
     Baby,
     VenetianMask,
     Info,
-    Camera
+    Camera,
+    LayoutGrid,
+    LayoutList,
+    Layers,
+    History,
+    ArrowUpRight
 } from 'lucide-react'
 import { hrAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
@@ -58,7 +63,7 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Pencil, Trash2, MoreHorizontal, FileText, Eye, Activity, TrendingUp, TrendingDown, Printer } from 'lucide-react'
+import { Pencil, Trash2, MoreHorizontal, FileText, Eye, Activity, TrendingUp, TrendingDown, Printer, Copy, AlertTriangle } from 'lucide-react'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -104,6 +109,8 @@ export default function HRPage() {
 
     // Shift Modal State
     const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
+    const [isEditingShift, setIsEditingShift] = useState(false)
+    const [currentShiftId, setCurrentShiftId] = useState<string | null>(null)
     const [shiftForm, setShiftForm] = useState({
         employeeId: '',
         date: format(new Date(), 'yyyy-MM-dd'),
@@ -207,11 +214,15 @@ export default function HRPage() {
 
                     return {
                         id: s.id,
+                        employeeId: s.employeeId,
                         employeeName: s.employee?.name || 'Unknown',
+                        employeePhoto: s.employee?.photo || `https://ui-avatars.com/api/?name=${s.employee?.name || 'U'}`,
                         day: capitalizedDay,
-                        shift: s.type, // Schema uses 'type', see seed/schema
+                        shift: s.type,
                         startTime: format(date, 'HH:mm'),
-                        endTime: format(new Date(s.endTime), 'HH:mm')
+                        endTime: format(new Date(s.endTime), 'HH:mm'),
+                        fullStart: s.startTime,
+                        fullEnd: s.endTime
                     }
                 })
             }
@@ -412,15 +423,34 @@ export default function HRPage() {
             const start = new Date(`${shiftForm.date}T${shiftForm.startTime}:00`)
             const end = new Date(`${shiftForm.date}T${shiftForm.endTime}:00`)
 
-            await hrAPI.createShift({
-                employeeId: shiftForm.employeeId,
-                startTime: start.toISOString(),
-                endTime: end.toISOString(),
-                type: shiftForm.type
-            })
+            // Conflict Detection
+            if (checkShiftConflict(shiftForm.employeeId, start, end, currentShiftId || undefined)) {
+                if (!confirm('Este empleado ya tiene un turno programado en este horario. ¿Deseas continuar de todas formas?')) {
+                    return
+                }
+            }
 
-            toast({ title: 'Turno asignado', description: 'El turno se ha guardado correctamente' })
+            if (isEditingShift && currentShiftId) {
+                await hrAPI.updateShift(currentShiftId, {
+                    employeeId: shiftForm.employeeId,
+                    startTime: start.toISOString(),
+                    endTime: end.toISOString(),
+                    type: shiftForm.type
+                })
+                toast({ title: 'Turno actualizado', description: 'La programación ha sido modificada con éxito.' })
+            } else {
+                await hrAPI.createShift({
+                    employeeId: shiftForm.employeeId,
+                    startTime: start.toISOString(),
+                    endTime: end.toISOString(),
+                    type: shiftForm.type
+                })
+                toast({ title: 'Turno asignado', description: 'El nuevo turno ha sido registrado en el sistema.' })
+            }
+
             setIsShiftModalOpen(false)
+            setIsEditingShift(false)
+            setCurrentShiftId(null)
             loadHRData()
         } catch (error: any) {
             toast({ title: 'Error', description: 'Error al asignar turno', variant: 'destructive' })
@@ -438,6 +468,57 @@ export default function HRPage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleCopyShift = (shift: any) => {
+        setShiftForm({
+            employeeId: String(shift.employeeId),
+            date: format(new Date(shift.fullStart), 'yyyy-MM-dd'),
+            startTime: shift.startTime,
+            endTime: shift.endTime,
+            type: shift.shift
+        })
+        setIsEditingShift(false)
+        setCurrentShiftId(null)
+        setIsShiftModalOpen(true)
+        toast({ title: 'Turno Copiado', description: 'Selecciona la nueva fecha para el turno' })
+    }
+
+    const handleEditShift = (shift: any) => {
+        setShiftForm({
+            employeeId: String(shift.employeeId),
+            date: format(new Date(shift.fullStart), 'yyyy-MM-dd'),
+            startTime: shift.startTime,
+            endTime: shift.endTime,
+            type: shift.shift
+        })
+        setIsEditingShift(true)
+        setCurrentShiftId(shift.id)
+        setIsShiftModalOpen(true)
+    }
+
+    const handleDeleteShift = async (id: string) => {
+        if (!confirm('¿Seguro que deseas eliminar este turno?')) return
+        try {
+            await hrAPI.deleteShift(id)
+            toast({ title: 'Turno eliminado' })
+            loadHRData()
+        } catch (error) {
+            toast({ title: 'Error al eliminar turno', variant: 'destructive' })
+        }
+    }
+
+    const checkShiftConflict = (employeeId: string, start: Date, end: Date, currentId?: string) => {
+        return hrData.shifts.some((s: any) => {
+            if (s.employeeId !== employeeId) return false
+            if (s.id === currentId) return false
+
+            const sStart = new Date(s.fullStart)
+            const sEnd = new Date(s.fullEnd)
+
+            // Overlap logic: (StartA < EndB) and (EndA > StartB)
+            return (start < sEnd) && (end > sStart)
+        })
     }
 
     const handlePayPayroll = async (id: string) => {
@@ -1033,37 +1114,90 @@ export default function HRPage() {
                     </Card>
                 </TabsContent>
 
-                {/* D. Shifts Tab */}
-                <TabsContent value="shifts" className="mt-4">
-                    <Card>
-                        <CardHeader>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <CardTitle>Programación de Turnos</CardTitle>
-                                    <CardDescription>Asignación semanal de turnos</CardDescription>
+                {/* D. Shifts Tab - PROFESSIONAL REDESIGN */}
+                <TabsContent value="shifts" className="mt-6 space-y-6">
+                    {/* Professional Header */}
+                    <Card className="border-border shadow-sm">
+                        <CardHeader className="flex flex-col md:flex-row justify-between items-center bg-muted/30 pb-6 rounded-t-xl">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                                    <CalendarIcon className="h-6 w-6 text-primary" />
                                 </div>
-                                <Button onClick={() => setIsShiftModalOpen(true)} variant="outline">
-                                    <CalendarIcon className="h-4 w-4 mr-2" />
-                                    Asignar Turno
+                                <div>
+                                    <h2 className="text-xl font-bold tracking-tight text-foreground">Gestión de Turnos</h2>
+                                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                                        Planificación semanal del personal • {hrData.shifts.length} Registros
+                                    </p>
+                                </div>
+                            </div>
+
+
+                            <div className="flex items-center gap-6 mt-4 md:mt-0">
+                                <div className="hidden lg:flex items-center gap-6 pr-6 border-r border-border">
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Cobertura</p>
+                                        <p className="text-lg font-bold text-foreground">98%</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Conflictos</p>
+                                        <p className="text-lg font-bold text-red-500">
+                                            {hrData.shifts.filter((s: any) => checkShiftConflict(s.employeeId, new Date(s.fullStart), new Date(s.fullEnd), s.id)).length}
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button
+                                    onClick={() => { setIsEditingShift(false); setCurrentShiftId(null); setShiftForm({ ...shiftForm, employeeId: '' }); setIsShiftModalOpen(true); }}
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" /> Programar Turno
                                 </Button>
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
-                                    const dayShifts = hrData.shifts.filter((s: any) => s.day === day)
-                                    return (
-                                        <div key={day} className="border rounded-lg p-4">
-                                            <h3 className="font-semibold mb-3">{day}</h3>
-                                            {dayShifts.length === 0 ? (
-                                                <p className="text-sm text-muted-foreground">Sin turnos programados</p>
-                                            ) : (
-                                                <div className="grid grid-cols-3 gap-3">
-                                                    {dayShifts.map((shift: any) => (
-                                                        <div key={shift.id} className="p-3 border rounded">
-                                                            <div className="flex items-center justify-between mb-2">
-                                                                <span className="text-sm font-medium">{shift.employeeName}</span>
-                                                                <span className={`text-xs px-2 py-1 rounded-full ${getShiftColor(shift.shift)}`}>
+                    </Card>
+
+                    {/* Professional Weekly Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+                        {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map((day) => {
+                            const dayShifts = hrData.shifts.filter((s: any) => s.day === day)
+                            return (
+                                <div key={day} className="flex flex-col gap-3">
+                                    <div className="bg-muted/50 border border-border rounded-xl p-3 flex flex-col items-center justify-center gap-0.5">
+                                        <span className="text-[11px] font-bold uppercase text-foreground/80">{day}</span>
+                                        <div className="text-[10px] text-muted-foreground font-medium">{dayShifts.length} Miembros</div>
+                                    </div>
+
+                                    <div className="flex-1 space-y-3 min-h-[600px] p-1 rounded-2xl bg-muted/5 border border-dashed border-border/20">
+                                        {dayShifts.map((shift: any) => {
+                                            const isConflicting = checkShiftConflict(shift.employeeId, new Date(shift.fullStart), new Date(shift.fullEnd), shift.id)
+
+                                            return (
+                                                <Card
+                                                    key={shift.id}
+                                                    className={`group relative border-border hover:border-primary/40 transition-all duration-200 shadow-sm hover:shadow-md ${isConflicting ? 'border-red-200 bg-red-50/30' : 'bg-card'}`}
+                                                >
+                                                    {isConflicting && (
+                                                        <div className="absolute top-2 right-2 text-red-500" title="Conflicto detectado">
+                                                            <AlertTriangle className="h-3 w-3" />
+                                                        </div>
+                                                    )}
+
+                                                    <CardContent className="p-3">
+
+                                                        {/* Background Glow */}
+                                                        <div className="absolute -top-10 -right-10 w-20 h-20 bg-primary/10 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                                        <div className="flex items-center gap-3 mb-3">
+                                                            <Avatar className="h-8 w-8 border border-border">
+                                                                <AvatarImage src={shift.employeePhoto} />
+                                                                <AvatarFallback className="text-[10px] font-bold bg-muted text-muted-foreground">
+                                                                    {shift.employeeName.charAt(0)}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-[11px] font-bold truncate text-foreground leading-tight">
+                                                                    {shift.employeeName}
+                                                                </span>
+                                                                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md inline-block max-w-fit mt-1 border border-current bg-opacity-5 ${getShiftColor(shift.shift)}`}>
                                                                     {({
                                                                         'MORNING': 'MAÑANA',
                                                                         'AFTERNOON': 'TARDE',
@@ -1071,23 +1205,63 @@ export default function HRPage() {
                                                                     } as Record<string, string>)[shift.shift] || shift.shift}
                                                                 </span>
                                                             </div>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {shift.startTime} - {shift.endTime}
-                                                            </p>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-            </Tabs>
+
+                                                        <div className="flex items-center gap-2 text-muted-foreground mb-3 bg-muted/40 p-1.5 rounded-lg border border-border/50">
+                                                            <Clock className="h-3 w-3 text-primary/70" />
+                                                            <span className="text-[10px] font-medium tracking-tight">
+                                                                {shift.startTime} - {shift.endTime}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 hover:bg-primary/10 text-primary"
+                                                                onClick={() => handleCopyShift(shift)}
+                                                                title="Duplicar"
+                                                            >
+                                                                <Copy className="h-3 w-3" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 hover:bg-muted text-muted-foreground"
+                                                                onClick={() => handleEditShift(shift)}
+                                                                title="Editar"
+                                                            >
+                                                                <Pencil className="h-3 w-3" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 hover:bg-red-50 text-red-500 hover:text-red-600"
+                                                                onClick={() => handleDeleteShift(shift.id)}
+                                                                title="Eliminar"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            )
+                                        })}
+                                        {dayShifts.length === 0 && (
+                                            <div className="h-32 rounded-xl border-2 border-dashed border-border/40 flex flex-col items-center justify-center p-4 opacity-40 hover:opacity-60 transition-opacity cursor-pointer group">
+                                                <Plus className="h-5 w-5 mb-1 text-muted-foreground group-hover:text-primary transition-colors" />
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Libre</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </TabsContent >
+            </Tabs >
             {/* Employee Modal - Premium Redesign */}
-            <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
+            < Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen} >
                 <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl p-0 gap-0">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-teal-500/5 pointer-events-none" />
 
@@ -1286,10 +1460,10 @@ export default function HRPage() {
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             {/* View Details Modal - Enhanced Ficha del Colaborador */}
-            <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
+            < Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen} >
                 <DialogContent className="sm:max-w-[800px] bg-card/98 backdrop-blur-2xl border-border/50 p-0 gap-0 overflow-hidden shadow-3xl">
                     <DialogHeader className="sr-only">
                         <DialogTitle>Ficha del Colaborador</DialogTitle>
@@ -1429,10 +1603,10 @@ export default function HRPage() {
                         </div>
                     )}
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             {/* Paystub Modal (Boleta) */}
-            <Dialog open={isPaystubModalOpen} onOpenChange={setIsPaystubModalOpen}>
+            < Dialog open={isPaystubModalOpen} onOpenChange={setIsPaystubModalOpen} >
                 <DialogContent className="max-w-3xl p-0 overflow-hidden bg-card/95 backdrop-blur-2xl border-border/50 shadow-3xl">
                     <DialogHeader className="sr-only">
                         <DialogTitle>Boleta de Pago Detallada</DialogTitle>
@@ -1592,86 +1766,123 @@ export default function HRPage() {
                         </div>
                     )}
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
-            {/* Shift Modal */}
-            <Dialog open={isShiftModalOpen} onOpenChange={setIsShiftModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Asignar Turno</DialogTitle>
-                        <DialogDescription>Crea un nuevo turno para un empleado.</DialogDescription>
+            {/* Ultra-Premium Shift Modal */}
+            <Dialog open={isShiftModalOpen} onOpenChange={(open) => { setIsShiftModalOpen(open); if (!open) { setIsEditingShift(false); setCurrentShiftId(null); } }}>
+                <DialogContent className="sm:max-w-[500px] bg-card border-border shadow-2xl p-0 overflow-hidden rounded-xl">
+                    <DialogHeader className="p-6 bg-muted/30 border-b border-border relative">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+                                    {isEditingShift ? 'Editar' : 'Programar'} Turno
+                                </DialogTitle>
+                                <DialogDescription className="text-xs text-muted-foreground mt-1">
+                                    Planificación de horarios para el personal
+                                </DialogDescription>
+                            </div>
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                                <Clock className="h-5 w-5 text-primary" />
+                            </div>
+                        </div>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Empleado</Label>
+
+                    <div className="p-6 space-y-6">
+                        <div className="space-y-3">
+                            <Label className="text-xs font-semibold text-foreground/70 ml-1">Colaborador</Label>
                             <Select
                                 value={shiftForm.employeeId}
                                 onValueChange={(value) => setShiftForm({ ...shiftForm, employeeId: value })}
                             >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar empleado" />
+                                <SelectTrigger className="h-11 bg-muted/20 border-border rounded-lg focus:ring-primary/20 transition-all">
+                                    <SelectValue placeholder="Seleccionar colaborador..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {hrData.employees.map((emp: any) => (
-                                        <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                                        <SelectItem key={emp.id} value={emp.id} className="focus:bg-primary/10 py-2.5">
+                                            <div className="flex items-center gap-2">
+                                                <Avatar className="h-5 w-5 border border-border">
+                                                    <AvatarImage src={emp.photo} />
+                                                    <AvatarFallback className="text-[9px]">{emp.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <span className="text-xs font-medium">{emp.name}</span>
+                                            </div>
+                                        </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
+
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Fecha</Label>
+                            <div className="space-y-3">
+                                <Label className="text-xs font-semibold text-foreground/70 ml-1 uppercase tracking-wider">Fecha</Label>
                                 <Input
                                     type="date"
+                                    className="h-11 bg-muted/20 border-border rounded-lg focus:ring-primary/20"
                                     value={shiftForm.date}
                                     onChange={(e) => setShiftForm({ ...shiftForm, date: e.target.value })}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Tipo</Label>
+                            <div className="space-y-3">
+                                <Label className="text-xs font-semibold text-foreground/70 ml-1 uppercase tracking-wider">Turno</Label>
                                 <Select
                                     value={shiftForm.type}
                                     onValueChange={(value) => setShiftForm({ ...shiftForm, type: value })}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="h-11 bg-muted/20 border-border rounded-lg focus:ring-primary/20">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="MORNING">Mañana</SelectItem>
-                                        <SelectItem value="AFTERNOON">Tarde</SelectItem>
-                                        <SelectItem value="NIGHT">Noche</SelectItem>
+                                        <SelectItem value="MORNING" className="text-xs font-medium py-2.5">MAÑANA</SelectItem>
+                                        <SelectItem value="AFTERNOON" className="text-xs font-medium py-2.5">TARDE</SelectItem>
+                                        <SelectItem value="NIGHT" className="text-xs font-medium py-2.5">NOCHE</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
+
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Hora Inicio</Label>
+                            <div className="space-y-3">
+                                <Label className="text-xs font-semibold text-foreground/70 ml-1 uppercase tracking-wider">Inicio</Label>
                                 <Input
                                     type="time"
+                                    className="h-11 bg-muted/20 border-border rounded-lg font-mono text-base focus:ring-primary/20 text-center"
                                     value={shiftForm.startTime}
                                     onChange={(e) => setShiftForm({ ...shiftForm, startTime: e.target.value })}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Hora Fin</Label>
+                            <div className="space-y-3">
+                                <Label className="text-xs font-semibold text-foreground/70 ml-1 uppercase tracking-wider">Término</Label>
                                 <Input
                                     type="time"
+                                    className="h-11 bg-muted/20 border-border rounded-lg font-mono text-base focus:ring-primary/20 text-center"
                                     value={shiftForm.endTime}
                                     onChange={(e) => setShiftForm({ ...shiftForm, endTime: e.target.value })}
                                 />
                             </div>
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsShiftModalOpen(false)}>Cancelar</Button>
-                        <Button onClick={handleSaveShift}>Asignar Turno</Button>
+
+                    <DialogFooter className="p-6 border-t border-border bg-muted/20 flex gap-3">
+                        <Button
+                            variant="ghost"
+                            className="h-10 rounded-lg px-6 font-semibold text-muted-foreground hover:text-foreground"
+                            onClick={() => { setIsShiftModalOpen(false); setIsEditingShift(false); setCurrentShiftId(null); }}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-semibold shadow-sm"
+                            onClick={handleSaveShift}
+                        >
+                            {isEditingShift ? 'Guardar Cambios' : 'Registrar Turno'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             {/* Attendance Modal */}
-            <Dialog open={isAttendanceModalOpen} onOpenChange={setIsAttendanceModalOpen}>
+            < Dialog open={isAttendanceModalOpen} onOpenChange={setIsAttendanceModalOpen} >
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Registrar Asistencia</DialogTitle>
@@ -1755,7 +1966,7 @@ export default function HRPage() {
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
-        </div>
+            </Dialog >
+        </div >
     )
 }
