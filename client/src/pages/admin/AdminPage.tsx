@@ -340,11 +340,11 @@ export default function AdminPage() {
     const getRoleBadge = (roleName: string) => {
         // Simple mapping based on Role Name
         const colors: Record<string, string> = {
-            'Admin': 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400 ring-purple-500/40',
+            'Admin': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-400 ring-indigo-500/40',
             'Doctor': 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400 ring-blue-500/40',
-            'Nurse': 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400 ring-green-500/40',
-            'Receptionist': 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-400 ring-orange-500/40',
-            'ADMIN': 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-400 ring-purple-500/40', // Fallback caps
+            'Nurse': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-400 ring-cyan-500/40',
+            'Receptionist': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400 ring-emerald-500/40',
+            'ADMIN': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-400 ring-indigo-500/40',
             'DOCTOR': 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400 ring-blue-500/40',
         }
         const match = Object.keys(colors).find(key => roleName?.includes(key))
@@ -369,8 +369,8 @@ export default function AdminPage() {
             {/* Header Pro - SOLID */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-lg shadow-sm border border-border">
                 <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center border border-red-200 dark:border-red-800">
-                        <Shield className="h-7 w-7 text-red-600 dark:text-red-400" />
+                    <div className="h-14 w-14 rounded-lg bg-edicarex flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <Shield className="h-7 w-7 text-white" />
                     </div>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-foreground">Sistema</h1>
@@ -406,11 +406,12 @@ export default function AdminPage() {
 
                 {/* A. Users Tab */}
                 <TabsContent value="users" className="mt-6">
-                    <Card className="border-t-4 border-t-blue-500 shadow-md bg-card">
+                    <Card className="overflow-hidden border-none shadow-xl transition-all">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
                         <CardHeader className="border-b border-border bg-muted/10 px-6 py-5">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                 <div>
-                                    <CardTitle className="text-xl text-blue-700 dark:text-blue-400">Directorio de Usuarios</CardTitle>
+                                    <CardTitle className="text-xl text-edicarex">Directorio de Usuarios</CardTitle>
                                     <CardDescription>Gestiona el acceso y roles del personal médico</CardDescription>
                                 </div>
                                 <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -470,8 +471,8 @@ export default function AdminPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
-                                                            <span className={`h-2 w-2 rounded-full ${user.isActive ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-red-500'}`} />
-                                                            <span className={`text-sm font-medium ${user.isActive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                                            <span className={`h-2 w-2 rounded-full ${user.isActive ? 'bg-edicarex shadow-[0_0_8px_rgba(34,211,238,0.4)]' : 'bg-red-500'}`} />
+                                                            <span className={`text-sm font-medium ${user.isActive ? 'text-cyan-700 dark:text-cyan-400' : 'text-red-700 dark:text-red-400'}`}>
                                                                 {user.isActive ? 'Activo' : 'Inactivo'}
                                                             </span>
                                                         </div>
@@ -519,7 +520,8 @@ export default function AdminPage() {
                         {/* LEFT COLUMN: Identity & Operations */}
                         <div className="space-y-6">
                             {/* Logo & Basic Info */}
-                            <Card className="h-full border-t-4 border-t-indigo-500 shadow-md bg-card">
+                            <Card className="overflow-hidden border-none shadow-xl transition-all h-full">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-edicarex opacity-70" />
                                 <CardHeader className="bg-muted/10 border-b border-border pb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg border border-indigo-200 dark:border-indigo-800">
@@ -592,7 +594,8 @@ export default function AdminPage() {
                             </Card>
 
                             {/* Billing Parameters */}
-                            <Card className="border-t-4 border-t-green-500 shadow-md bg-card">
+                            <Card className="overflow-hidden border-none shadow-xl transition-all">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-edicarex opacity-50" />
                                 <CardHeader className="bg-muted/10 border-b border-border pb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2.5 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
@@ -650,7 +653,8 @@ export default function AdminPage() {
                         {/* RIGHT COLUMN: Hours & AI */}
                         <div className="space-y-6">
                             {/* Hospital Hours */}
-                            <Card className="border-t-4 border-t-orange-500 shadow-md bg-card">
+                            <Card className="overflow-hidden border-none shadow-xl transition-all">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-edicarex opacity-70" />
                                 <CardHeader className="bg-muted/10 border-b border-border pb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
@@ -704,7 +708,8 @@ export default function AdminPage() {
                             </Card>
 
                             {/* AI Configuration */}
-                            <Card className="border-t-4 border-t-purple-500 shadow-md bg-card">
+                            <Card className="overflow-hidden border-none shadow-xl transition-all">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
                                 <CardHeader className="bg-muted/10 border-b border-border pb-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
@@ -787,11 +792,12 @@ export default function AdminPage() {
                 </TabsContent>
 
                 <TabsContent value="backups" className="mt-6">
-                    <Card className="border-t-4 border-t-cyan-500 shadow-md bg-card">
+                    <Card className="overflow-hidden border-none shadow-xl transition-all">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
                         <CardHeader className="border-b border-border bg-muted/10 px-6 py-5">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <CardTitle className="text-xl text-cyan-700 dark:text-cyan-400">Respaldos de Seguridad</CardTitle>
+                                    <CardTitle className="text-xl text-edicarex">Respaldos de Seguridad</CardTitle>
                                     <CardDescription>Historial de copias de seguridad de la base de datos</CardDescription>
                                 </div>
                                 <Button onClick={handleCreateBackup} className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-sm">

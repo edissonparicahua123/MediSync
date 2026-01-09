@@ -48,6 +48,7 @@ function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
+                    <Route path="/attendance/login" element={<AttendanceLoginPage />} />
                     <Route path="/public-screen" element={<PublicScreenPage />} />
 
                     {/* Patient Portal Routes */}
@@ -66,15 +67,19 @@ function App() {
                     } />
 
                     {/* Attendance Portal Context (Standalone) */}
-                    <Route path="/attendance/login" element={<AttendanceLoginPage />} />
+
                     <Route path="/attendance/*" element={
-                        <ProtectedRoute>
+                        <ProtectedRoute allowedRoles={['HR', 'ADMIN']}>
                             <AttendanceLayout>
                                 <Routes>
                                     <Route path="/" element={<AttendancePage />} />
                                     <Route path="ops" element={<AttendancePage />} />
                                     <Route path="shifts" element={<AttendancePage />} />
                                     <Route path="payroll" element={<AttendancePage />} />
+                                    <Route path="staff" element={<AttendancePage />} />
+                                    <Route path="rules" element={<AttendancePage />} />
+                                    <Route path="audit" element={<AttendancePage />} />
+                                    <Route path="settings" element={<AttendancePage />} />
                                 </Routes>
                             </AttendanceLayout>
                         </ProtectedRoute>

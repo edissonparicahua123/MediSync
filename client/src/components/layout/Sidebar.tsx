@@ -256,9 +256,9 @@ export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
             {/* Header */}
             <div className="p-6 border-b border-border">
                 <div className="flex items-center gap-2">
-                    <Activity className="h-8 w-8 text-primary" />
+                    <img src="/assets/logo-edicarex.png" alt="EdiCarex" className="h-14 w-14 object-contain" />
                     <div>
-                        <h1 className="text-2xl font-bold">MediSync</h1>
+                        <h1 className="text-2xl font-bold">EdiCarex</h1>
                         <p className="text-xs text-muted-foreground">Enterprise</p>
                     </div>
                 </div>
@@ -267,7 +267,7 @@ export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
             {/* User Role Badge */}
             <div className="px-4 py-3 bg-muted/50">
                 <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                    <div className="h-2 w-2 rounded-full bg-edicarex shadow-[0_0_8px_rgba(34,211,238,0.4)]"></div>
                     <span className="text-xs font-medium text-muted-foreground">
                         {safeRole.replace('_', ' ')}
                     </span>
@@ -319,7 +319,7 @@ export default function Sidebar({ userRole = 'ADMIN' }: SidebarProps) {
                                                 className={cn(
                                                     'flex items-center gap-3 px-3 py-2 rounded-lg transition-all',
                                                     isActive
-                                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                                        ? 'bg-edicarex text-white shadow-lg shadow-blue-500/20 translate-x-1'
                                                         : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                                                 )}
                                             >

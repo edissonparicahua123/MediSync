@@ -256,7 +256,7 @@ export default function SettingsPage() {
         <div className="space-y-6 p-6">
             {/* Header */}
             <div className="flex items-center gap-4 pb-4 border-b">
-                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
+                <div className="h-14 w-14 rounded-xl bg-edicarex flex items-center justify-center shadow-lg shadow-blue-500/20">
                     <SettingsIcon className="h-7 w-7 text-white" />
                 </div>
                 <div>
@@ -295,7 +295,8 @@ export default function SettingsPage() {
                 {/* 1. Account Tab */}
                 <TabsContent value="account" className="space-y-6">
                     <div className="grid gap-6 lg:grid-cols-2">
-                        <Card className="border-t-4 border-t-primary">
+                        <Card className="overflow-hidden border-none shadow-xl transition-all">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <User className="h-5 w-5" />
@@ -343,7 +344,8 @@ export default function SettingsPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-t-4 border-t-orange-500">
+                        <Card className="overflow-hidden border-none shadow-xl transition-all">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-orange-500 opacity-70" />
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Key className="h-5 w-5" />
@@ -423,7 +425,8 @@ export default function SettingsPage() {
 
                 {/* 2. Personalization Tab */}
                 <TabsContent value="personalization" className="space-y-6">
-                    <Card className="border-t-4 border-t-violet-500 max-w-2xl">
+                    <Card className="overflow-hidden border-none shadow-xl transition-all max-w-2xl">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Palette className="h-5 w-5" />
@@ -476,7 +479,8 @@ export default function SettingsPage() {
 
                 {/* 3. Notifications Tab */}
                 <TabsContent value="notifications" className="space-y-6">
-                    <Card className="border-t-4 border-t-blue-500 max-w-2xl">
+                    <Card className="overflow-hidden border-none shadow-xl transition-all max-w-2xl">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-edicarex opacity-70" />
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Bell className="h-5 w-5" />
@@ -515,7 +519,8 @@ export default function SettingsPage() {
 
                 {/* 4. Security Tab */}
                 <TabsContent value="security" className="space-y-6">
-                    <Card className="border-t-4 border-t-red-500 max-w-2xl">
+                    <Card className="overflow-hidden border-none shadow-xl transition-all max-w-2xl">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-red-500 opacity-70" />
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Shield className="h-5 w-5" />
@@ -544,7 +549,8 @@ export default function SettingsPage() {
 
                 {/* 5. System Tab */}
                 <TabsContent value="system" className="space-y-6">
-                    <Card className="border-t-4 border-t-green-500 max-w-2xl">
+                    <Card className="overflow-hidden border-none shadow-xl transition-all max-w-2xl">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Server className="h-5 w-5" />
@@ -556,21 +562,21 @@ export default function SettingsPage() {
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between p-4 rounded-lg border">
                                     <span className="font-medium">Servidor Backend</span>
-                                    <Badge className={systemStatus.server === 'online' ? "bg-green-500" : "bg-red-500"}>
+                                    <Badge className={systemStatus.server === 'online' ? "bg-edicarex shadow-[0_0_8px_rgba(34,211,238,0.4)]" : "bg-red-500"}>
                                         <CheckCircle className="h-3 w-3 mr-1" />
                                         {systemStatus.server === 'online' ? 'En Línea' : 'Fuera de Línea'}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center justify-between p-4 rounded-lg border">
                                     <span className="font-medium">Base de Datos PostgreSQL</span>
-                                    <Badge className={systemStatus.database === 'online' ? "bg-green-500" : "bg-red-500"}>
+                                    <Badge className={systemStatus.database === 'online' ? "bg-edicarex shadow-[0_0_8px_rgba(34,211,238,0.4)]" : "bg-red-500"}>
                                         <CheckCircle className="h-3 w-3 mr-1" />
                                         {systemStatus.database === 'online' ? 'Conectada' : 'Desconectada'}
                                     </Badge>
                                 </div>
                                 <div className="flex items-center justify-between p-4 rounded-lg border">
                                     <span className="font-medium">API REST</span>
-                                    <Badge className={systemStatus.api === 'online' ? "bg-green-500" : "bg-red-500"}>
+                                    <Badge className={systemStatus.api === 'online' ? "bg-edicarex shadow-[0_0_8px_rgba(34,211,238,0.4)]" : "bg-red-500"}>
                                         <CheckCircle className="h-3 w-3 mr-1" />
                                         {systemStatus.api === 'online' ? 'Operativa' : 'No Disponible'}
                                     </Badge>

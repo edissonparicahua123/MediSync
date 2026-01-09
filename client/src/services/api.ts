@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '@/stores/authStore'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -9,7 +10,6 @@ export const api = axios.create({
     },
 })
 
-import { useAuthStore } from '@/stores/authStore'
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
@@ -195,6 +195,15 @@ export const adminAPI = {
     updateOrganization: (data: any) => api.put('/admin/organization', data),
     getBackups: () => api.get('/admin/backups'),
     createBackup: () => api.post('/admin/backups'),
+}
+
+// ============================================
+// AUDIT API (NEW)
+// ============================================
+export const auditAPI = {
+    getAll: (params?: any) => api.get('/audit', { params }),
+    getStats: () => api.get('/audit/stats'),
+    getHistory: (resource: string, id: string) => api.get(`/audit/history/${resource}/${id}`),
 }
 
 // ============================================

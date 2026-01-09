@@ -468,7 +468,7 @@ export default function MessagesPage() {
                     </Button>
                     <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
                         <DialogTrigger asChild>
-                            <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700">
+                            <Button>
                                 <Plus className="h-4 w-4 mr-2" />
                                 Nuevo Mensaje
                             </Button>
@@ -505,7 +505,7 @@ export default function MessagesPage() {
                                         )}
                                     </SelectContent>
                                 </Select>
-                                <Button onClick={handleStartNewConversation} disabled={!selectedNewUser} className="w-full bg-gradient-to-r from-blue-500 to-indigo-600">
+                                <Button onClick={handleStartNewConversation} disabled={!selectedNewUser} className="w-full">
                                     Iniciar Conversación
                                 </Button>
                             </div>
@@ -788,7 +788,7 @@ export default function MessagesPage() {
                                         onKeyPress={(e) => e.key === 'Enter' && !sendingMsg && handleSendMessage()}
                                         className="flex-1"
                                     />
-                                    <Button onClick={() => handleSendMessage()} disabled={sendingMsg || (!messageInput.trim() && !pendingFile)} className="bg-gradient-to-r from-blue-500 to-indigo-600">
+                                    <Button onClick={() => handleSendMessage()} disabled={sendingMsg || (!messageInput.trim() && !pendingFile)}>
                                         {sendingMsg ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                                     </Button>
                                 </div>

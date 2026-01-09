@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import {
     Users,
     Calendar,
@@ -41,15 +42,15 @@ import { es } from 'date-fns/locale'
 
 // Colores profesionales
 const COLORS = {
-    primary: '#3b82f6',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    purple: '#8b5cf6',
-    teal: '#14b8a6',
+    primary: '#06b6d4', // Cyan
+    success: '#10b981', // Emerald
+    warning: '#f59e0b', // Amber
+    danger: '#ef4444',  // Red
+    purple: '#8b5cf6',  // Violet
+    teal: '#22d3ee',    // Cyan Light
 }
 
-const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6']
+const CHART_COLORS = ['#22d3ee', '#3b82f6', '#10b981', '#6366f1', '#8b5cf6', '#14b8a6']
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true)
@@ -333,10 +334,13 @@ export default function DashboardPage() {
                         ? 'grid gap-2 md:grid-cols-3 lg:grid-cols-6'
                         : 'grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'
             }>
-                <Card className={dashboardLayout === 'compact' ? 'p-2' : ''}>
+                <Card className={cn("overflow-hidden border-none shadow-xl transition-all hover:scale-[1.02]", dashboardLayout === 'compact' ? 'p-2' : '')}>
+                    <div className="absolute top-0 left-0 w-1 h-full bg-edicarex" />
                     <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${dashboardLayout === 'compact' ? 'pb-1 pt-2 px-3' : 'pb-2'}`}>
-                        <CardTitle className={`font-medium ${dashboardLayout === 'compact' ? 'text-xs' : 'text-sm'}`}>Pacientes Hoy</CardTitle>
-                        <Users className={`text-muted-foreground ${dashboardLayout === 'compact' ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                        <CardTitle className={`font-semibold tracking-tight ${dashboardLayout === 'compact' ? 'text-xs' : 'text-sm text-muted-foreground'}`}>Pacientes Hoy</CardTitle>
+                        <div className="p-2 bg-blue-500/10 rounded-lg">
+                            <Users className={`text-blue-500 ${dashboardLayout === 'compact' ? 'h-3 w-3' : 'h-5 w-5'}`} />
+                        </div>
                     </CardHeader>
                     <CardContent className={dashboardLayout === 'compact' ? 'px-3 pb-2' : ''}>
                         <div className={`font-bold ${dashboardLayout === 'compact' ? 'text-lg' : 'text-2xl'}`}>{kpis.patientsToday}</div>
@@ -346,10 +350,13 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden border-none shadow-xl transition-all hover:scale-[1.02]">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-edicarex" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Citas Activas</CardTitle>
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-semibold text-muted-foreground tracking-tight">Citas Activas</CardTitle>
+                        <div className="p-2 bg-cyan-500/10 rounded-lg">
+                            <Calendar className="h-5 w-5 text-cyan-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.activeAppointments}</div>
@@ -357,10 +364,13 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden border-none shadow-xl transition-all hover:scale-[1.02]">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-edicarex" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Doctores Disponibles</CardTitle>
-                        <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-semibold text-muted-foreground tracking-tight">Doctores Disponibles</CardTitle>
+                        <div className="p-2 bg-emerald-500/10 rounded-lg">
+                            <Stethoscope className="h-5 w-5 text-emerald-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.availableDoctors}</div>
@@ -368,10 +378,13 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden border-none shadow-xl transition-all hover:scale-[1.02]">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-edicarex" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Ocupación de Camas</CardTitle>
-                        <Bed className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-semibold text-muted-foreground tracking-tight">Ocupación de Camas</CardTitle>
+                        <div className="p-2 bg-indigo-500/10 rounded-lg">
+                            <Bed className="h-5 w-5 text-indigo-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.bedOccupancy}%</div>
@@ -385,10 +398,13 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden border-none shadow-xl transition-all hover:scale-[1.02]">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-edicarex" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tiempo Espera Prom.</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-semibold text-muted-foreground tracking-tight">Tiempo Espera Prom.</CardTitle>
+                        <div className="p-2 bg-blue-400/10 rounded-lg">
+                            <Clock className="h-5 w-5 text-blue-400" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.avgWaitTime} min</div>
@@ -398,10 +414,13 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="overflow-hidden border-none shadow-xl transition-all hover:scale-[1.02]">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-edicarex" />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Casos de Emergencia</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-semibold text-muted-foreground tracking-tight">Casos de Emergencia</CardTitle>
+                        <div className="p-2 bg-red-500/10 rounded-lg">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{kpis.emergencyCases}</div>
@@ -510,9 +529,9 @@ export default function DashboardPage() {
                                 <Area
                                     type="monotone"
                                     dataKey="patients"
-                                    stroke={COLORS.purple}
-                                    fill={COLORS.purple}
-                                    fillOpacity={0.3}
+                                    stroke={COLORS.primary}
+                                    fill={COLORS.primary}
+                                    fillOpacity={0.1}
                                     name="Pacientes"
                                 />
                             </AreaChart>
@@ -580,7 +599,7 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                             {recentNotes.map((note) => (
                                 <div key={note.id} className="flex items-start space-x-3 text-sm">
-                                    <FileText className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                    <FileText className="h-4 w-4 text-cyan-500 flex-shrink-0 mt-0.5" />
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium truncate">{note.patient}</p>
                                         <p className="text-xs text-muted-foreground truncate">{note.note}</p>
@@ -600,7 +619,7 @@ export default function DashboardPage() {
                         <div className="space-y-3">
                             {recentReports.map((report) => (
                                 <div key={report.id} className="flex items-start space-x-3 text-sm">
-                                    <Activity className="h-4 w-4 text-purple-500 flex-shrink-0 mt-0.5" />
+                                    <Activity className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
                                     <div className="flex-1 min-w-0">
                                         <p className="font-medium truncate">{report.type}</p>
                                         <p className="text-xs text-muted-foreground">{report.generated}</p>
@@ -635,9 +654,9 @@ export default function DashboardPage() {
                                     {aiPredictions.saturationLevel > 70 ? 'Alta' : 'Normal'}
                                 </div>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-muted rounded-full h-2">
                                 <div
-                                    className={`h-2 rounded-full ${aiPredictions.saturationLevel > 70 ? 'bg-orange-500' : 'bg-green-500'}`}
+                                    className={cn("h-2 rounded-full transition-all duration-1000", aiPredictions.saturationLevel > 70 ? 'bg-orange-500' : 'bg-edicarex')}
                                     style={{ width: `${aiPredictions.saturationLevel}%` }}
                                 />
                             </div>

@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
-import { ShieldCheck, Lock, User, Loader2, ArrowRight } from 'lucide-react'
+import { ShieldCheck, Lock, User, Loader2, ArrowRight, AlertTriangle } from 'lucide-react'
 
 import { authAPI } from '@/services/api'
 
@@ -14,25 +14,57 @@ export default function AttendanceLoginPage() {
     const [isLoading, setIsLoading] = useState(false)
     const loginStore = useAuthStore((state) => state.login)
     const navigate = useNavigate()
+    const location = useLocation()
     const { toast } = useToast()
+
+    // Error from ProtectedRoute redirection
+    const navigationError = location.state?.error
+
+    useEffect(() => {
+        if (navigationError) {
+            toast({
+                title: "Acceso Restringido",
+                description: navigationError,
+                variant: 'destructive'
+            })
+            // Clear location state after showing toast
+            window.history.replaceState({}, document.title)
+        }
+    }, [navigationError, toast])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
         try {
-            // Using email for login as per current API implementation
             const response = await authAPI.login({
                 email: credentials.username,
                 password: credentials.password
             })
 
+            const userData = response.data.user
+            const userRoleName = (typeof userData.role === 'object') ? userData.role.name : userData.role
+            const normalizedRole = String(userRoleName).toUpperCase()
+
+            console.log('Role Check:', { original: userRoleName, normalized: normalizedRole })
+
+            // Validate Role Access for Operations Portal
+            if (normalizedRole !== 'HR' && normalizedRole !== 'ADMIN') {
+                toast({
+                    title: "Acceso Denegado",
+                    description: "Esta cuenta no tiene privilegios de Gestión Humana.",
+                    variant: 'destructive'
+                })
+                setIsLoading(false)
+                return
+            }
+
             if (response.data.accessToken) {
                 localStorage.setItem('token', response.data.accessToken)
-                loginStore(response.data.user, response.data.accessToken)
+                loginStore(userData, response.data.accessToken)
 
                 toast({
                     title: "Acceso Autorizado",
-                    description: "Bienvenido al portal operativo MediOps",
+                    description: "Bienvenido al portal operativo EdiCarex",
                 })
                 navigate('/attendance')
             }
@@ -47,6 +79,8 @@ export default function AttendanceLoginPage() {
         }
     }
 
+
+
     return (
         <div className="min-h-screen w-full bg-[#050507] flex items-center justify-center p-6 relative overflow-hidden font-inter">
             {/* Cyberpunk Background Elements */}
@@ -56,7 +90,7 @@ export default function AttendanceLoginPage() {
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
             </div>
 
-            <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in duration-700">
+            <div className="w-full max-w-md relative z-10">
                 {/* Logo Section */}
                 <div className="text-center mb-10">
                     <div className="inline-flex h-20 w-20 rounded-3xl bg-blue-600 items-center justify-center shadow-[0_0_50px_rgba(37,99,235,0.3)] mb-6 border border-white/10 ring-4 ring-blue-600/20">
@@ -121,7 +155,7 @@ export default function AttendanceLoginPage() {
 
                 <div className="mt-10 text-center space-y-4">
                     <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
-                        Seguridad de Grado Militar MediSync
+                        Seguridad de Grado Militar EdiCarex
                     </p>
                     <div className="flex items-center justify-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></div>

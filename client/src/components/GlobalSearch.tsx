@@ -173,7 +173,7 @@ export default function GlobalSearch() {
 
                 <div className="flex items-center gap-2">
                     <Search className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:text-primary transition-all" />
-                    <span className="font-normal tracking-wide">Buscar en MediSync...</span>
+                    <span className="font-normal tracking-wide">Buscar en EdiCarex...</span>
                 </div>
 
                 <div className="flex items-center gap-1">

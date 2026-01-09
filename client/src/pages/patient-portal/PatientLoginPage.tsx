@@ -50,24 +50,24 @@ export default function PatientLoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-slate-50 via-white to-emerald-50 relative overflow-hidden">
             {/* Background pattern */}
-            <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-20 right-20 w-96 h-96 bg-cyan-500 rounded-full blur-3xl"></div>
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+                <div className="absolute top-20 left-20 w-72 h-72 bg-emerald-500 rounded-full blur-3xl" />
+                <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500 rounded-full blur-3xl" />
             </div>
 
             <Card className="w-full max-w-md mx-4 relative z-10 shadow-2xl">
                 <CardHeader className="text-center space-y-4">
-                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center">
-                        <Heart className="w-8 h-8 text-white" />
+                    <div className="mx-auto w-24 h-24">
+                        <img src="/assets/logo-edicarex.png" alt="EdiCarex" className="w-full h-full object-contain" />
                     </div>
                     <div>
                         <CardTitle className="text-2xl font-bold text-gray-800">
                             Portal del Paciente
                         </CardTitle>
                         <CardDescription>
-                            MediSync Hospital - Acceso seguro a su información médica
+                            EdiCarex Hospital - Acceso seguro a su información médica
                         </CardDescription>
                     </div>
                 </CardHeader>

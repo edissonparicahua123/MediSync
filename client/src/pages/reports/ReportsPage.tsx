@@ -106,7 +106,7 @@ export default function ReportsPage() {
 
         // Header
         doc.setFontSize(20)
-        doc.text('MediSync - Reporte Médico', 14, 20)
+        doc.text('EdiCarex - Reporte Médico', 14, 20)
         doc.setFontSize(12)
         doc.text(`Tipo de Reporte: ${getReportTitle(reportType)}`, 14, 30)
         doc.text(`Generado: ${format(new Date(), 'PPpp', { locale: es })}`, 14, 37)

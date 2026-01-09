@@ -59,13 +59,16 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 p-4">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-slate-950 via-blue-950 to-emerald-950 p-4 relative overflow-hidden">
+            {/* Glossy overlay */}
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_30%,rgba(34,211,238,0.1),transparent)] pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_70%,rgba(16,185,129,0.1),transparent)] pointer-events-none" />
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-4">
-                        <Activity className="h-12 w-12 text-primary" />
+                        <img src="/assets/logo-edicarex.png" alt="EdiCarex" className="h-32 w-32 object-contain" />
                     </div>
-                    <CardTitle className="text-2xl font-bold">MediSync Enterprise</CardTitle>
+                    <CardTitle className="text-2xl font-bold">EdiCarex Enterprise</CardTitle>
                     <CardDescription>
                         Inicia sesión en tu cuenta para continuar
                     </CardDescription>

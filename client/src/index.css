@@ -63,7 +63,67 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .bg-edicarex {
+    @apply bg-gradient-to-tr from-green-400 to-blue-600;
+  }
+
+  .text-edicarex {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-600;
+  }
+
+  .border-edicarex {
+    @apply border-transparent bg-origin-border bg-clip-border bg-gradient-to-r from-green-400 to-blue-600;
+  }
+
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+  }
+
+  .icon-edicarex {
+    @apply text-blue-500 drop-shadow-[0_0_8px_rgba(34, 211, 238, 0.4)];
+  }
+
+  .bg-medical-portal {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bg-medical-portal::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url('/assets/bg-medical-portal.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-attendance-portal {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bg-attendance-portal::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url('/assets/bg-attendance-portal.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.25;
+    /* Slightly lower than medical for better contrast with dashboard items */
+    pointer-events: none;
+    z-index: 0;
   }
 }

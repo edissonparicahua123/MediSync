@@ -46,15 +46,13 @@ export default function PatientPortalLayout({ children }: PatientPortalLayoutPro
     return (
         <div className="min-h-screen bg-background flex">
             {/* Sidebar */}
-            <aside className="w-64 bg-card border-r border-border flex flex-col">
+            <aside className="w-64 bg-card border-r border-border flex flex-col relative z-30">
                 {/* Logo */}
                 <div className="p-6 border-b border-border">
                     <Link to="/patient-portal/dashboard" className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center">
-                            <Heart className="w-6 h-6 text-primary-foreground" />
-                        </div>
+                        <img src="/assets/logo-edicarex.png" alt="EdiCarex" className="w-14 h-14 object-contain" />
                         <div>
-                            <h1 className="font-bold text-foreground">MediSync</h1>
+                            <h1 className="font-bold text-foreground">EdiCarex</h1>
                             <p className="text-xs text-muted-foreground">Portal del Paciente</p>
                         </div>
                     </Link>
@@ -72,7 +70,7 @@ export default function PatientPortalLayout({ children }: PatientPortalLayoutPro
                                 className={cn(
                                     'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
                                     isActive
-                                        ? 'bg-primary text-primary-foreground'
+                                        ? 'bg-gradient-to-r from-green-400 to-blue-600 text-white shadow-md'
                                         : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                                 )}
                             >
@@ -109,9 +107,9 @@ export default function PatientPortalLayout({ children }: PatientPortalLayoutPro
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0">
                 {/* Top Header */}
-                <header className="bg-card border-b border-border px-6 py-4">
+                <header className="bg-card border-b border-border px-6 py-4 relative z-30">
                     <div className="flex justify-between items-center">
                         <div>
                             <h2 className="text-lg font-semibold text-foreground">
@@ -149,14 +147,16 @@ export default function PatientPortalLayout({ children }: PatientPortalLayoutPro
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-auto bg-background">
-                    {children}
+                <main className="flex-1 overflow-auto bg-background relative bg-medical-portal">
+                    <div className="relative z-10 h-full">
+                        {children}
+                    </div>
                 </main>
 
                 {/* Footer */}
-                <footer className="bg-card border-t border-border px-6 py-3">
+                <footer className="bg-card border-t border-border px-6 py-3 relative z-30">
                     <div className="flex justify-between items-center text-sm text-muted-foreground">
-                        <p>© 2024 MediSync Hospital. Todos los derechos reservados.</p>
+                        <p>© 2024 EdiCarex Hospital. Todos los derechos reservados.</p>
                         <div className="flex gap-4">
                             <a href="#" className="hover:text-primary">Ayuda</a>
                             <a href="#" className="hover:text-primary">Privacidad</a>

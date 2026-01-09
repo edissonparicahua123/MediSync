@@ -42,7 +42,8 @@ export default function PatientDashboardPage() {
             setLoading(true)
 
             if (!user.patientId) {
-                console.error('User has no patient ID linked');
+                console.warn('User has no patient ID linked');
+                setLoading(false);
                 return;
             }
 
@@ -109,7 +110,7 @@ export default function PatientDashboardPage() {
                             Bienvenido, {user.firstName || 'Paciente'}
                         </h1>
                         <p className="text-muted-foreground">
-                            Portal del Paciente - MediSync Hospital
+                            Portal del Paciente - EdiCarex Hospital
                         </p>
                     </div>
                     <Button onClick={() => navigate('/patient-portal/appointments/new')}>
@@ -212,6 +213,19 @@ export default function PatientDashboardPage() {
                                             Cancelar
                                         </Button>
                                     </div>
+                                </div>
+                            ) : !user.patientId ? (
+                                <div className="text-center py-12 bg-orange-500/5 border border-orange-500/20 rounded-2xl p-8">
+                                    <div className="bg-orange-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Activity className="h-8 w-8 text-orange-500" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-foreground mb-2">Perfil no vinculado</h3>
+                                    <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-6">
+                                        Tu cuenta de usuario aún no ha sido vinculada a un registro de paciente en nuestro sistema. Por favor, contacta con administración para completar tu registro.
+                                    </p>
+                                    <Button variant="outline" className="border-orange-500/20 hover:bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                                        Contactar Soporte
+                                    </Button>
                                 </div>
                             ) : (
                                 <div className="text-center py-8 text-muted-foreground">
