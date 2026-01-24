@@ -51,14 +51,15 @@ function NavItem({ icon: Icon, label, path }: NavItemProps) {
         <Link
             to={path}
             className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden",
                 isActive
-                    ? "bg-gradient-to-r from-green-400 to-blue-600 text-white shadow-lg shadow-green-500/20 translate-x-1"
+                    ? "bg-gradient-to-r from-green-500/90 to-blue-600/90 text-white shadow-xl shadow-blue-500/40 translate-x-1 border-t border-white/20"
                     : "text-slate-400 hover:bg-white/5 hover:text-white"
             )}
         >
-            <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-muted-foreground/60 group-hover:text-white")} />
+            <Icon className={cn("h-5 w-5", isActive ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : "text-muted-foreground/60 group-hover:text-white")} />
             <span className="text-sm font-semibold">{label}</span>
+            {isActive && <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />}
         </Link>
     )
 }
@@ -75,12 +76,12 @@ export function AttendanceLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Specialized Portal Sidebar */}
-            <aside className="w-72 bg-card border-r border-border flex flex-col z-20">
+            <aside className="w-72 bg-card/40 backdrop-blur-3xl border-r border-border flex flex-col z-20">
                 <div className="p-8 border-b border-border">
                     <div className="flex items-center gap-3">
                         <img src="/assets/logo-edicarex.png" alt="EdiCarex" className="h-14 w-14 object-contain" />
                         <div>
-                            <h1 className="text-xl font-bold tracking-tight leading-none">EdiCarex</h1>
+                            <h1 className="text-xl font-bold tracking-tight leading-none text-white">EdiCarex</h1>
                             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-1">Portal Operativo</p>
                         </div>
                     </div>
@@ -125,7 +126,7 @@ export function AttendanceLayout({ children }: { children: React.ReactNode }) {
             {/* Main Portal Content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
                 {/* Header Superior Premium */}
-                <header className="h-20 bg-card border-b border-border flex items-center justify-between px-12 shrink-0 relative z-30">
+                <header className="h-20 bg-card/20 backdrop-blur-xl border-b border-border flex items-center justify-between px-12 shrink-0 relative z-30">
                     <div className="relative w-96 group">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-edicarex transition-colors" />
                         <Input
