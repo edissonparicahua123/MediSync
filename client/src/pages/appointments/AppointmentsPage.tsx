@@ -19,12 +19,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Calendar as CalendarIcon, Plus, Search, Loader2, Edit, Trash2, Eye, TableIcon, Filter } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, Search, Loader2, Edit, Trash2, Eye, TableIcon, Filter, Download, CheckCircle, XCircle, Clock, TrendingUp, CalendarCheck } from 'lucide-react'
 import { appointmentsAPI, patientsAPI, doctorsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import AppointmentModal from '@/components/modals/AppointmentModal'
-import { format } from 'date-fns'
+import { format, isToday, isThisWeek, differenceInMinutes, isPast } from 'date-fns'
 import { es } from 'date-fns/locale'
+import * as XLSX from 'xlsx'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -126,6 +129,7 @@ export default function AppointmentsPage() {
     // Filtrar citas
     const filteredAppointments = useMemo(() => {
         return appointments.filter((apt: any) => {
+
             // Búsqueda
             const searchMatch = searchTerm === '' ||
                 apt.patient?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,9 +142,98 @@ export default function AppointmentsPage() {
             const statusMatch = filters.status === 'all' || apt.status === filters.status
             const doctorMatch = filters.doctorId === 'all' || apt.doctorId === filters.doctorId
 
-            return searchMatch && statusMatch && doctorMatch
+            // Normalizar prioridad: NORMAL en DB = MEDIUM en UI, tratar null como MEDIUM
+            const rawPriority = apt.priority || 'NORMAL'
+            const aptPriority = (rawPriority === 'NORMAL' ? 'MEDIUM' : rawPriority).toUpperCase()
+            const filterPriority = filters.priority.toUpperCase()
+            const priorityMatch = filterPriority === 'ALL' || aptPriority === filterPriority
+
+            return searchMatch && statusMatch && doctorMatch && priorityMatch
         })
     }, [appointments, searchTerm, filters])
+
+    // Estadísticas en tiempo real
+    const statistics = useMemo(() => {
+        const total = filteredAppointments.length
+        const todayCount = filteredAppointments.filter(apt => isToday(new Date(apt.appointmentDate))).length
+        const confirmedThisWeek = filteredAppointments.filter(apt =>
+            apt.status === 'CONFIRMED' && isThisWeek(new Date(apt.appointmentDate))
+        ).length
+        const completed = appointments.filter(apt => apt.status === 'COMPLETED').length
+        const totalPast = appointments.filter(apt => isPast(new Date(apt.appointmentDate))).length
+        const completionRate = totalPast > 0 ? Math.round((completed / totalPast) * 100) : 0
+
+        return { total, todayCount, confirmedThisWeek, completionRate }
+    }, [filteredAppointments, appointments])
+
+    // Badges inteligentes
+    const getSmartBadge = (apt: any) => {
+        const now = new Date()
+        const aptDate = new Date(apt.appointmentDate)
+        const minutesUntil = differenceInMinutes(aptDate, now)
+
+        if (minutesUntil > 0 && minutesUntil <= 120) {
+            return { label: 'Urgente', color: 'bg-red-100 text-red-700 border-red-300' }
+        }
+        if (apt.priority === 'HIGH') {
+            return { label: 'Prioridad Alta', color: 'bg-orange-100 text-orange-700 border-orange-300' }
+        }
+        return null
+    }
+
+    // Acciones rápidas
+    const handleQuickAction = async (id: string, newStatus: string) => {
+        try {
+            await appointmentsAPI.updateStatus(id, newStatus)
+            toast({ title: 'Éxito', description: `Cita actualizada a ${newStatus}` })
+            loadData()
+        } catch (error: any) {
+            toast({ title: 'Error', description: 'No se pudo actualizar la cita', variant: 'destructive' })
+        }
+    }
+
+    // Exportar a Excel
+    const exportToExcel = () => {
+        const data = filteredAppointments.map(apt => ({
+            Paciente: apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Desconocido',
+            Doctor: apt.doctor ? `Dr. ${apt.doctor.user?.firstName} ${apt.doctor.user?.lastName}` : 'Desconocido',
+            Fecha: apt.appointmentDate ? format(new Date(apt.appointmentDate), 'dd/MM/yyyy HH:mm') : 'N/A',
+            Estado: apt.status,
+            Motivo: apt.reason || 'Consulta General',
+            Prioridad: apt.priority || 'MEDIUM'
+        }))
+
+        const ws = XLSX.utils.json_to_sheet(data)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Citas')
+        XLSX.writeFile(wb, `Citas_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
+        toast({ title: 'Exportado', description: 'Archivo Excel descargado' })
+    }
+
+    // Exportar a PDF
+    const exportToPDF = () => {
+        const doc = new jsPDF()
+        doc.text('Reporte de Citas - MediSync', 14, 15)
+        doc.setFontSize(10)
+        doc.text(`Generado: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 22)
+
+        const tableData = filteredAppointments.map(apt => [
+            apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Desconocido',
+            apt.doctor ? `Dr. ${apt.doctor.user?.firstName} ${apt.doctor.user?.lastName}` : 'Desconocido',
+            apt.appointmentDate ? format(new Date(apt.appointmentDate), 'dd/MM/yyyy HH:mm') : 'N/A',
+            apt.status,
+            apt.reason || 'Consulta General'
+        ])
+
+        autoTable(doc, {
+            startY: 28,
+            head: [['Paciente', 'Doctor', 'Fecha', 'Estado', 'Motivo']],
+            body: tableData,
+        })
+
+        doc.save(`Citas_${format(new Date(), 'yyyy-MM-dd')}.pdf`)
+        toast({ title: 'Exportado', description: 'Archivo PDF descargado' })
+    }
 
     const getStatusBadge = (status: string) => {
         const colors: Record<string, string> = {
@@ -157,6 +250,7 @@ export default function AppointmentsPage() {
         const colors: Record<string, string> = {
             HIGH: 'bg-red-100 text-red-800',
             MEDIUM: 'bg-yellow-100 text-yellow-800',
+            NORMAL: 'bg-yellow-100 text-yellow-800',
             LOW: 'bg-blue-100 text-blue-800',
         }
         return colors[priority] || colors.MEDIUM
@@ -175,15 +269,76 @@ export default function AppointmentsPage() {
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Citas</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Citas Médicas</h1>
                     <p className="text-muted-foreground">
-                        Gestiona citas y horarios • {filteredAppointments.length} total
+                        Gestión completa de citas y horarios
                     </p>
                 </div>
-                <Button onClick={handleAdd}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nueva Cita
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={exportToExcel}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Excel
+                    </Button>
+                    <Button variant="outline" onClick={exportToPDF}>
+                        <Download className="h-4 w-4 mr-2" />
+                        PDF
+                    </Button>
+                    <Button onClick={handleAdd}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nueva Cita
+                    </Button>
+                </div>
+            </div>
+
+            {/* Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Total de Citas</p>
+                            <h3 className="text-2xl font-bold mt-1">{statistics.total}</h3>
+                        </div>
+                        <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <CalendarCheck className="h-6 w-6 text-indigo-600" />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Citas de Hoy</p>
+                            <h3 className="text-2xl font-bold mt-1">{statistics.todayCount}</h3>
+                        </div>
+                        <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Clock className="h-6 w-6 text-blue-600" />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Confirmadas (Semana)</p>
+                            <h3 className="text-2xl font-bold mt-1">{statistics.confirmedThisWeek}</h3>
+                        </div>
+                        <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="h-6 w-6 text-green-600" />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card className="p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Tasa de Completado</p>
+                            <h3 className="text-2xl font-bold mt-1">{statistics.completionRate}%</h3>
+                        </div>
+                        <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                            <TrendingUp className="h-6 w-6 text-purple-600" />
+                        </div>
+                    </div>
+                </Card>
             </div>
 
             {/* Search and Filters */}
@@ -303,66 +458,101 @@ export default function AppointmentsPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredAppointments.map((apt: any) => (
-                                        <TableRow key={apt.id}>
-                                            <TableCell>
-                                                {apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Desconocido'}
-                                            </TableCell>
-                                            <TableCell>
-                                                {apt.doctor ? `Dr. ${apt.doctor.user?.firstName} ${apt.doctor.user?.lastName}` : 'Desconocido'}
-                                            </TableCell>
-                                            <TableCell>
-                                                {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'dd MMM yyyy', { locale: es }) : 'N/A'}
-                                            </TableCell>
-                                            <TableCell>
-                                                {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'HH:mm', { locale: es }) : 'N/A'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(apt.status)}`}>
-                                                    {apt.status === 'SCHEDULED' && 'Programada'}
-                                                    {apt.status === 'CONFIRMED' && 'Confirmada'}
-                                                    {apt.status === 'COMPLETED' && 'Completada'}
-                                                    {apt.status === 'CANCELLED' && 'Cancelada'}
-                                                    {apt.status === 'NO_SHOW' && 'No Asistió'}
-                                                    {!['SCHEDULED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(apt.status) && apt.status}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell>{apt.reason || 'Consulta General'}</TableCell>
-                                            <TableCell>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(apt.priority || 'MEDIUM')}`}>
-                                                    {apt.priority === 'HIGH' && 'Alta'}
-                                                    {apt.priority === 'MEDIUM' && 'Media'}
-                                                    {apt.priority === 'LOW' && 'Baja'}
-                                                    {(!apt.priority || !['HIGH', 'MEDIUM', 'LOW'].includes(apt.priority)) && 'Media'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleViewDetails(apt.id)}
-                                                    >
-                                                        <Eye className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleEdit(apt)}
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => setDeleteId(apt.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4 text-red-500" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                    filteredAppointments.map((apt: any) => {
+                                        const smartBadge = getSmartBadge(apt)
+                                        return (
+                                            <TableRow key={apt.id} className="hover:bg-accent/50 transition-colors">
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{apt.patient ? `${apt.patient.firstName} ${apt.patient.lastName}` : 'Desconocido'}</span>
+                                                        {smartBadge && (
+                                                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${smartBadge.color}`}>
+                                                                {smartBadge.label}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {apt.doctor ? `Dr. ${apt.doctor.user?.firstName} ${apt.doctor.user?.lastName}` : 'Desconocido'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'dd MMM yyyy', { locale: es }) : 'N/A'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'HH:mm', { locale: es }) : 'N/A'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(apt.status)}`}>
+                                                        {apt.status === 'SCHEDULED' && 'Programada'}
+                                                        {apt.status === 'CONFIRMED' && 'Confirmada'}
+                                                        {apt.status === 'COMPLETED' && 'Completada'}
+                                                        {apt.status === 'CANCELLED' && 'Cancelada'}
+                                                        {apt.status === 'NO_SHOW' && 'No Asistió'}
+                                                        {!['SCHEDULED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(apt.status) && apt.status}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>{apt.reason || 'Consulta General'}</TableCell>
+                                                <TableCell>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(apt.priority || 'NORMAL')}`}>
+                                                        {apt.priority === 'HIGH' && 'Alta'}
+                                                        {(apt.priority === 'MEDIUM' || apt.priority === 'NORMAL' || !apt.priority) && 'Media'}
+                                                        {apt.priority === 'LOW' && 'Baja'}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        {apt.status === 'SCHEDULED' && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleQuickAction(apt.id, 'CONFIRMED')}
+                                                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                                title="Confirmar"
+                                                            >
+                                                                <CheckCircle className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                        {(apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED') && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleQuickAction(apt.id, 'CANCELLED')}
+                                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                title="Cancelar"
+                                                            >
+                                                                <XCircle className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleViewDetails(apt.id)}
+                                                            title="Ver Detalles"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleEdit(apt)}
+                                                            title="Editar"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setDeleteId(apt.id)}
+                                                            className="text-red-500 hover:text-red-700"
+                                                            title="Eliminar"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
                                 )}
                             </TableBody>
                         </Table>

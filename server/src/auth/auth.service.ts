@@ -13,7 +13,9 @@ export class AuthService {
         private prisma: PrismaService,
     ) { }
 
-    async validateUser(email: string, password: string): Promise<any> {
+    async validateUser(rawEmail: string, password: string): Promise<any> {
+        const email = rawEmail.trim().toLowerCase();
+        console.log(`[AUTH DEBUG] Attempting login for email: '${email}'`);
         // We need to fetch the user with patient relation to check if they are a patient
         const user = await this.prisma.user.findUnique({
             where: { email },
@@ -24,13 +26,17 @@ export class AuthService {
         });
 
         if (!user) {
-            throw new UnauthorizedException('Invalid credentials');
+            console.log(`[AUTH DEBUG] User not found for email: '${email}'`);
+            throw new UnauthorizedException('Usuario no encontrado. Verifique el email.');
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            throw new UnauthorizedException('Invalid credentials');
+            console.log(`[AUTH DEBUG] Password INVALID for user: '${email}'`);
+            throw new UnauthorizedException('Contraseña incorrecta.');
         }
+
+        console.log(`[AUTH DEBUG] Login SUCCESS for user: '${email}'`);
 
         if (!user.isActive) {
             throw new UnauthorizedException('Account is inactive');

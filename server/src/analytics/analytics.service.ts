@@ -135,8 +135,8 @@ export class AnalyticsService {
     }
 
     async getSaturationStats() {
-        const totalBeds = await this.prisma.bedStatus.count();
-        const occupiedBeds = await this.prisma.bedStatus.count({ where: { status: 'OCCUPIED' } });
+        const totalBeds = await this.prisma.bed.count();
+        const occupiedBeds = await this.prisma.bed.count({ where: { status: 'OCCUPIED' } });
 
         // Projected saturation based on daily appointments
         const todayApps = await this.prisma.appointment.count({

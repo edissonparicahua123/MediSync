@@ -58,6 +58,7 @@ export const patientsAPI = {
     getAll: (params?: any) => api.get('/patients', { params }),
     getOne: (id: string) => api.get(`/patients/${id}`),
     create: (data: any) => api.post('/patients', data),
+    import: (data: any[]) => api.post('/patients/import', data),
     update: (id: string, data: any) => api.patch(`/patients/${id}`, data),
     delete: (id: string) => api.delete(`/patients/${id}`),
     enablePortal: (id: string) => api.post(`/patients/${id}/enable-portal`, {}),
@@ -99,6 +100,8 @@ export const patientsAPI = {
     addDocument: (id: string, data: any) => api.post(`/patients/${id}/documents`, data),
     deleteDocument: (id: string, documentId: string) =>
         api.delete(`/patients/${id}/documents/${documentId}`),
+    // Notes
+    addNote: (id: string, data: any) => api.post(`/patients/${id}/notes`, data),
 }
 
 // ============================================
@@ -110,6 +113,10 @@ export const doctorsAPI = {
     create: (data: any) => api.post('/doctors', data),
     update: (id: string, data: any) => api.patch(`/doctors/${id}`, data),
     delete: (id: string) => api.delete(`/doctors/${id}`),
+    // Documents
+    getDocuments: (id: string) => api.get(`/doctors/${id}/documents`),
+    addDocument: (id: string, data: any) => api.post(`/doctors/${id}/documents`, data),
+    deleteDocument: (id: string, docId: string) => api.delete(`/doctors/${id}/documents/${docId}`),
 }
 
 // ============================================
@@ -124,6 +131,7 @@ export const appointmentsAPI = {
         api.patch(`/appointments/${id}/status`, { status, notes }),
     delete: (id: string) => api.delete(`/appointments/${id}`),
     cancel: (id: string) => api.patch(`/appointments/${id}/status`, { status: 'CANCELLED' }),
+    getNotifications: (id: string) => api.get(`/appointments/${id}/notifications`),
 }
 
 // ============================================
@@ -161,6 +169,28 @@ export const emergencyAPI = {
     updateBedStatus: (id: string, data: any) => api.put(`/emergency/beds/${id}`, data),
     getWardStats: () => api.get('/emergency/wards/stats'),
     getPatientHistory: (patientId: string) => api.get(`/emergency/history/${patientId}`),
+    createRecord: (data: any) => api.post('/emergency/cases', data),
+    dischargeCase: (id: string) => api.put(`/emergency/cases/${id}/discharge`),
+    getBedById: (id: string) => api.get(`/emergency/beds/${id}`),
+
+    // Clinical recording
+    addVitalSign: (id: string, data: any) => api.post(`/emergency/cases/${id}/vitals`, data),
+    addMedication: (id: string, data: any) => api.post(`/emergency/cases/${id}/medications`, data),
+    addProcedure: (id: string, data: any) => api.post(`/emergency/cases/${id}/procedures`, data),
+    transferPatient: (id: string, targetWard: string, targetBedId?: string, notes?: string) => api.put(`/emergency/cases/${id}/transfer`, { targetWard, targetBedId, notes }),
+    updateCase: (id: string, data: any) => api.put(`/emergency/cases/${id}`, data),
+
+    // Attachments
+    uploadFile: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/files/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+    addAttachment: (caseId: string, data: any) => api.post(`/emergency/cases/${caseId}/attachments`, data),
+    updateAttachment: (id: string, data: { title: string }) => api.put(`/emergency/attachments/${id}`, data),
+    deleteAttachment: (id: string) => api.put(`/emergency/attachments/${id}/delete`),
 }
 
 // ============================================
@@ -175,6 +205,7 @@ export const bedsAPI = {
     delete: (id: string) => api.delete(`/beds/${id}`),
     assign: (id: string, data: any) => api.post(`/beds/${id}/assign`, data),
     discharge: (id: string) => api.post(`/beds/${id}/discharge`),
+    getActivities: () => api.get('/beds/activities'),
 }
 
 // ============================================
@@ -270,14 +301,16 @@ export const pharmacyAPI = {
 // LABORATORY API
 // ============================================
 export const laboratoryAPI = {
+    getAll: (params?: any) => api.get('/laboratory/orders', { params }),
     getOrders: (params?: any) => api.get('/laboratory/orders', { params }),
-    getOrder: (id: string) => api.get(`/laboratory/orders/${id}`),
+    getOne: (id: string) => api.get(`/laboratory/orders/${id}`),
     createOrder: (data: any) => api.post('/laboratory/orders', data),
     updateOrder: (id: string, data: any) => api.patch(`/laboratory/orders/${id}`, data),
     updateStatus: (id: string, status: string, results?: any) =>
         api.patch(`/laboratory/orders/${id}/status`, { status, results }),
     deleteOrder: (id: string) => api.delete(`/laboratory/orders/${id}`),
     getTests: () => api.get('/laboratory/tests'),
+    getStats: () => api.get('/laboratory/stats'),
 }
 
 // ============================================
@@ -364,6 +397,8 @@ export const usersAPI = {
     update: (id: string, data: any) => api.patch(`/users/${id}`, data),
     delete: (id: string) => api.delete(`/users/${id}`),
 }
+
+
 
 // ============================================
 // SYSTEM API

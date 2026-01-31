@@ -1,24 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateBedDto, UpdateBedStatusDto } from './dto';
+import { CreateBedDto, UpdateBedStatusDto, CreateEmergencyCaseDto } from './dto';
 
 @Injectable()
 export class EmergencyService {
     constructor(private prisma: PrismaService) { }
 
     async getDashboard() {
+        // We filter beds by 'Emergencia' ward as this is the Emergency Dashboard
+        const ER_WARD = 'Emergencia';
+
         const [criticalPatients, totalBeds, availableBeds, occupiedBeds, bedsByWard] = await Promise.all([
-            // Now using EmergencyCase instead of Appointment
+            // Critical patients: Strictly Triage level 1 (Emergency)
             this.prisma.emergencyCase.count({
                 where: {
                     status: { in: ['TRIAGE', 'ADMITTED', 'OBSERVATION'] },
-                    triageLevel: { lte: 2 }, // Levels 1 and 2 are critical/urgent
+                    triageLevel: 1,
                 },
             }),
-            this.prisma.bedStatus.count(),
-            this.prisma.bedStatus.count({ where: { status: 'AVAILABLE' } }),
-            this.prisma.bedStatus.count({ where: { status: 'OCCUPIED' } }),
-            this.prisma.bedStatus.groupBy({
+            this.prisma.bed.count({ where: { ward: ER_WARD } }),
+            this.prisma.bed.count({ where: { ward: ER_WARD, status: 'AVAILABLE' } }),
+            this.prisma.bed.count({ where: { ward: ER_WARD, status: 'OCCUPIED' } }),
+            this.prisma.bed.groupBy({
                 by: ['ward', 'status'],
                 _count: true,
             }),
@@ -41,13 +44,52 @@ export class EmergencyService {
             where: {
                 status: { in: ['TRIAGE', 'ADMITTED', 'OBSERVATION'] },
             },
+            include: {
+                bed: true,
+                doctor: {
+                    include: {
+                        user: {
+                            select: {
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                }
+            },
             orderBy: { triageLevel: 'asc' }, // Lower number = Higher priority
         });
     }
 
     async getCaseById(id: string) {
         return this.prisma.emergencyCase.findUnique({
-            where: { id }
+            where: { id },
+            include: {
+                patient: true,
+                bed: true,
+                doctor: {
+                    include: {
+                        user: {
+                            select: {
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                },
+                vitalSignsHistory: {
+                    orderBy: { createdAt: 'desc' }
+                },
+                medications: {
+                    orderBy: { administeredAt: 'desc' }
+                },
+                procedures: {
+                    orderBy: { performedAt: 'desc' }
+                },
+                attachments: {
+                    orderBy: { createdAt: 'desc' }
+                }
+            }
         });
     }
 
@@ -73,31 +115,229 @@ export class EmergencyService {
     }
 
     // [NEW] Helper to create emergency case
-    async createEmergencyCase(data: any) {
-        return this.prisma.emergencyCase.create({ data });
+    async createEmergencyCase(data: CreateEmergencyCaseDto) {
+        // Fetch patient name if patientId is provided
+        let patientName = data.patientName || 'Unknown Patient';
+        let patientAge = data.patientAge;
+
+        if (data.patientId) {
+            const patient = await this.prisma.patient.findUnique({
+                where: { id: data.patientId },
+                select: { firstName: true, lastName: true, dateOfBirth: true }
+            });
+
+            if (patient) {
+                patientName = `${patient.firstName} ${patient.lastName}`;
+                if (patient.dateOfBirth) {
+                    const today = new Date();
+                    const birthDate = new Date(patient.dateOfBirth);
+                    patientAge = today.getFullYear() - birthDate.getFullYear();
+                    const m = today.getMonth() - birthDate.getMonth();
+                    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                        patientAge--;
+                    }
+                }
+            }
+        }
+
+        let bedNumber = null;
+        if (data.bedId) {
+            const bed = await this.prisma.bed.findUnique({
+                where: { id: data.bedId },
+                select: { number: true }
+            });
+            if (bed) bedNumber = bed.number;
+
+            // Update bed status to OCCUPIED
+            await this.prisma.bed.update({
+                where: { id: data.bedId },
+                data: {
+                    status: 'OCCUPIED',
+                    patientId: data.patientId || null,
+                    diagnosis: data.diagnosis || data.chiefComplaint,
+                    admissionDate: new Date()
+                }
+            });
+        }
+
+        let doctorName = null;
+        if (data.doctorId) {
+            const doctor = await this.prisma.doctor.findUnique({
+                where: { id: data.doctorId },
+                include: { user: { select: { firstName: true, lastName: true } } }
+            });
+            if (doctor) doctorName = `Dr. ${doctor.user.firstName} ${doctor.user.lastName}`;
+        }
+
+        const newCase = await this.prisma.emergencyCase.create({
+            data: {
+                patientName,
+                patientAge,
+                patientId: data.patientId || null,
+                triageLevel: data.triageLevel,
+                chiefComplaint: data.chiefComplaint,
+                diagnosis: data.diagnosis || null,
+                bedId: data.bedId || null,
+                bedNumber,
+                doctorId: data.doctorId || null,
+                doctorName,
+                vitalSigns: data.vitalSigns || null,
+                status: 'ADMITTED'
+            }
+        });
+
+        // [SENIOR] Automatically record initial vital signs in history
+        if (data.vitalSigns) {
+            const vs = data.vitalSigns;
+            await this.addVitalSign(newCase.id, {
+                hr: vs.hr,
+                bp: vs.bp,
+                temp: vs.temp,
+                spo2: vs.spo2,
+                rr: vs.rr,
+                performedBy: doctorName || 'Admisión'
+            });
+        }
+
+        return newCase;
+    }
+
+    async updateEmergencyCase(id: string, data: Partial<CreateEmergencyCaseDto>) {
+        console.log(`[EmergencyService] Update start for case ${id}`);
+        try {
+            const currentCase = await this.prisma.emergencyCase.findUnique({
+                where: { id },
+                select: { bedId: true, doctorId: true, patientId: true }
+            });
+
+            if (!currentCase) {
+                throw new Error(`No se encontró el caso con ID ${id}`);
+            }
+
+            const updateData: any = {};
+
+            // Basic Fields
+            if (data.triageLevel !== undefined) {
+                const level = typeof data.triageLevel === 'string' ? parseInt(data.triageLevel) : data.triageLevel;
+                if (!isNaN(level)) updateData.triageLevel = level;
+            }
+            if (data.chiefComplaint !== undefined) updateData.chiefComplaint = data.chiefComplaint;
+            if (data.diagnosis !== undefined) updateData.diagnosis = data.diagnosis;
+            if (data.notes !== undefined) updateData.notes = data.notes;
+
+            // Vital Signs (Handle JSON carefully)
+            if (data.vitalSigns) {
+                const vs = data.vitalSigns;
+                updateData.vitalSigns = {
+                    hr: (vs.hr !== null && vs.hr !== "") ? parseFloat(vs.hr) : null,
+                    bp: vs.bp || null,
+                    temp: (vs.temp !== null && vs.temp !== "") ? parseFloat(vs.temp) : null,
+                    spo2: (vs.spo2 !== null && vs.spo2 !== "") ? parseFloat(vs.spo2) : null,
+                    rr: (vs.rr !== null && vs.rr !== "") ? parseFloat(vs.rr) : null,
+                };
+            }
+
+            // Staff & Bed Caching details
+            if (data.doctorId && data.doctorId !== currentCase.doctorId) {
+                const doctor = await this.prisma.doctor.findUnique({
+                    where: { id: data.doctorId },
+                    include: { user: { select: { firstName: true, lastName: true } } }
+                });
+                if (doctor) {
+                    updateData.doctorId = data.doctorId;
+                    updateData.doctorName = `Dr. ${doctor.user.firstName} ${doctor.user.lastName}`;
+                }
+            }
+
+            // [SENIOR] If vital signs are updated during edit, also log to history
+            if (data.vitalSigns) {
+                await this.addVitalSign(id, {
+                    ...data.vitalSigns,
+                    performedBy: updateData.doctorName || 'Actualización Sistema'
+                });
+            }
+
+            // Bed reassignment logic
+            if (data.bedId && data.bedId !== currentCase.bedId) {
+                // Release old bed
+                if (currentCase.bedId) {
+                    await this.prisma.bed.update({
+                        where: { id: currentCase.bedId },
+                        data: {
+                            status: 'AVAILABLE',
+                            patientId: null,
+                            admissionDate: null,
+                            diagnosis: null
+                        }
+                    });
+                }
+
+                const newBed = await this.prisma.bed.findUnique({ where: { id: data.bedId } });
+                if (newBed) {
+                    updateData.bedId = data.bedId;
+                    updateData.bedNumber = newBed.number;
+
+                    // Occupy new bed
+                    await this.prisma.bed.update({
+                        where: { id: data.bedId },
+                        data: {
+                            status: 'OCCUPIED',
+                            patientId: currentCase.patientId,
+                            diagnosis: data.diagnosis || data.chiefComplaint,
+                            admissionDate: new Date() // Reset admission date to now for the new bed
+                        }
+                    });
+                }
+            } else if (data.bedId === currentCase.bedId && (data.diagnosis || data.chiefComplaint)) {
+                // If bed is same, still update the bed's diagnosis
+                await this.prisma.bed.update({
+                    where: { id: currentCase.bedId },
+                    data: {
+                        diagnosis: data.diagnosis || data.chiefComplaint
+                    }
+                });
+            }
+
+            console.log(`[EmergencyService] Executing Prisma update for ${id}`);
+            await this.prisma.emergencyCase.update({
+                where: { id },
+                data: updateData
+            });
+
+            return this.getCaseById(id);
+        } catch (error: any) {
+            console.error(`[EmergencyService] FATAL ERROR updating case ${id}:`, error);
+            throw new Error(`Error en el servicio: ${error.message}`);
+        }
     }
 
     async createBed(data: CreateBedDto) {
-        return this.prisma.bedStatus.create({
-            data,
+        return this.prisma.bed.create({
+            data: {
+                number: data.bedNumber,
+                ward: data.ward,
+                type: 'Camilla', // Default for emergency
+                status: 'AVAILABLE',
+            },
         });
     }
 
-    async getAllBeds(ward?: string) {
+    async getAllBeds(ward?: string, status?: string) {
         const where: any = {};
         if (ward) where.ward = ward;
+        if (status) where.status = status;
 
-        return this.prisma.bedStatus.findMany({
+        return this.prisma.bed.findMany({
             where,
             include: {
                 patient: true,
             },
-            orderBy: [{ ward: 'asc' }, { bedNumber: 'asc' }],
+            orderBy: [{ ward: 'asc' }, { number: 'asc' }],
         });
     }
 
     async getBedById(id: string) {
-        return this.prisma.bedStatus.findUnique({
+        return this.prisma.bed.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -109,20 +349,20 @@ export class EmergencyService {
         const updateData: any = { ...data };
 
         if (data.patientId) {
-            updateData.assignedAt = new Date();
+            updateData.admissionDate = new Date();
         } else if (data.status === 'AVAILABLE') {
             updateData.patientId = null;
-            updateData.assignedAt = null;
+            updateData.admissionDate = null;
         }
 
-        return this.prisma.bedStatus.update({
+        return this.prisma.bed.update({
             where: { id },
             data: updateData,
         });
     }
 
     async getWardStats() {
-        const wards = await this.prisma.bedStatus.groupBy({
+        const wards = await this.prisma.bed.groupBy({
             by: ['ward'],
             _count: true,
         });
@@ -130,9 +370,9 @@ export class EmergencyService {
         const wardDetails = await Promise.all(
             wards.map(async (ward) => {
                 const [available, occupied, maintenance] = await Promise.all([
-                    this.prisma.bedStatus.count({ where: { ward: ward.ward, status: 'AVAILABLE' } }),
-                    this.prisma.bedStatus.count({ where: { ward: ward.ward, status: 'OCCUPIED' } }),
-                    this.prisma.bedStatus.count({ where: { ward: ward.ward, status: 'MAINTENANCE' } }),
+                    this.prisma.bed.count({ where: { ward: ward.ward, status: 'AVAILABLE' } }),
+                    this.prisma.bed.count({ where: { ward: ward.ward, status: 'OCCUPIED' } }),
+                    this.prisma.bed.count({ where: { ward: ward.ward, status: 'MAINTENANCE' } }),
                 ]);
 
                 return {
@@ -146,5 +386,220 @@ export class EmergencyService {
         );
 
         return wardDetails;
+    }
+
+    async dischargeCase(id: string) {
+        const emergencyCase = await this.prisma.emergencyCase.findUnique({
+            where: { id },
+        });
+
+        if (!emergencyCase) {
+            throw new Error('Emergency case not found');
+        }
+
+        // 1. Update the emergency case status
+        const updatedCase = await this.prisma.emergencyCase.update({
+            where: { id },
+            data: {
+                status: 'DISCHARGED',
+                updatedAt: new Date(),
+            },
+        });
+
+        // 2. If it had a bed assigned, release it
+        if (emergencyCase.bedId) {
+            await this.prisma.bed.update({
+                where: { id: emergencyCase.bedId },
+                data: {
+                    status: 'AVAILABLE',
+                    patientId: null,
+                    admissionDate: null,
+                    diagnosis: null,
+                },
+            });
+
+            // Log activity
+            await this.prisma.bedActivity.create({
+                data: {
+                    bedId: emergencyCase.bedId,
+                    action: 'ALTA',
+                    details: `Paciente dado de alta desde Emergencias. Caso: ${id}`,
+                }
+            });
+        }
+
+        return updatedCase;
+    }
+
+    // --- Clinical Tracking Methods ---
+
+    async addVitalSign(caseId: string, data: any) {
+        // Also update the main case vitalSigns JSON for quick display
+        await this.prisma.emergencyCase.update({
+            where: { id: caseId },
+            data: {
+                vitalSigns: data,
+                updatedAt: new Date()
+            }
+        });
+
+        return this.prisma.emergencyVitalSign.create({
+            data: {
+                emergencyCaseId: caseId,
+                hr: data.hr ? parseFloat(data.hr) : null,
+                bp: data.bp,
+                temp: data.temp ? parseFloat(data.temp) : null,
+                spo2: data.spo2 ? parseFloat(data.spo2) : null,
+                rr: data.rr ? parseFloat(data.rr) : null,
+                performedBy: data.performedBy
+            }
+        });
+    }
+
+    async addMedication(caseId: string, data: any) {
+        return this.prisma.emergencyMedication.create({
+            data: {
+                emergencyCaseId: caseId,
+                name: data.name,
+                dosage: data.dosage,
+                route: data.route,
+                administeredBy: data.administeredBy,
+                notes: data.notes
+            }
+        });
+    }
+
+    async addProcedure(caseId: string, data: any) {
+        return this.prisma.emergencyProcedure.create({
+            data: {
+                emergencyCaseId: caseId,
+                name: data.name,
+                description: data.description,
+                performedBy: data.performedBy,
+                result: data.result
+            }
+        });
+    }
+
+    async uploadAttachment(caseId: string, data: any) {
+        return this.prisma.emergencyAttachment.create({
+            data: {
+                emergencyCaseId: caseId,
+                title: data.title,
+                url: data.url,
+                type: data.type
+            }
+        });
+    }
+
+    async updateAttachment(id: string, data: { title: string }) {
+        return this.prisma.emergencyAttachment.update({
+            where: { id },
+            data: { title: data.title }
+        });
+    }
+
+    async deleteAttachment(id: string) {
+        // In a real app, we would also delete the file from storage
+        return this.prisma.emergencyAttachment.delete({
+            where: { id }
+        });
+    }
+
+    // --- Transfer Logic ---
+
+    async transferPatient(id: string, data: { targetWard: string, targetBedId?: string, notes?: string }) {
+        const { targetWard, targetBedId, notes } = data;
+
+        const emergencyCase = await this.prisma.emergencyCase.findUnique({
+            where: { id },
+        });
+
+        if (!emergencyCase) {
+            throw new Error('Emergency case not found');
+        }
+
+        // 1. Update case status to OBSERVATION and cache new bed if provided
+        const updateData: any = {
+            status: 'OBSERVATION',
+            notes: notes || `Trasladado a ${targetWard} el ${new Date().toISOString()}`,
+            updatedAt: new Date(),
+        };
+
+        if (targetBedId) {
+            const targetBed = await this.prisma.bed.findUnique({ where: { id: targetBedId } });
+            if (targetBed) {
+                updateData.bedId = targetBedId;
+                updateData.bedNumber = targetBed.number;
+            }
+        }
+
+        const updatedCase = await this.prisma.emergencyCase.update({
+            where: { id },
+            data: updateData,
+        });
+
+        // 2. Release the ER bed
+        if (emergencyCase.bedId) {
+            await this.prisma.bed.update({
+                where: { id: emergencyCase.bedId },
+                data: {
+                    status: 'AVAILABLE',
+                    patientId: null,
+                    admissionDate: null,
+                    diagnosis: null,
+                },
+            });
+
+            // Log activity for the ER bed
+            await this.prisma.bedActivity.create({
+                data: {
+                    bedId: emergencyCase.bedId,
+                    action: 'TRASLADO',
+                    details: `Paciente trasladado a ${targetWard}. Caso: ${id}`,
+                }
+            });
+        }
+
+        // 3. Occupy target bed if provided
+        if (targetBedId) {
+            await this.prisma.bed.update({
+                where: { id: targetBedId },
+                data: {
+                    status: 'OCCUPIED',
+                    patientId: emergencyCase.patientId,
+                    admissionDate: new Date(),
+                    diagnosis: emergencyCase.diagnosis || emergencyCase.chiefComplaint,
+                    notes: notes || 'Traslado desde Emergencias'
+                }
+            });
+
+            // Log activity for the target bed
+            await this.prisma.bedActivity.create({
+                data: {
+                    bedId: targetBedId,
+                    action: 'INGRESO',
+                    details: `Paciente ingresado desde Emergencias. Caso: ${id}`,
+                }
+            });
+        }
+
+        // 3. Create a Medical Record entry for the transfer (Epicrisis de Traslado)
+        if (emergencyCase.patientId && emergencyCase.doctorId) {
+            await this.prisma.medicalRecord.create({
+                data: {
+                    patientId: emergencyCase.patientId,
+                    doctorId: emergencyCase.doctorId,
+                    visitDate: new Date(),
+                    chiefComplaint: emergencyCase.chiefComplaint,
+                    diagnosis: emergencyCase.diagnosis || 'Pendiente',
+                    treatment: `TRASLADO A ${targetWard.toUpperCase()}.`,
+                    notes: notes || `Traslado a ${targetWard} para manejo continuo.`,
+                    // We could also add a field for patient status if the schema supports it
+                }
+            });
+        }
+
+        return updatedCase;
     }
 }

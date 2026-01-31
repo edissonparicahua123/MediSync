@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import {
     Table,
     TableBody,
@@ -11,6 +12,12 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
+import {
+    Select,
+    SelectContent,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import {
     Stethoscope,
     Plus,
@@ -23,6 +30,7 @@ import {
     XCircle,
     Clock,
     Phone,
+    Moon,
 } from 'lucide-react'
 import { doctorsAPI, appointmentsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
@@ -39,6 +47,49 @@ import {
 } from "@/components/ui/alert-dialog"
 import { format, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
+
+// Visual Schedule Component
+const ScheduleBadges = ({ schedules }: { schedules: any[] }) => {
+    const days = ['D', 'L', 'M', 'M', 'J', 'V', 'S']
+    const activeDays = new Set(schedules?.map((s: any) => s.dayOfWeek) || [])
+
+    // Find common hours or indicate variance
+    let hoursStr = '-'
+    if (schedules && schedules.length > 0) {
+        const uniqueTimes = new Set(schedules.map((s: any) => `${s.startTime}-${s.endTime}`))
+        if (uniqueTimes.size === 1) {
+            hoursStr = `${schedules[0].startTime.slice(0, 5)} - ${schedules[0].endTime.slice(0, 5)}`
+        } else {
+            hoursStr = 'Horario Variable'
+        }
+    }
+
+    return (
+        <div className="flex flex-col gap-1.5">
+            <div className="flex gap-1">
+                {days.map((day, i) => (
+                    <div
+                        key={i}
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black transition-all ${activeDays.has(i) ? 'bg-indigo-100 text-indigo-600 ring-1 ring-indigo-200' : 'bg-slate-50 text-slate-300'}`}
+                        title={activeDays.has(i) ? 'Laborable' : 'No laborable'}
+                    >
+                        {day}
+                    </div>
+                ))}
+            </div>
+            {schedules?.length > 0 && (
+                <span className="text-[10px] text-muted-foreground font-bold tracking-tight pl-0.5">
+                    {hoursStr}
+                </span>
+            )}
+            {(!schedules || schedules.length === 0) && (
+                <span className="text-[10px] text-slate-400 font-medium pl-0.5">
+                    Sin asignar
+                </span>
+            )}
+        </div>
+    )
+}
 
 export default function DoctorsPage() {
     const navigate = useNavigate()
@@ -114,13 +165,37 @@ export default function DoctorsPage() {
         navigate(`/doctors/${doctorId}`)
     }
 
-    // Calcular pacientes atendidos hoy por doctor
+
+
+    const handleToggleAvailability = async (doctor: any) => {
+        try {
+            await doctorsAPI.update(doctor.id, {
+                isAvailable: !doctor.isAvailable
+            })
+            // Optimistic update or reload
+            setDoctors(prev => prev.map(d =>
+                d.id === doctor.id ? { ...d, isAvailable: !d.isAvailable } : d
+            ))
+            toast({
+                title: 'Estado actualizado',
+                description: `Doctor ${!doctor.isAvailable ? 'marcado como disponible' : 'marcado como no disponible'}`,
+            })
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'No se pudo actualizar la disponibilidad',
+                variant: 'destructive',
+            })
+            loadData() // Revert on error
+        }
+    }
     const getPatientsToday = (doctorId: string) => {
         return appointments.filter((apt: any) => {
             try {
                 return apt.doctorId === doctorId &&
                     isToday(new Date(apt.appointmentDate)) &&
-                    apt.status === 'COMPLETED'
+                    // Count all valid appointments (not cancelled)
+                    apt.status !== 'CANCELLED'
             } catch {
                 return false
             }
@@ -129,21 +204,45 @@ export default function DoctorsPage() {
 
     // Obtener estado del doctor
     const getDoctorStatus = (doctor: any) => {
-        const todayAppointments = appointments.filter((apt: any) => {
+        if (!doctor.isAvailable) return { status: 'NO DISPONIBLE', color: 'text-gray-500', bgColor: 'bg-gray-100' }
+
+        const now = new Date()
+        const currentAppointment = appointments.find((apt: any) => {
             try {
-                return apt.doctorId === doctor.id && isToday(new Date(apt.appointmentDate))
+                if (apt.doctorId !== doctor.id) return false
+                if (apt.status !== 'SCHEDULED' && apt.status !== 'CONFIRMED' && apt.status !== 'IN_PROGRESS') return false
+
+                const aptTime = new Date(apt.appointmentDate)
+                // Assume 30 min duration for now
+                const aptEndTime = new Date(aptTime.getTime() + 30 * 60000)
+
+                return isToday(aptTime) && now >= aptTime && now <= aptEndTime
             } catch {
                 return false
             }
         })
 
-        const activeAppointments = todayAppointments.filter((apt: any) =>
-            apt.status === 'SCHEDULED' || apt.status === 'CONFIRMED'
-        )
-
-        if (!doctor.isAvailable) return { status: 'NO DISPONIBLE', color: 'text-gray-500', bgColor: 'bg-gray-100' }
-        if (activeAppointments.length > 0) return { status: 'OCUPADO', color: 'text-orange-500', bgColor: 'bg-orange-100' }
+        if (currentAppointment) return { status: 'OCUPADO', color: 'text-orange-500', bgColor: 'bg-orange-100' }
         return { status: 'DISPONIBLE', color: 'text-green-500', bgColor: 'bg-green-100' }
+    }
+
+    const formatSchedule = (schedules: any[]) => {
+        if (!schedules || schedules.length === 0) return { days: 'Sin Horario', hours: '-' }
+
+        // Simple logic: Take the first schedule or summarize
+        // Ideal: Group by hours (e.g. Mon-Fri 8-5)
+        // For now, let's show the range of days effectively
+        const days = schedules.map(s => s.dayOfWeek).sort()
+        const startDay = days[0]
+        const endDay = days[days.length - 1]
+
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+        const dayStr = days.length > 2 && (endDay - startDay === days.length - 1)
+            ? `${dayNames[startDay]}-${dayNames[endDay]}`
+            : days.map(d => dayNames[d]).join(', ')
+
+        const hours = `${schedules[0].startTime} - ${schedules[0].endTime}`
+        return { days: dayStr, hours }
     }
 
     const filteredDoctors = doctors.filter((doctor: any) =>
@@ -245,16 +344,14 @@ export default function DoctorsPage() {
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="text-sm">
-                                                <p>Lun-Vie</p>
-                                                <p className="text-xs text-muted-foreground">8:00 AM - 5:00 PM</p>
-                                            </div>
+                                            <ScheduleBadges schedules={doctor.schedules} />
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                {statusInfo.status === 'DISPONIBLE' && <CheckCircle2 className={`h-4 w-4 ${statusInfo.color}`} />}
-                                                {statusInfo.status === 'OCUPADO' && <Clock className={`h-4 w-4 ${statusInfo.color}`} />}
-                                                {statusInfo.status === 'NO DISPONIBLE' && <XCircle className={`h-4 w-4 ${statusInfo.color}`} />}
+                                                <Switch
+                                                    checked={doctor.isAvailable}
+                                                    onCheckedChange={() => handleToggleAvailability(doctor)}
+                                                />
                                                 <span className={`text-xs px-2 py-1 rounded-full ${statusInfo.bgColor} ${statusInfo.color}`}>
                                                     {statusInfo.status}
                                                 </span>

@@ -185,13 +185,13 @@ export default function InvoiceModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0f172a] border-white/10 text-white">
                 <DialogHeader>
-                    <DialogTitle>{invoice ? 'Edit Invoice' : 'New Invoice'}</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-xl font-bold">{invoice ? 'Editar Factura' : 'Nueva Factura'}</DialogTitle>
+                    <DialogDescription className="text-slate-400">
                         {invoice
-                            ? 'Update invoice details and items.'
-                            : 'Create a new invoice for a patient.'}
+                            ? 'Actualice los detalles de la factura.'
+                            : 'Cree una nueva factura para un paciente.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -204,14 +204,14 @@ export default function InvoiceModal({
                                 name="patientId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Patient</FormLabel>
+                                        <FormLabel className="text-slate-300 font-bold uppercase text-xs tracking-wider">Paciente</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select patient" />
+                                                <SelectTrigger className="bg-black/20 border-white/10 text-white h-10 rounded-xl">
+                                                    <SelectValue placeholder="Seleccione paciente" />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent>
+                                            <SelectContent className="bg-[#0f172a] border-white/10 text-white">
                                                 {patients.map((p) => (
                                                     <SelectItem key={p.id} value={p.id}>
                                                         {p.firstName} {p.lastName}
@@ -229,9 +229,9 @@ export default function InvoiceModal({
                                 name="invoiceNumber"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Invoice #</FormLabel>
+                                        <FormLabel className="text-slate-300 font-bold uppercase text-xs tracking-wider">Factura #</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="INV-001" {...field} />
+                                            <Input placeholder="INV-001" {...field} className="bg-black/20 border-white/10 text-white rounded-xl" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -243,18 +243,18 @@ export default function InvoiceModal({
                                 name="status"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Status</FormLabel>
+                                        <FormLabel className="text-slate-300 font-bold uppercase text-xs tracking-wider">Estado</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Status" />
+                                                <SelectTrigger className="bg-black/20 border-white/10 text-white h-10 rounded-xl">
+                                                    <SelectValue placeholder="Estado" />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="PENDING">Pending</SelectItem>
-                                                <SelectItem value="PAID">Paid</SelectItem>
-                                                <SelectItem value="OVERDUE">Overdue</SelectItem>
-                                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                            <SelectContent className="bg-[#0f172a] border-white/10 text-white">
+                                                <SelectItem value="PENDING">Pendiente</SelectItem>
+                                                <SelectItem value="PAID">Pagado</SelectItem>
+                                                <SelectItem value="OVERDUE">Vencido</SelectItem>
+                                                <SelectItem value="CANCELLED">Cancelado</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -269,9 +269,9 @@ export default function InvoiceModal({
                                 name="invoiceDate"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Invoice Date</FormLabel>
+                                        <FormLabel className="text-slate-300 font-bold uppercase text-xs tracking-wider">Fecha Emisión</FormLabel>
                                         <FormControl>
-                                            <Input type="date" {...field} />
+                                            <Input type="date" {...field} className="bg-black/20 border-white/10 text-white rounded-xl" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -283,9 +283,9 @@ export default function InvoiceModal({
                                 name="dueDate"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Due Date (Optional)</FormLabel>
+                                        <FormLabel className="text-slate-300 font-bold uppercase text-xs tracking-wider">Vencimiento (Opcional)</FormLabel>
                                         <FormControl>
-                                            <Input type="date" {...field} />
+                                            <Input type="date" {...field} className="bg-black/20 border-white/10 text-white rounded-xl" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -294,8 +294,8 @@ export default function InvoiceModal({
                         </div>
 
                         {/* Items Section */}
-                        <div className="border rounded-md p-4 bg-slate-50">
-                            <h3 className="font-medium mb-3">Invoice Items</h3>
+                        <div className="border border-white/10 rounded-xl p-4 bg-white/5">
+                            <h3 className="font-bold mb-3 text-white uppercase text-sm tracking-widest">Items de Factura</h3>
                             <div className="space-y-3">
                                 {fields.map((field, index) => (
                                     <div key={field.id} className="flex gap-2 items-end">
@@ -304,9 +304,9 @@ export default function InvoiceModal({
                                             name={`items.${index}.description`}
                                             render={({ field }) => (
                                                 <FormItem className="flex-1">
-                                                    <FormLabel className={index !== 0 ? "sr-only" : ""}>Description</FormLabel>
+                                                    <FormLabel className={`text-slate-400 text-xs uppercase ${index !== 0 ? "sr-only" : ""}`}>Descripción</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Service or Item" {...field} />
+                                                        <Input placeholder="Servicio o Ítem" {...field} className="bg-black/20 border-white/10 text-white rounded-lg h-9" />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -317,9 +317,9 @@ export default function InvoiceModal({
                                             name={`items.${index}.quantity`}
                                             render={({ field }) => (
                                                 <FormItem className="w-24">
-                                                    <FormLabel className={index !== 0 ? "sr-only" : ""}>Qty</FormLabel>
+                                                    <FormLabel className={`text-slate-400 text-xs uppercase ${index !== 0 ? "sr-only" : ""}`}>Cant.</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" min="1" {...field} />
+                                                        <Input type="number" min="1" {...field} className="bg-black/20 border-white/10 text-white rounded-lg h-9" />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -330,9 +330,9 @@ export default function InvoiceModal({
                                             name={`items.${index}.unitPrice`}
                                             render={({ field }) => (
                                                 <FormItem className="w-32">
-                                                    <FormLabel className={index !== 0 ? "sr-only" : ""}>Price</FormLabel>
+                                                    <FormLabel className={`text-slate-400 text-xs uppercase ${index !== 0 ? "sr-only" : ""}`}>Precio</FormLabel>
                                                     <FormControl>
-                                                        <Input type="number" min="0" step="0.01" {...field} />
+                                                        <Input type="number" min="0" step="0.01" {...field} className="bg-black/20 border-white/10 text-white rounded-lg h-9" />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -342,7 +342,7 @@ export default function InvoiceModal({
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="text-red-500"
+                                            className="text-red-500 hover:text-red-400 hover:bg-red-500/10 h-9 w-9 rounded-lg"
                                             onClick={() => remove(index)}
                                             disabled={fields.length === 1}
                                         >
@@ -355,30 +355,30 @@ export default function InvoiceModal({
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="mt-4"
+                                className="mt-4 border-white/10 bg-white/5 hover:bg-white/10 text-white text-xs font-bold uppercase tracking-wider"
                                 onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}
                             >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Item
+                                <Plus className="h-3 w-3 mr-2" />
+                                Agregar Item
                             </Button>
                         </div>
 
                         {/* Totals Section */}
                         <div className="flex flex-col items-end gap-2">
-                            <div className="w-full md:w-1/3 space-y-2">
-                                <div className="flex justify-between items-center text-sm">
+                            <div className="w-full md:w-1/3 space-y-2 bg-black/20 p-4 rounded-xl border border-white/5">
+                                <div className="flex justify-between items-center text-sm text-slate-300">
                                     <span>Subtotal:</span>
-                                    <span className="font-medium">${subtotal.toFixed(2)}</span>
+                                    <span className="font-medium text-white">${subtotal.toFixed(2)}</span>
                                 </div>
 
                                 <FormField
                                     control={form.control}
                                     name="tax"
                                     render={({ field }) => (
-                                        <FormItem className="flex justify-between items-center gap-4">
-                                            <FormLabel className="whitespace-nowrap">Tax ($)</FormLabel>
+                                        <FormItem className="flex justify-between items-center gap-4 space-y-0">
+                                            <FormLabel className="whitespace-nowrap text-slate-300 font-normal">Impuesto ($)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" min="0" step="0.01" className="text-right w-24 h-8" {...field} />
+                                                <Input type="number" min="0" step="0.01" className="text-right w-24 h-8 bg-black/20 border-white/10 text-white" {...field} />
                                             </FormControl>
                                         </FormItem>
                                     )}
@@ -388,18 +388,18 @@ export default function InvoiceModal({
                                     control={form.control}
                                     name="discount"
                                     render={({ field }) => (
-                                        <FormItem className="flex justify-between items-center gap-4">
-                                            <FormLabel className="whitespace-nowrap">Discount ($)</FormLabel>
+                                        <FormItem className="flex justify-between items-center gap-4 space-y-0">
+                                            <FormLabel className="whitespace-nowrap text-slate-300 font-normal">Descuento ($)</FormLabel>
                                             <FormControl>
-                                                <Input type="number" min="0" step="0.01" className="text-right w-24 h-8" {...field} />
+                                                <Input type="number" min="0" step="0.01" className="text-right w-24 h-8 bg-black/20 border-white/10 text-white" {...field} />
                                             </FormControl>
                                         </FormItem>
                                     )}
                                 />
 
-                                <div className="flex justify-between items-center text-lg font-bold border-t pt-2 mt-2">
-                                    <span>Total:</span>
-                                    <span>${total.toFixed(2)}</span>
+                                <div className="flex justify-between items-center text-lg font-bold border-t border-white/10 pt-2 mt-2">
+                                    <span className="text-white">Total:</span>
+                                    <span className="text-emerald-400">${total.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
@@ -409,28 +409,29 @@ export default function InvoiceModal({
                             name="notes"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Notes</FormLabel>
+                                    <FormLabel className="text-slate-300 font-bold uppercase text-xs tracking-wider">Notas</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Payment instructions or additional notes..." {...field} />
+                                        <Textarea placeholder="Instrucciones de pago o notas adicionales..." {...field} className="bg-black/20 border-white/10 text-white rounded-xl" />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
 
-                        <div className="flex justify-end gap-3">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
+                                className="bg-transparent border-white/10 text-white hover:bg-white/5 rounded-xl"
                             >
-                                Cancel
+                                Cancelar
                             </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting || loadingPatients}>
+                            <Button type="submit" disabled={form.formState.isSubmitting || loadingPatients} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20">
                                 {form.formState.isSubmitting && (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 )}
-                                {invoice ? 'Save Changes' : 'Create Invoice'}
+                                {invoice ? 'Guardar Cambios' : 'Crear Factura'}
                             </Button>
                         </div>
                     </form>

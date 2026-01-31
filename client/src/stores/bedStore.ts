@@ -12,9 +12,12 @@ export interface Bed {
     status: BedStatus
     patientId?: string
     diagnosis?: string
+    specialty?: string
+    estimatedDischarge?: string
     patientName?: string
     admissionDate?: string
     notes?: string
+    patient?: any
     activities?: any[]
 }
 
@@ -31,10 +34,11 @@ interface BedState {
     updateBed: (id: string, updates: Partial<Bed>) => Promise<void>
     deleteBed: (id: string) => Promise<void>
 
-    assignPatient: (bedId: string, data: { patientId: string }) => Promise<void>
+    assignPatient: (bedId: string, data: { patientId: string, diagnosis?: string, specialty?: string, estimatedDischarge?: string }) => Promise<void>
     dischargePatient: (bedId: string) => Promise<void>
     setBedStatus: (bedId: string, status: BedStatus) => Promise<void>
     reserveBed: (bedId: string, data: any) => Promise<void>
+    fetchActivityLog: () => Promise<void>
 
     getStats: () => any
 }
@@ -49,7 +53,11 @@ export const useBedStore = create<BedState>((set, get) => ({
         set({ isLoading: true })
         try {
             const response = await bedsAPI.getAll()
-            set({ beds: response.data.data })
+            const bedsData = (response.data.data || response.data).map((bed: any) => ({
+                ...bed,
+                patientName: bed.patient ? `${bed.patient.firstName} ${bed.patient.lastName}` : null
+            }))
+            set({ beds: bedsData })
         } catch (error) {
             console.error('Failed to fetch beds', error)
         } finally {
@@ -113,9 +121,27 @@ export const useBedStore = create<BedState>((set, get) => ({
             await bedsAPI.assign(bedId, data)
             get().fetchBeds()
             get().fetchStats()
+            get().fetchActivityLog()
             toast({ title: 'Paciente Asignado', description: 'La cama ha sido ocupada.' })
         } catch (error: any) {
             toast({ title: 'Error', description: error.response?.data?.message || 'Error al asignar paciente', variant: 'destructive' })
+        }
+    },
+
+    fetchActivityLog: async () => {
+        try {
+            const response = await bedsAPI.getActivities()
+            const activities = response.data.map((log: any) => ({
+                id: log.id,
+                bedNumber: log.bed?.number || 'Cama',
+                action: log.action,
+                details: log.details,
+                timestamp: log.timestamp,
+                user: log.user?.firstName || 'Sistema'
+            }))
+            set({ activityLog: activities })
+        } catch (error) {
+            console.error('Failed to fetch activity log', error)
         }
     },
 

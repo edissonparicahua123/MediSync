@@ -2,13 +2,17 @@ import { Controller, Get, Post, Body, Patch, Delete, Param, Query, UseGuards } f
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AppointmentsService } from './appointments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @ApiTags('Appointments')
 @ApiBearerAuth()
 // @UseGuards(JwtAuthGuard) // Temporarily disabled for testing
 @Controller('appointments')
 export class AppointmentsController {
-    constructor(private readonly appointmentsService: AppointmentsService) { }
+    constructor(
+        private readonly appointmentsService: AppointmentsService,
+        private readonly notificationsService: NotificationsService
+    ) { }
 
     @Post()
     @ApiOperation({ summary: 'Create new appointment with AI triage' })
@@ -31,6 +35,12 @@ export class AppointmentsController {
             limit ? parseInt(limit) : 20,
             filters,
         );
+    }
+
+    @Get(':id/notifications')
+    @ApiOperation({ summary: 'Get appointment notifications' })
+    async getNotifications(@Param('id') id: string) {
+        return this.notificationsService.findByRelatedEntity('APPOINTMENT', id);
     }
 
     @Get(':id')

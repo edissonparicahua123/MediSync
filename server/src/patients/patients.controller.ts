@@ -32,6 +32,13 @@ export class PatientsController {
         return this.patientsService.create(createPatientDto);
     }
 
+    @Post('import')
+    @ApiOperation({ summary: 'Import multiple patients' })
+    @Audit('IMPORT_PATIENTS', 'patients')
+    import(@Body() patients: CreatePatientDto[]) {
+        return this.patientsService.importPatients(patients);
+    }
+
     @Post(':id/enable-portal')
     @ApiOperation({ summary: 'Enable portal access for patient' })
     enablePortal(@Param('id') id: string) {
@@ -234,5 +241,14 @@ export class PatientsController {
     @ApiOperation({ summary: 'Delete patient document' })
     deleteDocument(@Param('id') id: string, @Param('documentId') documentId: string) {
         return this.patientsService.deleteDocument(id, documentId);
+    }
+
+    // ============================================
+    // CLINICAL NOTES
+    // ============================================
+    @Post(':id/notes')
+    @ApiOperation({ summary: 'Add clinical note' })
+    addNote(@Param('id') id: string, @Body() data: any) {
+        return this.patientsService.addNote(id, data);
     }
 }

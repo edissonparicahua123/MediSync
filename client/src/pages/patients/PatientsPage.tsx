@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { read, utils } from 'xlsx'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { patientsAPI } from '@/services/api'
@@ -33,11 +34,15 @@ import {
     Filter,
     Eye,
     User,
+    AlertTriangle,
 } from 'lucide-react'
 import PatientModal from '@/components/modals/PatientModal'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import EmergencyModal from '@/components/modals/EmergencyModal'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -59,6 +64,8 @@ export default function PatientsPage() {
     const [selectedPatient, setSelectedPatient] = useState<any>(null)
     const [deleteId, setDeleteId] = useState<string | null>(null)
     const [showFilters, setShowFilters] = useState(false)
+    const [emergencyModalOpen, setEmergencyModalOpen] = useState(false)
+    const [emergencyPatientId, setEmergencyPatientId] = useState<string | null>(null)
 
     // Filtros
     const [filters, setFilters] = useState({
@@ -78,6 +85,23 @@ export default function PatientsPage() {
 
     const patients = data?.data?.data || []
 
+    // Helper functions
+    const calculateAge = (dateOfBirth: string) => {
+        if (!dateOfBirth) return 'N/A'
+        const age = new Date().getFullYear() - new Date(dateOfBirth).getFullYear()
+        return age
+    }
+
+    const getPatientPriority = (patient: any) => {
+        // If backend doesn't send priority, simulate it based on age or status for UI demo
+        if (patient.priority) return patient.priority
+        if (patient.status === 'CRITICAL') return 'HIGH'
+
+        const age = calculateAge(patient.dateOfBirth)
+        if (typeof age === 'number' && age > 70) return 'HIGH'
+        return 'MEDIUM'
+    }
+
     // Filtrar pacientes
     const filteredPatients = patients.filter((patient: any) => {
         // Búsqueda por texto
@@ -91,6 +115,32 @@ export default function PatientsPage() {
         const genderMatch = filters.gender === 'all' || patient.gender === filters.gender
         const statusMatch = filters.status === 'all' || patient.status === filters.status
 
+        // Filtro de prioridad
+        const priorityMatch = filters.priority === 'all' || getPatientPriority(patient) === filters.priority
+
+        // Filtro de seguro
+        let insuranceMatch = true
+        if (filters.insurance !== 'all') {
+            if (filters.insurance === 'none') {
+                // Sin seguro: campo vacío, null o undefined
+                insuranceMatch = !patient.insuranceProvider || patient.insuranceProvider === ''
+            } else if (filters.insurance === 'private') {
+                // Aseguradoras privadas conocidas en Perú
+                const privateInsurers = ['pacifico', 'rimac', 'positiva', 'mapfre', 'sanitas', 'oncosalud', 'vida', 'internacional']
+                insuranceMatch = patient.insuranceProvider &&
+                    privateInsurers.some(ins =>
+                        patient.insuranceProvider.toLowerCase().includes(ins)
+                    )
+            } else if (filters.insurance === 'public') {
+                // Aseguradoras públicas conocidas en Perú
+                const publicInsurers = ['essalud', 'sis', 'seguro integral', 'salud', 'minsa']
+                insuranceMatch = patient.insuranceProvider &&
+                    publicInsurers.some(ins =>
+                        patient.insuranceProvider.toLowerCase().includes(ins)
+                    )
+            }
+        }
+
         // Edad
         let ageMatch = true
         if (patient.dateOfBirth) {
@@ -99,7 +149,7 @@ export default function PatientsPage() {
             if (filters.ageMax && age > parseInt(filters.ageMax)) ageMatch = false
         }
 
-        return searchMatch && genderMatch && statusMatch && ageMatch
+        return searchMatch && genderMatch && statusMatch && priorityMatch && insuranceMatch && ageMatch
     })
 
     // Handlers
@@ -112,6 +162,8 @@ export default function PatientsPage() {
         setSelectedPatient(null)
         setModalOpen(true)
     }
+
+
 
     const handleSuccess = () => {
         refetch()
@@ -144,11 +196,79 @@ export default function PatientsPage() {
 
     // Exportar funciones
     const handleExportPDF = () => {
-        toast({
-            title: 'Exportar a PDF',
-            description: 'Generando reporte PDF...',
-        })
-        // TODO: Implementar exportación PDF
+        try {
+            const doc = new jsPDF() as any
+
+            // Header
+            doc.setFontSize(20)
+            doc.setTextColor(40)
+            doc.text('REPORTE DE PACIENTES - MEDISYNC', 14, 22)
+
+            doc.setFontSize(10)
+            doc.setTextColor(100)
+            doc.text(`Generado el: ${format(new Date(), 'PPP', { locale: es })}`, 14, 30)
+            doc.text(`Total de pacientes: ${filteredPatients.length}`, 14, 36)
+
+            // Table data
+            const tableData = filteredPatients.map((patient: any) => [
+                patient.documentNumber || 'N/A',
+                `${patient.firstName} ${patient.lastName}`,
+                calculateAge(patient.dateOfBirth) + ' años',
+                patient.gender === 'MALE' ? 'M' : patient.gender === 'FEMALE' ? 'F' : 'O',
+                patient.phone || 'N/A',
+                patient.insuranceProvider || 'Sin seguro',
+                patient.status === 'ACTIVE' ? 'Activo' : patient.status === 'CRITICAL' ? 'Crítico' : 'Inactivo'
+            ])
+
+            // Generate table
+            autoTable(doc, {
+                head: [['DNI', 'Paciente', 'Edad', 'Género', 'Teléfono', 'Seguro', 'Estado']],
+                body: tableData,
+                startY: 45,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [59, 130, 246], // Blue
+                    textColor: 255,
+                    fontStyle: 'bold'
+                },
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 3
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                }
+            })
+
+            // Footer
+            const pageCount = (doc as any).internal.getNumberOfPages()
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i)
+                doc.setFontSize(8)
+                doc.setTextColor(100)
+                doc.text(
+                    `Página ${i} de ${pageCount}`,
+                    doc.internal.pageSize.width / 2,
+                    doc.internal.pageSize.height - 10,
+                    { align: 'center' }
+                )
+            }
+
+            // Save PDF
+            doc.save(`pacientes_${format(new Date(), 'yyyyMMdd')}.pdf`)
+
+            toast({
+                title: 'Éxito',
+                description: 'PDF generado correctamente',
+            })
+        } catch (error) {
+            console.error('Error generating PDF:', error)
+            toast({
+                title: 'Error',
+                description: 'No se pudo generar el PDF',
+                variant: 'destructive'
+            })
+        }
     }
 
     const handleExportExcel = () => {
@@ -200,22 +320,75 @@ export default function PatientsPage() {
         }
     }
 
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
     const handleImport = () => {
-        toast({
-            title: 'Importar Datos',
-            description: 'Funcionalidad de importación próximamente',
-        })
-        // TODO: Implementar importación
+        fileInputRef.current?.click()
+    }
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        const reader = new FileReader()
+        reader.onload = async (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer)
+                const workbook = read(data, { type: 'array' })
+                const sheetName = workbook.SheetNames[0]
+                const worksheet = workbook.Sheets[sheetName]
+                const jsonData = utils.sheet_to_json(worksheet)
+
+                // Mapeo básico de columnas a propiedades del DTO
+                const mapRowToPatient = (row: any) => ({
+                    firstName: row['firstName'] || row['Nombre'] || row['First Name'] || 'Unknown',
+                    lastName: row['lastName'] || row['Apellido'] || row['Last Name'] || 'Unknown',
+                    documentNumber: row['documentNumber'] ? String(row['documentNumber']) : (row['DNI'] ? String(row['DNI']) : undefined),
+                    email: row['email'] || row['Email'] || undefined,
+                    phone: row['phone'] ? String(row['phone']) : (row['Telefono'] ? String(row['Telefono']) : ''),
+                    gender: row['gender'] || row['Genero'] || 'OTHER',
+                    dateOfBirth: row['dateOfBirth'] ? new Date(row['dateOfBirth']).toISOString() : (row['Fecha Nacimiento'] ? new Date(row['Fecha Nacimiento']).toISOString() : new Date().toISOString()),
+                    address: row['address'] || row['Direccion'] || undefined,
+                    insuranceProvider: row['insuranceProvider'] || row['Seguro'] || undefined,
+                })
+
+                const patientsToImport = jsonData.map(mapRowToPatient)
+
+                if (patientsToImport.length === 0) {
+                    toast({
+                        title: 'Error',
+                        description: 'El archivo está vacío o no tiene el formato correcto.',
+                        variant: 'destructive'
+                    })
+                    return
+                }
+
+                await patientsAPI.import(patientsToImport)
+
+                toast({
+                    title: 'Éxito',
+                    description: `${patientsToImport.length} pacientes importados correctamente.`,
+                })
+                refetch()
+            } catch (error: any) {
+                console.error('Error importing file:', error)
+                toast({
+                    title: 'Error',
+                    description: 'Error al procesar el archivo. Verifique el formato.',
+                    variant: 'destructive'
+                })
+            } finally {
+                // Reset input
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = ''
+                }
+            }
+        }
+        reader.readAsArrayBuffer(file)
     }
 
     const handlePrint = () => {
         window.print()
-    }
-
-    const calculateAge = (dateOfBirth: string) => {
-        if (!dateOfBirth) return 'N/A'
-        const age = new Date().getFullYear() - new Date(dateOfBirth).getFullYear()
-        return age
     }
 
     const getStatusBadge = (status: string) => {
@@ -234,17 +407,6 @@ export default function PatientsPage() {
             LOW: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
         }
         return colors[priority] || colors.MEDIUM
-    }
-
-    // Helper for table render
-    const getPatientPriority = (patient: any) => {
-        // If backend doesn't send priority, simulate it based on age or status for UI demo
-        if (patient.priority) return patient.priority
-        if (patient.status === 'CRITICAL') return 'HIGH'
-
-        const age = calculateAge(patient.dateOfBirth)
-        if (typeof age === 'number' && age > 70) return 'HIGH'
-        return 'MEDIUM'
     }
 
     if (isLoading) {
@@ -372,10 +534,10 @@ export default function PatientsPage() {
                                 <SelectValue placeholder="Seguro" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Todo Seguro</SelectItem>
-                                <SelectItem value="private">Privado</SelectItem>
-                                <SelectItem value="public">Público</SelectItem>
-                                <SelectItem value="none">Ninguno</SelectItem>
+                                <SelectItem value="all">Todos los Seguros</SelectItem>
+                                <SelectItem value="private">Con Seguro Privado</SelectItem>
+                                <SelectItem value="public">Con Seguro Público</SelectItem>
+                                <SelectItem value="none">Sin Seguro</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -411,8 +573,21 @@ export default function PatientsPage() {
                             filteredPatients.map((patient: any) => (
                                 <TableRow key={patient.id} className="hover:bg-accent/50">
                                     <TableCell>
-                                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold">
-                                            {patient.firstName?.[0]}{patient.lastName?.[0]}
+                                        <div className="h-10 w-10 rounded-full overflow-hidden border border-slate-200 relative">
+                                            {patient.photo && patient.photo.length > 10 ? (
+                                                <img
+                                                    src={patient.photo}
+                                                    alt={`${patient.firstName}`}
+                                                    className="h-full w-full object-cover"
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = 'none';
+                                                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                                    }}
+                                                />
+                                            ) : null}
+                                            <div className={`${patient.photo && patient.photo.length > 10 ? 'hidden' : ''} h-full w-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold absolute top-0 left-0`}>
+                                                {patient.firstName?.[0]}{patient.lastName?.[0]}
+                                            </div>
                                         </div>
                                     </TableCell>
                                     <TableCell className="font-medium">
@@ -460,6 +635,17 @@ export default function PatientsPage() {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
+                                                onClick={() => {
+                                                    setEmergencyPatientId(patient.id)
+                                                    setEmergencyModalOpen(true)
+                                                }}
+                                                className="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                            >
+                                                <AlertTriangle className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => setDeleteId(patient.id)}
                                             >
                                                 <Trash2 className="h-4 w-4 text-red-500" />
@@ -485,7 +671,7 @@ export default function PatientsPage() {
             <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>¿Dtás seguro?</AlertDialogTitle>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                         <AlertDialogDescription>
                             Esta acción no se puede deshacer. Esto eliminará permanentemente el registro del paciente.
                         </AlertDialogDescription>
@@ -496,6 +682,28 @@ export default function PatientsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+
+
+            <EmergencyModal
+                open={emergencyModalOpen}
+                onOpenChange={setEmergencyModalOpen}
+                defaultPatientId={emergencyPatientId || undefined}
+                onSuccess={() => {
+                    refetch()
+                    toast({
+                        title: "Paciente enviado a Emergencia",
+                        description: "Se ha creado el registro de emergencia exitosamente.",
+                    })
+                }}
+            />
+
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileUpload}
+            />
+        </div >
     )
 }

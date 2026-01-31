@@ -13,6 +13,7 @@ export class DoctorsService {
                 where: { deletedAt: null },
                 include: {
                     user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, avatar: true, address: true } },
+                    schedules: true,
                 },
                 skip,
                 take: limit,
@@ -37,6 +38,7 @@ export class DoctorsService {
                     orderBy: { appointmentDate: 'desc' },
                     include: { patient: true },
                 },
+                schedules: true,
             },
         });
 
@@ -48,7 +50,7 @@ export class DoctorsService {
     }
 
     async create(data: any) {
-        const { firstName, lastName, email, phone, address, avatar, password, ...doctorData } = data;
+        const { firstName, lastName, email, phone, address, avatar, password, schedules, ...doctorData } = data;
 
         // Check if user exists
         const existingUser = await this.prisma.user.findUnique({
@@ -68,9 +70,17 @@ export class DoctorsService {
             return this.prisma.doctor.create({
                 data: {
                     userId: existingUser.id,
-                    ...doctorData, // specialization, licenseNumber, etc.
+                    ...doctorData,
+                    schedules: schedules && schedules.length > 0 ? {
+                        create: schedules.map((s: any) => ({
+                            dayOfWeek: Number(s.dayOfWeek),
+                            startTime: s.startTime,
+                            endTime: s.endTime,
+                            isActive: true
+                        }))
+                    } : undefined
                 },
-                include: { user: true },
+                include: { user: true, specialty: true, schedules: true },
             });
         }
 
@@ -102,14 +112,22 @@ export class DoctorsService {
                 data: {
                     userId: user.id,
                     ...doctorData,
+                    schedules: schedules && schedules.length > 0 ? {
+                        create: schedules.map((s: any) => ({
+                            dayOfWeek: Number(s.dayOfWeek),
+                            startTime: s.startTime,
+                            endTime: s.endTime,
+                            isActive: true
+                        }))
+                    } : undefined
                 },
-                include: { user: true, specialty: true },
+                include: { user: true, specialty: true, schedules: true },
             });
         });
     }
 
     async update(id: string, data: any) {
-        const { firstName, lastName, email, phone, address, avatar, ...doctorData } = data;
+        const { firstName, lastName, email, phone, address, avatar, schedules, ...doctorData } = data;
 
         // Update doctor and related user info
         const doctor = await this.prisma.doctor.findUnique({ where: { id } });
@@ -122,6 +140,27 @@ export class DoctorsService {
                     where: { id: doctor.userId },
                     data: { firstName, lastName, email, phone, address, avatar },
                 });
+            }
+
+            // Update Schedules if provided
+            if (schedules && Array.isArray(schedules)) {
+                // Delete existing schedules
+                await prisma.doctorSchedule.deleteMany({
+                    where: { doctorId: id },
+                });
+
+                // Create new schedules
+                if (schedules.length > 0) {
+                    await prisma.doctorSchedule.createMany({
+                        data: schedules.map((schedule: any) => ({
+                            doctorId: id,
+                            dayOfWeek: Number(schedule.dayOfWeek),
+                            startTime: schedule.startTime,
+                            endTime: schedule.endTime,
+                            isActive: true,
+                        })),
+                    });
+                }
             }
 
             // Update Doctor
@@ -137,6 +176,37 @@ export class DoctorsService {
         return this.prisma.doctor.update({
             where: { id },
             data: { deletedAt: new Date() },
+        });
+    }
+
+    async addDocument(id: string, data: any) {
+        const doctor = await this.prisma.doctor.findUnique({ where: { id } });
+        if (!doctor) throw new NotFoundException('Doctor not found');
+
+        return this.prisma.doctorDocument.create({
+            data: {
+                doctorId: id,
+                title: data.title,
+                type: data.type || 'Document',
+                url: data.url,
+                size: data.size || 0,
+            },
+        });
+    }
+
+    async getDocuments(id: string) {
+        return this.prisma.doctorDocument.findMany({
+            where: { doctorId: id },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async removeDocument(doctorId: string, docId: string) {
+        return this.prisma.doctorDocument.deleteMany({
+            where: {
+                id: docId,
+                doctorId: doctorId,
+            },
         });
     }
 }

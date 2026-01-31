@@ -5,25 +5,9 @@ import { patientsAPI, appointmentsAPI, emergencyAPI, laboratoryAPI } from '@/ser
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-    ArrowLeft,
-    User,
-    FileText,
-    Calendar,
-    Pill,
-    FlaskConical,
-    AlertTriangle,
-    StickyNote,
-    Paperclip,
-    Loader2,
-    Phone,
-    Mail,
-    MapPin,
-    Shield,
-    Edit,
-    Download,
-    Plus,
-} from 'lucide-react'
+import { ArrowLeft, User, FileText, Calendar, Pill, Edit, Download, Shield, Plus, FlaskConical, AlertTriangle, Key, Loader2, Phone, Mail, MapPin, StickyNote, Paperclip, Activity, Trash2, Clock, Bed, Heart, Thermometer, Wind } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -37,6 +21,13 @@ import {
 import { format } from 'date-fns'
 import { useToast } from '@/components/ui/use-toast'
 import PatientModal from '@/components/modals/PatientModal'
+import AddDiagnosisModal from '@/components/modals/AddDiagnosisModal'
+import AppointmentModal from '@/components/modals/AppointmentModal'
+import LabOrderModal from '@/components/modals/LabOrderModal'
+import EmergencyModal from '@/components/modals/EmergencyModal'
+import { AddNoteModal } from '@/components/modals/AddNoteModal'
+import { AddDocumentModal } from '@/components/modals/AddDocumentModal'
+
 
 export default function PatientProfilePage() {
     const { id } = useParams<{ id: string }>()
@@ -44,8 +35,40 @@ export default function PatientProfilePage() {
     const { toast } = useToast()
     const [activeTab, setActiveTab] = useState('general')
     const [editModalOpen, setEditModalOpen] = useState(false)
+    const [addDiagnosisOpen, setAddDiagnosisOpen] = useState(false)
+    const [createAppointmentOpen, setCreateAppointmentOpen] = useState(false)
+    const [addLabOrderOpen, setAddLabOrderOpen] = useState(false)
+    const [addEmergencyOpen, setAddEmergencyOpen] = useState(false)
     const [showPortalModal, setShowPortalModal] = useState(false)
     const [credentials, setCredentials] = useState<{ email: string, password: string } | null>(null)
+    const [addMedicationOpen, setAddMedicationOpen] = useState(false)
+    const [addNoteOpen, setAddNoteOpen] = useState(false)
+    const [addDocumentOpen, setAddDocumentOpen] = useState(false)
+    const [documentToDelete, setDocumentToDelete] = useState<string | null>(null)
+
+    // ... (existing useQuery hooks)
+
+    const handleDeleteDocument = async () => {
+        if (!documentToDelete || !id) return
+        try {
+            await patientsAPI.deleteDocument(id, documentToDelete)
+            toast({
+                title: 'Documento eliminado',
+                description: 'El archivo se ha eliminado correctamente.',
+            })
+            refetchDocuments()
+        } catch (error) {
+            console.error('Error deleting document:', error)
+            toast({
+                title: 'Error',
+                description: 'No se pudo eliminar el documento.',
+                variant: 'destructive',
+            })
+        } finally {
+            setDocumentToDelete(null)
+        }
+    }
+    const [newMedication, setNewMedication] = useState({ name: '', dosage: '', frequency: '', instructions: '', startDate: new Date().toISOString().split('T')[0] })
 
     const handleEnablePortal = async (e: any) => {
         e.preventDefault() // prevent dialog from closing automatically
@@ -74,31 +97,86 @@ export default function PatientProfilePage() {
     })
 
     // Cargar citas del paciente (Filtrado por ID)
-    const { data: appointmentsData } = useQuery({
+    const { data: appointmentsData, refetch: refetchAppointments } = useQuery({
         queryKey: ['patient-appointments', id],
         queryFn: () => appointmentsAPI.getAll({ patientId: id }),
         enabled: !!id,
     })
 
     // Cargar historial de emergencias
-    const { data: emergencyData } = useQuery({
+    const { data: emergencyData, refetch: refetchEmergencies } = useQuery({
         queryKey: ['patient-emergency', id],
         queryFn: () => emergencyAPI.getPatientHistory(id!),
         enabled: !!id,
     })
 
     // Cargar ordenes de laboratorio
-    const { data: labData } = useQuery({
+    // Cargar ordenes de laboratorio
+    const { data: labData, refetch: refetchLabOrders } = useQuery({
         queryKey: ['patient-lab', id],
         queryFn: () => laboratoryAPI.getOrders({ patientId: id }),
         enabled: !!id,
     })
 
+
+
+    // Cargar historial médico
+    const { data: historyData, refetch: refetchHistory } = useQuery({
+        queryKey: ['patient-history', id],
+        queryFn: () => patientsAPI.getMedicalHistory(id!),
+        enabled: !!id,
+    })
+
+    // Cargar diagnósticos (para mostrar en historial también)
+    const { data: diagnosesData, refetch: refetchDiagnoses } = useQuery({
+        queryKey: ['patient-diagnoses', id],
+        queryFn: () => patientsAPI.getDiagnoses(id!),
+        enabled: !!id,
+    })
+
+    // Cargar recetas/medicamentos
+    const { data: medicationsData, refetch: refetchMedications } = useQuery({
+        queryKey: ['patient-medications', id],
+        queryFn: () => patientsAPI.getMedications(id!),
+        enabled: !!id,
+    })
+
+    // Cargar documentos
+    const { data: documentsData, refetch: refetchDocuments } = useQuery({
+        queryKey: ['patient-documents', id],
+        queryFn: () => patientsAPI.getDocuments(id!),
+        enabled: !!id,
+    })
+
     const patient = patientData?.data
-    // Handle different API response structures (array vs { data: [] })
+    // Handle different API response structures (array vs {data: [] })
     const appointments = appointmentsData?.data?.data || appointmentsData?.data || []
     const emergencies = emergencyData?.data || []
     const labOrders = labData?.data?.data || labData?.data || []
+
+
+
+    // Merge medical records and diagnoses for a complete history
+    const medicalRecords = historyData?.data || []
+    const diagnoses = diagnosesData?.data || []
+
+    const combinedHistory = [
+        ...medicalRecords.map((r: any) => ({ ...r, type: 'RECORD', date: r.visitDate })),
+        ...diagnoses.map((d: any) => ({
+            ...d,
+            type: 'DIAGNOSIS',
+            date: d.diagnosedDate,
+            condition: d.diagnosisName, // Map for UI consistency
+            diagnosis: d.diagnosisName
+        }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    // Filter relevant records for the Notes tab
+    const clinicalNotes = medicalRecords.filter((r: any) => r.diagnosis === 'Nota Clínica' || r.chiefComplaint)
+        .sort((a: any, b: any) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime())
+
+    const medications = medicationsData?.data || []
+    const documents = documentsData?.data || []
 
     const calculateAge = (dateOfBirth: string) => {
         if (!dateOfBirth) return 'N/A'
@@ -113,8 +191,84 @@ export default function PatientProfilePage() {
     }
 
     const handleDownload = () => {
-        // Mock download logic
-        toast({ title: 'Descargando...', description: `Historial de ${patient?.firstName || 'Paciente'} en proceso.` })
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Expediente Médico - ${patient.firstName} ${patient.lastName}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 40px; }
+                        h1 { color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+                        h2 { color: #334155; margin-top: 30px; }
+                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                        th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+                        th { background-color: #f1f5f9; }
+                        .section { margin-bottom: 30px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>Expediente Médico Electrónico</h1>
+                    <div class="section">
+                        <h2>Datos del Paciente</h2>
+                        <table>
+                            <tr><th>Nombre Completo</th><td>${patient.firstName} ${patient.lastName}</td></tr>
+                            <tr><th>Documento</th><td>${patient.documentId || 'N/A'}</td></tr>
+                            <tr><th>Fecha de Nacimiento</th><td>${patient.dateOfBirth || 'N/A'}</td></tr>
+                            <tr><th>Edad</th><td>${calculateAge(patient.dateOfBirth)} años</td></tr>
+                            <tr><th>Género</th><td>${patient.gender || 'N/A'}</td></tr>
+                            <tr><th>Tipo de Sangre</th><td>${patient.bloodType || 'N/A'}</td></tr>
+                            <tr><th>Teléfono</th><td>${patient.phone || 'N/A'}</td></tr>
+                            <tr><th>Email</th><td>${patient.email || 'N/A'}</td></tr>
+                            <tr><th>Dirección</th><td>${patient.address || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="section">
+                        <h2>Historial Médico</h2>
+                        ${combinedHistory.length > 0 ? `
+                            <table>
+                                <tr><th>Fecha</th><th>Tipo</th><th>Diagnóstico</th><th>Tratamiento</th></tr>
+                                ${combinedHistory.map((record: any) => `
+                                    <tr>
+                                        <td>${record.date ? new Date(record.date).toLocaleDateString() : 'N/A'}</td>
+                                        <td>${record.type === 'DIAGNOSIS' ? 'Diagnóstico' : 'Consulta'}</td>
+                                        <td>${record.diagnosis || record.diagnosisName || 'N/A'}</td>
+                                        <td>${record.treatment || record.notes || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        ` : '<p>No hay registros médicos disponibles</p>'}
+                    </div>
+                    <div class="section">
+                        <h2>Medicamentos Actuales</h2>
+                        ${medications.length > 0 ? `
+                            <table>
+                                <tr><th>Medicamento</th><th>Dosis</th><th>Frecuencia</th></tr>
+                                ${medications.map((med: any) => `
+                                    <tr>
+                                        <td>${med.name || 'N/A'}</td>
+                                        <td>${med.dosage || 'N/A'}</td>
+                                        <td>${med.frequency || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        ` : '<p>No hay medicamentos registrados</p>'}
+                    </div>
+                    <div class="section">
+                        <h2>Información Adicional</h2>
+                        <p><strong>Alergias:</strong> ${patient.allergies || 'Ninguna registrada'}</p>
+                        <p><strong>Condiciones Crónicas:</strong> ${patient.chronicConditions || 'Ninguna registrada'}</p>
+                    </div>
+                    <div style="margin-top: 50px; text-align: center; color: #64748b; font-size: 12px;">
+                        <p>Documento generado el ${new Date().toLocaleString()}</p>
+                        <p>MediSync - Sistema de Gestión Hospitalaria</p>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
     }
 
     if (isLoading) {
@@ -167,10 +321,15 @@ export default function PatientProfilePage() {
                         <Download className="h-4 w-4 mr-2" />
                         Descargar Registros
                     </Button>
-                    {!patient.userId && (
+                    {!patient.userId ? (
                         <Button variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => setShowPortalModal(true)}>
                             <Shield className="h-4 w-4 mr-2" />
                             Habilitar Portal
+                        </Button>
+                    ) : (
+                        <Button variant="outline" className="border-amber-500 text-amber-600 hover:bg-amber-50" onClick={() => setShowPortalModal(true)}>
+                            <Key className="h-4 w-4 mr-2" />
+                            Restablecer Acceso
                         </Button>
                     )}
                     <Button onClick={() => setEditModalOpen(true)}>
@@ -225,8 +384,22 @@ export default function PatientProfilePage() {
                 <CardContent className="pt-6">
                     <div className="flex items-start gap-6">
                         {/* Avatar */}
-                        {patient.photo ? (
-                            <img src={patient.photo} alt="Profile" className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-lg" />
+                        {patient.photo && patient.photo.length > 10 ? (
+                            <>
+                                <img
+                                    src={patient.photo}
+                                    alt="Profile"
+                                    className="h-24 w-24 rounded-full object-cover border-4 border-white shadow-lg relative z-10 bg-white"
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = document.getElementById('profile-fallback');
+                                        if (fallback) fallback.style.display = 'flex';
+                                    }}
+                                />
+                                <div id="profile-fallback" style={{ display: 'none' }} className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-lg absolute">
+                                    {patient.firstName?.[0]}{patient.lastName?.[0]}
+                                </div>
+                            </>
                         ) : (
                             <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-3xl font-bold flex-shrink-0 shadow-lg">
                                 {patient.firstName?.[0]}{patient.lastName?.[0]}
@@ -420,7 +593,7 @@ export default function PatientProfilePage() {
                                     </div>
                                     <div>
                                         <p className="text-sm text-muted-foreground">Condiciones Crónicas</p>
-                                        <p className="font-medium">Ninguna reportada</p>
+                                        <p className="font-medium">{patient.chronicConditions || 'Ninguna reportada'}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -437,10 +610,41 @@ export default function PatientProfilePage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                <p className="text-sm text-muted-foreground">
-                                    No hay registros de historial médico disponibles aún.
-                                </p>
-                                <Button>Agregar Registro Médico</Button>
+                                {combinedHistory.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        No hay registros de historial médico disponibles aún.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-4 shadow-sm">
+                                        {combinedHistory.map((record: any) => (
+                                            <div key={record.id} className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        {record.type === 'DIAGNOSIS' && (
+                                                            <span className="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase">
+                                                                Diagnóstico
+                                                            </span>
+                                                        )}
+                                                        <h4 className="font-semibold text-base">{record.condition || record.diagnosis}</h4>
+                                                    </div>
+                                                    <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded">
+                                                        {format(new Date(record.date || record.createdAt), 'dd MMM yyyy')}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-700 mb-2 whitespace-pre-line">{record.notes || record.description}</p>
+                                                {record.treatment && (
+                                                    <div className="mt-2 text-sm bg-blue-50 p-2 rounded text-blue-800 border-l-4 border-blue-200">
+                                                        <span className="font-semibold">Tratamiento: </span> {record.treatment}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <Button onClick={() => setAddDiagnosisOpen(true)}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Agregar Registro Médico
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -448,6 +652,14 @@ export default function PatientProfilePage() {
 
                 {/* Tab: Appointments */}
                 <TabsContent value="appointments" className="space-y-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-semibold tracking-tight">Gestión de Citas</h3>
+                        <Button onClick={() => setCreateAppointmentOpen(true)}>
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Programar Nueva Cita
+                        </Button>
+                    </div>
+
                     <div className="grid gap-4 md:grid-cols-2">
                         {/* Future Appointments */}
                         <Card>
@@ -519,23 +731,137 @@ export default function PatientProfilePage() {
 
                 {/* Tab: Prescriptions */}
                 <TabsContent value="prescriptions">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-semibold tracking-tight">Recetas Médicas</h3>
+                        <Button onClick={() => setAddMedicationOpen(true)}>
+                            <Pill className="h-4 w-4 mr-2" />
+                            Prescribir Medicamento
+                        </Button>
+                    </div>
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Recetas</CardTitle>
-                            <CardDescription>Recetas activas y pasadas</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">No hay recetas disponibles</p>
+                        <CardContent className="pt-6">
+                            {medications.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No hay recetas disponibles</p>
+                            ) : (
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    {medications.map((med: any) => (
+                                        <div key={med.id} className="flex flex-col p-4 border rounded-lg justify-between hover:shadow-md transition-shadow">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="font-semibold">{med.name}</h4>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold ${med.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                        {med.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mb-1">
+                                                    <span className="font-medium">Dosis:</span> {med.dosage}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground mb-1">
+                                                    <span className="font-medium">Frecuencia:</span> {med.frequency}
+                                                </p>
+                                                {med.instructions && (
+                                                    <p className="text-xs text-gray-500 mt-2 p-2 bg-slate-50 rounded italic">
+                                                        "{med.instructions}"
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="mt-4 pt-3 border-t flex justify-between items-center text-xs text-slate-400">
+                                                <span>Recetado: {format(new Date(med.startDate), 'dd/MM/yyyy')}</span>
+                                                <span>Dr. {med.prescribedBy?.firstName || 'Staff'}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
+
+                    {/* Add Medication Dialog */}
+                    <AlertDialog open={addMedicationOpen} onOpenChange={setAddMedicationOpen}>
+                        <AlertDialogContent className="max-w-md">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Prescribir Medicamento</AlertDialogTitle>
+                                <AlertDialogDescription>Complete la información de la receta médica</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Nombre del Medicamento</label>
+                                    <Input
+                                        placeholder="Ej: Paracetamol"
+                                        value={newMedication.name}
+                                        onChange={(e) => setNewMedication({ ...newMedication, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Dosis</label>
+                                        <Input
+                                            placeholder="Ej: 500mg"
+                                            value={newMedication.dosage}
+                                            onChange={(e) => setNewMedication({ ...newMedication, dosage: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Frecuencia</label>
+                                        <Input
+                                            placeholder="Ej: Cada 8 horas"
+                                            value={newMedication.frequency}
+                                            onChange={(e) => setNewMedication({ ...newMedication, frequency: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Fecha de Inicio</label>
+                                    <Input
+                                        type="date"
+                                        value={newMedication.startDate}
+                                        onChange={(e) => setNewMedication({ ...newMedication, startDate: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Instrucciones</label>
+                                    <Textarea
+                                        placeholder="Instrucciones adicionales..."
+                                        value={newMedication.instructions}
+                                        onChange={(e) => setNewMedication({ ...newMedication, instructions: e.target.value })}
+                                        className="resize-none"
+                                    />
+                                </div>
+                            </div>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={async () => {
+                                        try {
+                                            await patientsAPI.addMedication(id!, newMedication)
+                                            toast({ title: 'Éxito', description: 'Medicamento prescrito correctamente' })
+                                            refetchMedications()
+                                            setAddMedicationOpen(false)
+                                            setNewMedication({ name: '', dosage: '', frequency: '', instructions: '', startDate: new Date().toISOString().split('T')[0] })
+                                        } catch (error) {
+                                            toast({ title: 'Error', description: 'No se pudo prescribir el medicamento', variant: 'destructive' })
+                                        }
+                                    }}
+                                >
+                                    Confirmar Prescripción
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </TabsContent>
 
                 {/* Tab: Lab Results */}
                 <TabsContent value="lab">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Resultados de Laboratorio ({labOrders.length})</CardTitle>
-                            <CardDescription>Resultados de pruebas e informes</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Resultados de Laboratorio ({labOrders.length})</CardTitle>
+                                <CardDescription>Resultados de pruebas e informes</CardDescription>
+                            </div>
+                            <Button onClick={() => setAddLabOrderOpen(true)} variant="outline" size="sm">
+                                <FlaskConical className="h-4 w-4 mr-2" />
+                                Nueva Orden
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             {labOrders.length === 0 ? (
@@ -560,9 +886,19 @@ export default function PatientProfilePage() {
                 {/* Tab: Emergencies */}
                 <TabsContent value="emergency">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Registros de Emergencia ({emergencies.length})</CardTitle>
-                            <CardDescription>Visitas de emergencia previas</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Registros de Emergencia ({emergencies.length})</CardTitle>
+                                <CardDescription>Visitas de emergencia previas</CardDescription>
+                            </div>
+                            <Button
+                                onClick={() => setAddEmergencyOpen(true)}
+                                size="sm"
+                                className="bg-red-600 hover:bg-red-700 text-white shadow-sm transition-all hover:scale-105 active:scale-95"
+                            >
+                                <AlertTriangle className="h-4 w-4 mr-2" />
+                                Nueva Emergencia
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             {emergencies.length === 0 ? (
@@ -570,12 +906,63 @@ export default function PatientProfilePage() {
                             ) : (
                                 <div className="space-y-3">
                                     {emergencies.map((em: any) => (
-                                        <div key={em.id} className="p-3 border rounded-lg flex justify-between">
-                                            <div>
-                                                <p className="font-medium">{em.diagnosis || em.chiefComplaint}</p>
-                                                <p className="text-xs text-muted-foreground">{format(new Date(em.admissionDate), 'dd MMM yyyy HH:mm')}</p>
+                                        <div key={em.id} className="p-4 border rounded-lg space-y-3 transition-colors hover:bg-slate-50">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-semibold text-slate-900">{em.diagnosis || em.chiefComplaint}</p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <Clock className="h-3 w-3 text-muted-foreground" />
+                                                        <p className="text-xs text-muted-foreground">{format(new Date(em.admissionDate), 'dd MMM yyyy HH:mm')}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`h-2 w-2 rounded-full ${em.triageLevel === 1 ? 'bg-red-500 animate-pulse' :
+                                                        em.triageLevel === 2 ? 'bg-orange-500' :
+                                                            em.triageLevel === 3 ? 'bg-yellow-500' :
+                                                                em.triageLevel === 4 ? 'bg-green-500' :
+                                                                    'bg-blue-500'
+                                                        }`} />
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 uppercase tracking-wider">
+                                                        Nivel {em.triageLevel}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">Nivel {em.triageLevel}</span>
+
+                                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                                                <div className="flex items-center gap-2">
+                                                    <User className="h-3.5 w-3.5 text-slate-400" />
+                                                    <span className="text-xs text-slate-600">
+                                                        {em.doctorName || 'Sin médico asignado'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Bed className="h-3.5 w-3.5 text-slate-400" />
+                                                    <span className="text-xs text-slate-600">
+                                                        {em.bedNumber ? `Cama ${em.bedNumber}` : 'Sin cama asignada'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {em.vitalSigns && (
+                                                <div className="flex gap-4 text-[10px] font-medium text-slate-500 bg-slate-50/50 p-2 rounded">
+                                                    <div className="flex items-center gap-1">
+                                                        <Heart className="h-3 w-3 text-red-400" />
+                                                        <span>FC: {em.vitalSigns.hr || '-'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Activity className="h-3 w-3 text-blue-400" />
+                                                        <span>PA: {em.vitalSigns.bp || '-'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Thermometer className="h-3 w-3 text-orange-400" />
+                                                        <span>T°: {em.vitalSigns.temp || '-'}°C</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Wind className="h-3 w-3 text-cyan-400" />
+                                                        <span>SpO2: {em.vitalSigns.spo2 || '-'}%</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -587,15 +974,50 @@ export default function PatientProfilePage() {
                 {/* Tab: Notes */}
                 <TabsContent value="notes">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Notas del Doctor</CardTitle>
-                            <CardDescription>Notas clínicas y observaciones</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Notas del Doctor</CardTitle>
+                                <CardDescription>Notas clínicas y observaciones</CardDescription>
+                            </div>
+                            <Button onClick={() => setAddNoteOpen(true)} variant="outline" size="sm">
+                                <FileText className="h-4 w-4 mr-2" />
+                                Nueva Nota
+                            </Button>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">No hay notas disponibles</p>
+                            <div className="space-y-4">
+                                {clinicalNotes.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No hay notas registradas</p>
+                                ) : (
+                                    clinicalNotes.map((note: any) => (
+                                        <div key={note.id} className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h4 className="font-semibold text-sm">{note.chiefComplaint || 'Nota sin título'}</h4>
+                                                <span className="text-xs text-muted-foreground">{format(new Date(note.visitDate), 'dd MMM yyyy HH:mm')}</span>
+                                            </div>
+                                            <p className="text-sm text-slate-600 whitespace-pre-wrap">{note.notes}</p>
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
+                                                    Dr. {note.doctor?.user?.firstName || 'Unknown'} {note.doctor?.user?.lastName || ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+
+                <AddNoteModal
+                    open={addNoteOpen}
+                    onOpenChange={setAddNoteOpen}
+                    patientId={id!}
+                    onSuccess={() => {
+                        refetchHistory()
+                    }}
+                />
 
                 {/* Tab: Files */}
                 <TabsContent value="files">
@@ -606,15 +1028,131 @@ export default function PatientProfilePage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                <p className="text-sm text-muted-foreground">No hay archivos adjuntos</p>
-                                <Button>
-                                    <Paperclip className="h-4 w-4 mr-2" />
-                                    Subir Documento
-                                </Button>
+                                {documents.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-slate-50/50">
+                                        <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+                                            <FileText className="h-6 w-6" />
+                                        </div>
+                                        <p className="font-medium text-slate-900">No hay documentos</p>
+                                        <p className="text-sm text-slate-500 mb-4">Sube archivos médicos, recetas o resultados.</p>
+                                        <Button onClick={() => setAddDocumentOpen(true)} variant="outline">
+                                            <Paperclip className="h-4 w-4 mr-2" />
+                                            Adjuntar Archivo
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="font-medium">Archivos Recientes</h3>
+                                                <p className="text-sm text-muted-foreground">{documents.length} documentos encontrados</p>
+                                            </div>
+                                            <Button onClick={() => setAddDocumentOpen(true)} size="sm">
+                                                <Paperclip className="h-4 w-4 mr-2" />
+                                                Nuevo Documento
+                                            </Button>
+                                        </div>
+
+                                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                            {documents.map((doc: any) => (
+                                                <div key={doc.id} className="group relative p-4 border rounded-xl bg-card hover:bg-slate-50/50 transition-all hover:shadow-sm">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${doc.type === 'IMAGING' ? 'bg-purple-100 text-purple-600' :
+                                                            doc.type === 'LAB_RESULT' ? 'bg-blue-100 text-blue-600' :
+                                                                doc.type === 'PRESCRIPTION' ? 'bg-green-100 text-green-600' :
+                                                                    'bg-slate-100 text-slate-600'
+                                                            }`}>
+                                                            {doc.type === 'IMAGING' ? <Activity className="h-5 w-5" /> :
+                                                                doc.type === 'LAB_RESULT' ? <FlaskConical className="h-5 w-5" /> :
+                                                                    doc.type === 'PRESCRIPTION' ? <Pill className="h-5 w-5" /> :
+                                                                        <FileText className="h-5 w-5" />}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-start justify-between">
+                                                                <div>
+                                                                    <p className="font-medium text-sm truncate pr-2" title={doc.name}>{doc.name}</p>
+                                                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                                                        {doc.type === 'LAB_RESULT' ? 'Laboratorio' :
+                                                                            doc.type === 'IMAGING' ? 'Imagenología' :
+                                                                                doc.type === 'PRESCRIPTION' ? 'Receta' : 'Documento'}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                                                                <span className="flex items-center">
+                                                                    <Calendar className="h-3 w-3 mr-1" />
+                                                                    {doc.uploadedAt ? format(new Date(doc.uploadedAt), 'dd MMM yyyy') : 'Fecha no disponible'}
+                                                                </span>
+                                                                {doc.size && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span>{(doc.size / 1024 / 1024).toFixed(2)} MB</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                            onClick={() => {
+                                                                const link = document.createElement('a');
+                                                                link.href = doc.url;
+                                                                link.download = doc.name;
+                                                                document.body.appendChild(link);
+                                                                link.click();
+                                                                document.body.removeChild(link);
+                                                            }}
+                                                        >
+                                                            <Download className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                            onClick={() => setDocumentToDelete(doc.id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                <AddDocumentModal
+                    open={addDocumentOpen}
+                    onOpenChange={setAddDocumentOpen}
+                    patientId={id!}
+                    onSuccess={() => {
+                        refetchDocuments()
+                    }}
+                />
+
+                <AlertDialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar documento?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción no se puede deshacer. El documento será eliminado permanentemente del expediente del paciente.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteDocument} className="bg-destructive hover:bg-destructive/90">
+                                Eliminar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </Tabs>
 
             <PatientModal
@@ -623,6 +1161,43 @@ export default function PatientProfilePage() {
                 patient={patient}
                 onSuccess={handleEditSuccess}
             />
-        </div>
+
+            <AddDiagnosisModal
+                open={addDiagnosisOpen}
+                onOpenChange={setAddDiagnosisOpen}
+                patientId={id!}
+                onSuccess={() => {
+                    refetch()
+                    refetchDiagnoses()
+                }}
+            />
+
+            <AppointmentModal
+                open={createAppointmentOpen}
+                onOpenChange={setCreateAppointmentOpen}
+                defaultPatientId={id}
+                onSuccess={() => {
+                    refetchAppointments()
+                }}
+            />
+
+            <LabOrderModal
+                open={addLabOrderOpen}
+                onOpenChange={setAddLabOrderOpen}
+                defaultPatientId={id}
+                onSuccess={() => {
+                    refetchLabOrders()
+                }}
+            />
+
+            <EmergencyModal
+                open={addEmergencyOpen}
+                onOpenChange={setAddEmergencyOpen}
+                defaultPatientId={id}
+                onSuccess={() => {
+                    refetchEmergencies()
+                }}
+            />
+        </div >
     )
 }

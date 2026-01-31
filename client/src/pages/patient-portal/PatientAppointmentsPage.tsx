@@ -30,6 +30,7 @@ import { appointmentsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import PatientPortalAppointmentModal from '@/components/modals/PatientPortalAppointmentModal'
 
 export default function PatientAppointmentsPage() {
     const { toast } = useToast()
@@ -372,67 +373,12 @@ export default function PatientAppointmentsPage() {
             </Dialog>
 
             {/* New Appointment Dialog */}
-            <Dialog open={showNewAppointment} onOpenChange={setShowNewAppointment}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Agendar Nueva Cita</DialogTitle>
-                        <DialogDescription>Completa el formulario para reservar tu cita</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Doctor / Especialidad</label>
-                            <select
-                                className="w-full p-2 border rounded-md"
-                                value={newAppointment.doctorId}
-                                onChange={(e) => setNewAppointment({ ...newAppointment, doctorId: e.target.value })}
-                            >
-                                <option value="">Seleccione un doctor</option>
-                                {doctors.map((doc) => (
-                                    <option key={doc.id} value={doc.id}>
-                                        Dr. {doc.user?.firstName} {doc.user?.lastName} - {doc.specialty?.name || 'General'}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Fecha</label>
-                                <input
-                                    type="date"
-                                    className="w-full p-2 border rounded-md"
-                                    value={newAppointment.date}
-                                    onChange={(e) => setNewAppointment({ ...newAppointment, date: e.target.value })}
-                                    min={new Date().toISOString().split('T')[0]}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Hora</label>
-                                <input
-                                    type="time"
-                                    className="w-full p-2 border rounded-md"
-                                    value={newAppointment.time}
-                                    onChange={(e) => setNewAppointment({ ...newAppointment, time: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Motivo de consulta</label>
-                            <textarea
-                                className="w-full p-2 border rounded-md"
-                                placeholder="Describa sus síntomas o razón de la visita"
-                                value={newAppointment.reason}
-                                onChange={(e) => setNewAppointment({ ...newAppointment, reason: e.target.value })}
-                            />
-                        </div>
-
-                        <Button className="w-full" onClick={handleCreateAppointment}>
-                            Confirmar Cita
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <PatientPortalAppointmentModal
+                open={showNewAppointment}
+                onOpenChange={setShowNewAppointment}
+                patientId={user.patientId}
+                onSuccess={loadAppointments}
+            />
         </div>
     )
 }

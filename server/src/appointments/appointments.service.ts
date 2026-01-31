@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -16,7 +16,9 @@ export class AppointmentsService {
             // Get AI triage if symptoms provided
             let triageScore = null;
             let triageNotes = null;
-            let priority = data.priority || 'NORMAL';
+
+            // Ensure priority is always a valid string, ignore invalid values
+            let priority = (typeof data.priority === 'string' && data.priority) ? data.priority : 'NORMAL';
 
             if (data.symptoms) {
                 try {
@@ -27,7 +29,8 @@ export class AppointmentsService {
                     });
                     triageScore = triage.score;
                     triageNotes = triage.notes;
-                    priority = triage.priority;
+                    // Ensure priority from AI is always a valid string
+                    priority = (typeof triage.priority === 'string' && triage.priority) ? triage.priority : 'NORMAL';
                 } catch (error) {
                     // Non-critical: Log and proceed with default priority
                     console.error('AI triage failed (non-critical):', error);
@@ -38,6 +41,7 @@ export class AppointmentsService {
             // Map 'time' -> 'startTime'
             const { time, ...rest } = data;
 
+            console.log('[DEBUG] Creating Appointment Payload:', { ...rest, startTime: time });
             const appointment = await this.prisma.appointment.create({
                 data: {
                     ...rest,
@@ -57,7 +61,7 @@ export class AppointmentsService {
                 data: {
                     appointmentId: appointment.id,
                     status: 'SCHEDULED',
-                    notes: 'Appointment created',
+                    notes: 'Cita creada',
                 },
             });
 
@@ -77,7 +81,7 @@ export class AppointmentsService {
         } catch (error) {
             console.error('Failed to create appointment:', error);
             // Re-throw as BadRequest to show meaningful error to client
-            throw new Error(`Failed to monitor appointment creation: ${error.message}`);
+            throw new BadRequestException(`Error creando cita: ${error.message}`);
         }
     }
 
@@ -105,6 +109,7 @@ export class AppointmentsService {
                     include: {
                         patient: true,
                         doctor: { include: { user: true, specialty: true } },
+                        history: { orderBy: { createdAt: 'desc' } }, // Include history for accurate tracking
                     },
                     skip,
                     take: limit,
@@ -162,7 +167,7 @@ export class AppointmentsService {
             data: {
                 appointmentId: id,
                 status,
-                notes: notes || `Status changed to ${status}`,
+                notes: notes || `El estado cambió a ${status}`,
             },
         });
 

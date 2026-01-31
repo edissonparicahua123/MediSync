@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../node_modules/.prisma/client/index';
+// @ts-ignore
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -343,14 +344,14 @@ async function main() {
         for (let i = 1; i <= group.count; i++) {
             const bedNum = `${group.ward === 'UCI' ? 'UCI' : group.ward === 'Emergencia' ? 'ER' : 'GEN'}-${i.toString().padStart(2, '0')}`;
 
-            const bed = await prisma.bedStatus.upsert({
-                where: { bedNumber: bedNum },
+            const bed = await prisma.bed.upsert({
+                where: { number: bedNum },
                 update: {},
                 create: {
-                    bedNumber: bedNum,
+                    number: bedNum,
                     ward: group.ward,
+                    type: group.ward === 'UCI' ? 'Cama Hospitalaria' : 'Camilla',
                     status: Math.random() > 0.7 ? 'OCCUPIED' : 'AVAILABLE',
-                    floor: 1
                 }
             });
             if (bed.status === 'OCCUPIED') {
@@ -382,7 +383,7 @@ async function main() {
         });
 
         // Update bed with patient info (conceptual link)
-        await prisma.bedStatus.update({
+        await prisma.bed.update({
             where: { id: bedId },
             data: { notes: `Occupied by Case ${kase.id}` }
         });

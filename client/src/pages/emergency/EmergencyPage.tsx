@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,11 +37,23 @@ import {
     Droplet,
     Wind,
     Brain,
+    LogOut,
+    Search,
+    Filter,
+    Pencil,
 } from 'lucide-react'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { emergencyAPI, aiAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import EmergencyModal from '@/components/modals/EmergencyModal'
 
 export default function EmergencyPage() {
     const navigate = useNavigate()
@@ -40,6 +62,10 @@ export default function EmergencyPage() {
     const [wardStats, setWardStats] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('er-room')
+    const [dischargingId, setDischargingId] = useState<string | null>(null)
+    const [confirmPatient, setConfirmPatient] = useState<any | null>(null)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [priorityFilter, setPriorityFilter] = useState('all')
     const { toast } = useToast()
 
     // Triage IA State
@@ -47,34 +73,68 @@ export default function EmergencyPage() {
     const [symptoms, setSymptoms] = useState('')
     const [triageResult, setTriageResult] = useState<any>(null)
     const [analyzingTriage, setAnalyzingTriage] = useState(false)
+    const [admissionOpen, setAdmissionOpen] = useState(false)
+    const [editingCase, setEditingCase] = useState<any | null>(null)
+
+    const loadDashboardData = async () => {
+        try {
+            setLoading(true)
+            const [dashboardRes, patientsRes, wardsRes] = await Promise.all([
+                emergencyAPI.getDashboard(),
+                emergencyAPI.getCriticalPatients(),
+                emergencyAPI.getWardStats()
+            ])
+            setDashboard(dashboardRes.data)
+            setCriticalPatients(patientsRes.data)
+            setWardStats(wardsRes.data)
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Error al cargar datos',
+                variant: 'destructive',
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleDischarge = async (id: string) => {
+        try {
+            setDischargingId(id)
+            await emergencyAPI.dischargeCase(id)
+
+            toast({
+                title: 'Paciente Dado de Alta',
+                description: 'El caso ha sido cerrado y la cama liberada.',
+            })
+
+            loadDashboardData()
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: 'No se pudo procesar el alta.',
+                variant: 'destructive',
+            })
+        } finally {
+            setDischargingId(null)
+        }
+    }
+
+    const filteredPatients = (criticalPatients || []).filter(patient => {
+        const matchesSearch = (patient.patientName || patient.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (patient.bedNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (patient.diagnosis || patient.chiefComplaint || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesPriority = priorityFilter === 'all' ||
+            (patient.triageLevel || patient.priority).toString() === priorityFilter;
+
+        return matchesSearch && matchesPriority;
+    });
 
     useEffect(() => {
-        const loadDashboardData = async () => {
-            try {
-                setLoading(true)
-                const [dashboardRes, patientsRes, wardsRes] = await Promise.all([
-                    emergencyAPI.getDashboard(),
-                    emergencyAPI.getCriticalPatients(),
-                    emergencyAPI.getWardStats()
-                ])
-                setDashboard(dashboardRes.data)
-                setCriticalPatients(patientsRes.data)
-                setWardStats(wardsRes.data)
-            } catch (error: any) {
-                toast({
-                    title: 'Error',
-                    description: error.response?.data?.message || 'Error al cargar datos',
-                    variant: 'destructive',
-                })
-            } finally {
-                setLoading(false)
-            }
-        }
         loadDashboardData()
     }, [])
 
-    // Simular análisis de triage con IA
-    // Simular análisis de triage con IA
     const analyzeTriage = async () => {
         if (!symptoms.trim()) {
             toast({
@@ -88,7 +148,6 @@ export default function EmergencyPage() {
         setAnalyzingTriage(true)
 
         try {
-            // Real AI Call
             const response = await aiAPI.triage({ symptoms })
             const data = response.data
 
@@ -128,9 +187,6 @@ export default function EmergencyPage() {
         return colors[priority] || 'bg-gray-500'
     }
 
-    // Datos reales cargados desde API
-
-
     if (loading) {
         return (
             <div className="flex items-center justify-center h-96">
@@ -154,10 +210,23 @@ export default function EmergencyPage() {
                         </p>
                     </div>
                 </div>
-                <Button onClick={() => setTriageOpen(true)}>
-                    <Brain className="h-4 w-4 mr-2" />
-                    Evaluación IA
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setTriageOpen(true)}
+                        className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-300"
+                    >
+                        <Brain className="h-4 w-4 mr-2" />
+                        Evaluación IA
+                    </Button>
+                    <Button
+                        onClick={() => setAdmissionOpen(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20"
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nueva Admisión
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Cards */}
@@ -324,89 +393,198 @@ export default function EmergencyPage() {
                 <TabsContent value="er-room" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Casos de Emergencia Activos</CardTitle>
-                            <CardDescription>Monitoreo y gestión de pacientes en tiempo real</CardDescription>
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div>
+                                    <CardTitle>Casos de Emergencia Activos</CardTitle>
+                                    <CardDescription>Monitoreo y gestión de pacientes en tiempo real</CardDescription>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                                    <div className="relative w-full md:w-64">
+                                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
+                                        <Input
+                                            placeholder="Buscar paciente o cama..."
+                                            className="pl-9 bg-zinc-900 border-zinc-800 focus:ring-red-500"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                    <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                                        <SelectTrigger className="w-full md:w-40 bg-zinc-900 border-zinc-800">
+                                            <Filter className="h-4 w-4 mr-2 text-zinc-500" />
+                                            <SelectValue placeholder="Prioridad" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-300">
+                                            <SelectItem value="all">Todas las Prioridades</SelectItem>
+                                            <SelectItem value="1">1 - Crítico</SelectItem>
+                                            <SelectItem value="2">2 - Urgente</SelectItem>
+                                            <SelectItem value="3">3 - Semi-Urgente</SelectItem>
+                                            <SelectItem value="4">4 - No Urgente</SelectItem>
+                                            <SelectItem value="5">5 - Baja Prioridad</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Prioridad</TableHead>
-                                        <TableHead>Cama</TableHead>
-                                        <TableHead>Paciente</TableHead>
-                                        <TableHead>Diagnóstico</TableHead>
-                                        <TableHead>Doctor</TableHead>
-                                        <TableHead>Signos Vitales</TableHead>
-                                        <TableHead>Ingreso</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
+                                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Prioridad</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Cama</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Paciente</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Diagnóstico</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Doctor</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Signos Vitales</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Ingreso</TableHead>
+                                        <TableHead className="text-right text-zinc-500 uppercase text-xs font-bold">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {criticalPatients.map((patient) => (
-                                        <TableRow key={patient.id}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`h-6 w-6 rounded-full ${getPriorityColor(patient.triageLevel || patient.priority)} flex items-center justify-center text-white text-xs font-bold`}>
-                                                        {patient.triageLevel || patient.priority}
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="font-medium">{patient.bedNumber}</TableCell>
-                                            <TableCell>
-                                                <div>
-                                                    <p className="font-medium">{patient.patientName || patient.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{patient.patientAge || patient.age} años</p>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{patient.diagnosis || patient.chiefComplaint}</TableCell>
-                                            <TableCell>{patient.doctorName || patient.doctor}</TableCell>
-                                            <TableCell>
-                                                {patient.vitalSigns && (
-                                                    <div className="flex gap-2 text-xs">
-                                                        <div className="flex items-center gap-1">
-                                                            <Heart className="h-3 w-3" />
-                                                            {patient.vitalSigns.hr ? Math.round(patient.vitalSigns.hr) : '-'}
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <Activity className="h-3 w-3" />
-                                                            {patient.vitalSigns.bp || '-'}
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <Thermometer className="h-3 w-3" />
-                                                            {patient.vitalSigns.temp ? parseFloat(patient.vitalSigns.temp).toFixed(1) : '-'}°C
-                                                        </div>
-                                                        <div className="flex items-center gap-1">
-                                                            <Wind className="h-3 w-3" />
-                                                            {patient.vitalSigns.spo2 ? Math.round(patient.vitalSigns.spo2) : '-'}%
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                    <Clock className="h-3 w-3" />
-                                                    {format(new Date(patient.admissionDate || patient.admittedAt), 'HH:mm')}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => navigate(`/emergency/${patient.id}`)}
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
+                                    {filteredPatients.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} className="h-24 text-center text-zinc-500">
+                                                No se encontraron pacientes con los filtros seleccionados.
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    ) : (
+                                        filteredPatients.map((patient) => (
+                                            <TableRow key={patient.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`h-6 w-6 rounded-full ${getPriorityColor(patient.triageLevel || patient.priority)} flex items-center justify-center text-white text-xs font-bold`}>
+                                                            {patient.triageLevel || patient.priority}
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{patient.bedNumber}</TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium">{patient.patientName || patient.name}</p>
+                                                        <p className="text-sm text-muted-foreground">{patient.patientAge || patient.age} años</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{patient.diagnosis || patient.chiefComplaint}</TableCell>
+                                                <TableCell>{patient.doctorName || patient.doctor}</TableCell>
+                                                <TableCell>
+                                                    {patient.vitalSigns && (
+                                                        <div className="flex gap-3 text-xs">
+                                                            <div className="flex items-center gap-1 text-red-500/90" title="Frecuencia Cardíaca">
+                                                                <Heart className="h-3 w-3" />
+                                                                <span className="font-bold">{patient.vitalSigns.hr ? Math.round(patient.vitalSigns.hr) : '-'}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 text-blue-500/90" title="Presión Arterial">
+                                                                <Activity className="h-3 w-3" />
+                                                                <span className="font-bold">{patient.vitalSigns.bp || '-'}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 text-orange-500/90" title="Temperatura">
+                                                                <Thermometer className="h-3 w-3" />
+                                                                <span className="font-bold">{patient.vitalSigns.temp ? parseFloat(patient.vitalSigns.temp).toFixed(1) : '-'}°</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 text-cyan-500/90" title="Saturación SpO2">
+                                                                <Wind className="h-3 w-3" />
+                                                                <span className="font-bold">{patient.vitalSigns.spo2 ? Math.round(patient.vitalSigns.spo2) : '-'}%</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 text-purple-500/90" title="Frecuencia Respiratoria">
+                                                                <Droplet className="h-3 w-3" />
+                                                                <span className="font-bold">{patient.vitalSigns.rr ?? '-'}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                        <Clock className="h-3 w-3" />
+                                                        {format(new Date(patient.admissionDate || patient.admittedAt), 'HH:mm')}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                setEditingCase(patient)
+                                                                setAdmissionOpen(true)
+                                                            }}
+                                                            title="Editar Caso"
+                                                        >
+                                                            <Pencil className="h-4 w-4 text-blue-500" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => navigate(`/emergency/${patient.id}`)}
+                                                            title="Ver Detalles"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            disabled={dischargingId === patient.id}
+                                                            className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                                                            onClick={() => setConfirmPatient(patient)}
+                                                            title="Dar de Alta"
+                                                        >
+                                                            {dischargingId === patient.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <LogOut className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>
-
-
             </Tabs>
+            <EmergencyModal
+                open={admissionOpen}
+                onOpenChange={(open) => {
+                    setAdmissionOpen(open)
+                    if (!open) setEditingCase(null)
+                }}
+                initialData={editingCase}
+                onSuccess={() => {
+                    loadDashboardData()
+                    toast({
+                        title: "Admisión Exitosa",
+                        description: "El paciente ha sido ingresado al sistema de emergencias.",
+                    })
+                }}
+            />
+
+            {/* Diálogo de Confirmación de Alta */}
+            <AlertDialog open={!!confirmPatient} onOpenChange={(open) => !open && setConfirmPatient(null)}>
+                <AlertDialogContent className="bg-zinc-950 border-zinc-800">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-zinc-100 italic font-bold">¿Confirmar Alta de Paciente?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-zinc-400">
+                            Estás a punto de dar de alta a <span className="text-white font-semibold">{confirmPatient?.patientName || confirmPatient?.name}</span>.
+                            Esta acción cerrará el caso de emergencia y liberará la cama <span className="text-white font-semibold">{confirmPatient?.bedNumber}</span> permanentemente.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (confirmPatient) handleDischarge(confirmPatient.id)
+                                setConfirmPatient(null)
+                            }}
+                            className="bg-orange-600 hover:bg-orange-700 text-white font-bold"
+                        >
+                            Confirmar Alta
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

@@ -16,6 +16,19 @@ export class PatientsService {
         }
     }
 
+    async importPatients(patients: CreatePatientDto[]) {
+        try {
+            // Using createMany with skipDuplicates to avoid crashing on existing unique fields (like documentNumber)
+            // Note: skipDuplicates ignores records that violate unique constraints.
+            return await this.prisma.patient.createMany({
+                data: patients,
+                skipDuplicates: true,
+            });
+        } catch (error) {
+            this.handlePrismaError(error);
+        }
+    }
+
     async findAll(page: number = 1, limit: number = 20, search?: SearchPatientsDto) {
         const skip = (page - 1) * limit;
         const where: any = { deletedAt: null };
@@ -144,10 +157,6 @@ export class PatientsService {
     async enablePortalAccess(id: string) {
         const patient = await this.findOne(id) as any;
 
-        if (patient.userId) {
-            throw new ConflictException('Patient already has portal access');
-        }
-
         // 1. Get Patient Role
         const patientRole = await this.prisma.role.findFirst({
             where: { name: 'Patient' },
@@ -157,7 +166,30 @@ export class PatientsService {
             throw new NotFoundException('Patient role not configured in system');
         }
 
-        // 2. Generate Credentials
+        const tempPassword = `Portal${new Date().getFullYear()}!`;
+        const hashedPassword = await import('bcrypt').then(m => m.hash(tempPassword, 10));
+
+        // IF USER EXISTS: RESET PASSWORD
+        if (patient.userId) {
+            await this.prisma.user.update({
+                where: { id: patient.userId },
+                data: { password: hashedPassword }
+            });
+
+            // Find user to get email
+            const user = await this.prisma.user.findUnique({ where: { id: patient.userId } });
+
+            return {
+                message: 'Portal access reset successfully',
+                credentials: {
+                    email: user.email,
+                    password: tempPassword
+                }
+            };
+        }
+
+        // IF NEW USER: CREATE
+
         // Use part of email or name as base, fallback to random if no email
         const baseEmail = patient.email || `patient${patient.documentNumber || patient.id.substring(0, 6)}@medisync.portal`;
 
@@ -168,11 +200,7 @@ export class PatientsService {
             email = `${patient.id.substring(0, 4)}.${baseEmail}`;
         }
 
-        const tempPassword = `Portal${new Date().getFullYear()}!`; // Simple formatting
-        const hashedPassword = await import('bcrypt').then(m => m.hash(tempPassword, 10));
-
-        // 3. Create User linked to Patient
-        // We use a transaction to ensure both user creation and patient update happen
+        // Create User linked to Patient
         return this.prisma.$transaction(async (tx) => {
             const newUser = await tx.user.create({
                 data: {
@@ -340,10 +368,29 @@ export class PatientsService {
     }
 
     async addMedication(id: string, data: any) {
-        await this.findOne(id);
-        return (this.prisma as any).patientMedication.create({
-            data: { patientId: id, isActive: true, ...data },
-        });
+        try {
+            await this.findOne(id);
+            // Ensure startDate is a valid Date object
+            const payload = {
+                patientId: id,
+                name: data.name,
+                dosage: data.dosage,
+                frequency: data.frequency,
+                startDate: new Date(data.startDate),
+                notes: data.instructions || data.notes,
+                isActive: true,
+                prescribedBy: 'Dr. Paricahua' // Default or extracted from context
+            };
+
+            console.log('Adding medication payload:', payload);
+
+            return await (this.prisma as any).patientMedication.create({
+                data: payload,
+            });
+        } catch (error) {
+            console.error('Error adding medication:', error);
+            throw new BadRequestException(`Error al agregar medicamento: ${error.message}`);
+        }
     }
 
     async updateMedication(patientId: string, medicationId: string, data: any) {
@@ -434,6 +481,35 @@ export class PatientsService {
         await this.findOne(patientId);
         return (this.prisma as any).patientDocument.delete({
             where: { id: documentId },
+        });
+    }
+
+    // ============================================
+    // CLINICAL NOTES
+    // ============================================
+    async addNote(id: string, data: { title: string; content: string }) {
+        await this.findOne(id);
+
+        // Find a default doctor (first available) to assign this note to
+        // In a real app, this should come from the logged-in user context
+        const doctor = await this.prisma.doctor.findFirst();
+
+        if (!doctor) {
+            // Fallback or error if no doctor exists
+            throw new BadRequestException('No se encontraron doctores en el sistema para asignar la nota.');
+        }
+
+        return this.prisma.medicalRecord.create({
+            data: {
+                patientId: id,
+                doctorId: doctor.id,
+                visitDate: new Date(),
+                chiefComplaint: data.title,
+                diagnosis: 'Nota Clínica', // Tag to identify it as a note
+                notes: data.content,
+                treatment: '',
+                prescriptions: ''
+            }
         });
     }
 }

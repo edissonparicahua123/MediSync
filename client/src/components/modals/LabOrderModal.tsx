@@ -31,11 +31,13 @@ import { useToast } from '@/components/ui/use-toast'
 import { laboratoryAPI, patientsAPI, doctorsAPI } from '@/services/api'
 import { Loader2 } from 'lucide-react'
 
+import { LabOrder } from '@/types/laboratory'
+
 const labOrderSchema = z.object({
-    patientId: z.string().min(1, 'Patient is required'),
-    doctorId: z.string().optional(), // Can be optional if self-ordered or system ordered? Schema says nothing, let's assume optional or make it required if UI forces it
-    testType: z.string().min(1, 'Test type is required'),
-    priority: z.string().min(1, 'Priority is required'),
+    patientId: z.string().min(1, 'Paciente es requerido'),
+    doctorId: z.string().optional(),
+    testType: z.string().min(1, 'Tipo de prueba es requerido'),
+    priority: z.string().min(1, 'Prioridad es requerida'),
     notes: z.string().optional(),
     status: z.string().default('PENDING'),
 })
@@ -45,8 +47,9 @@ type LabOrderFormData = z.infer<typeof labOrderSchema>
 interface LabOrderModalProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    order?: any
+    order?: LabOrder | null
     onSuccess: () => void
+    defaultPatientId?: string
 }
 
 export default function LabOrderModal({
@@ -54,6 +57,7 @@ export default function LabOrderModal({
     onOpenChange,
     order,
     onSuccess,
+    defaultPatientId,
 }: LabOrderModalProps) {
     const { toast } = useToast()
     const [patients, setPatients] = useState<any[]>([])
@@ -87,7 +91,7 @@ export default function LabOrderModal({
                 })
             } else {
                 form.reset({
-                    patientId: '',
+                    patientId: defaultPatientId || '',
                     doctorId: '',
                     testType: '',
                     priority: 'NORMAL',
@@ -96,7 +100,7 @@ export default function LabOrderModal({
                 })
             }
         }
-    }, [open, order, form])
+    }, [open, order, form, defaultPatientId])
 
     const fetchResources = async () => {
         try {
@@ -113,7 +117,7 @@ export default function LabOrderModal({
             console.error('Failed to load resources', error)
             toast({
                 title: 'Error',
-                description: 'Failed to load necessary data',
+                description: 'No se pudieron cargar los datos necesarios',
                 variant: 'destructive',
             })
         } finally {
@@ -126,14 +130,14 @@ export default function LabOrderModal({
             if (order) {
                 await laboratoryAPI.updateOrder(order.id, data)
                 toast({
-                    title: 'Success',
-                    description: 'Lab order updated successfully',
+                    title: 'Éxito',
+                    description: 'Orden de laboratorio actualizada correctamente',
                 })
             } else {
                 await laboratoryAPI.createOrder(data)
                 toast({
-                    title: 'Success',
-                    description: 'Lab order created successfully',
+                    title: 'Éxito',
+                    description: 'Orden de laboratorio creada correctamente',
                 })
             }
             onSuccess()
@@ -141,7 +145,7 @@ export default function LabOrderModal({
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Something went wrong',
+                description: error.response?.data?.message || 'Algo salió mal',
                 variant: 'destructive',
             })
         }
@@ -151,11 +155,11 @@ export default function LabOrderModal({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>{order ? 'Edit Lab Order' : 'New Lab Order'}</DialogTitle>
+                    <DialogTitle>{order ? 'Editar Orden de Laboratorio' : 'Nueva Orden de Laboratorio'}</DialogTitle>
                     <DialogDescription>
                         {order
-                            ? 'Update lab order details.'
-                            : 'Create a new laboratory test order.'}
+                            ? 'Actualizar detalles de la orden.'
+                            : 'Crear una nueva orden de prueba de laboratorio.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -168,11 +172,11 @@ export default function LabOrderModal({
                                 name="patientId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Patient</FormLabel>
+                                        <FormLabel>Paciente</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select patient" />
+                                                    <SelectValue placeholder="Seleccionar paciente" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
@@ -193,11 +197,11 @@ export default function LabOrderModal({
                                 name="doctorId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Referring Doctor</FormLabel>
+                                        <FormLabel>Médico Solicitante</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select doctor (optional)" />
+                                                    <SelectValue placeholder="Seleccionar médico (opcional)" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
@@ -218,11 +222,11 @@ export default function LabOrderModal({
                                 name="testType"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Test Type</FormLabel>
+                                        <FormLabel>Tipo de Prueba</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select test" />
+                                                    <SelectValue placeholder="Seleccionar prueba" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
@@ -243,17 +247,17 @@ export default function LabOrderModal({
                                 name="priority"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Priority</FormLabel>
+                                        <FormLabel>Prioridad</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select priority" />
+                                                    <SelectValue placeholder="Seleccionar prioridad" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="NORMAL">Normal</SelectItem>
-                                                <SelectItem value="URGENT">Urgent</SelectItem>
-                                                <SelectItem value="EMERGENCY">Emergency</SelectItem>
+                                                <SelectItem value="URGENT">Urgente</SelectItem>
+                                                <SelectItem value="EMERGENCY">Emergencia</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -266,18 +270,18 @@ export default function LabOrderModal({
                                 name="status"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Status</FormLabel>
+                                        <FormLabel>Estado</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select status" />
+                                                    <SelectValue placeholder="Seleccionar estado" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="PENDING">Pending</SelectItem>
-                                                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                                                <SelectItem value="COMPLETED">Completed</SelectItem>
-                                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                                <SelectItem value="PENDING">Pendiente</SelectItem>
+                                                <SelectItem value="IN_PROGRESS">En Progreso</SelectItem>
+                                                <SelectItem value="COMPLETED">Completado</SelectItem>
+                                                <SelectItem value="CANCELLED">Cancelado</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -290,10 +294,10 @@ export default function LabOrderModal({
                                 name="notes"
                                 render={({ field }) => (
                                     <FormItem className="md:col-span-2">
-                                        <FormLabel>Notes / Instructions</FormLabel>
+                                        <FormLabel>Notas / Instrucciones</FormLabel>
                                         <FormControl>
                                             <Textarea
-                                                placeholder="Clinical notes or specific instructions..."
+                                                placeholder="Notas clínicas o instrucciones específicas..."
                                                 className="resize-none"
                                                 {...field}
                                             />
@@ -310,13 +314,13 @@ export default function LabOrderModal({
                                 variant="outline"
                                 onClick={() => onOpenChange(false)}
                             >
-                                Cancel
+                                Cancelar
                             </Button>
                             <Button type="submit" disabled={form.formState.isSubmitting || loadingResources}>
                                 {form.formState.isSubmitting && (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 )}
-                                {order ? 'Save Changes' : 'Create Order'}
+                                {order ? 'Guardar Cambios' : 'Crear Orden'}
                             </Button>
                         </div>
                     </form>

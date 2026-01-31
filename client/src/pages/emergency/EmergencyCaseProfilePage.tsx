@@ -24,9 +24,58 @@ import {
     Loader2,
     AlertCircle,
     Building2,
+    Trash2,
+    Download,
+    Edit2,
+    File,
+    Info,
+    ShieldAlert,
+    Clock,
+    History,
+    ChevronRight,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import ReferralModal from '@/components/modals/ReferralModal'
+import EmergencyModal from '@/components/modals/EmergencyModal'
 import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover'
+import { emergencyAPI, patientsAPI } from '@/services/api'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form'
 
 export default function EmergencyCaseProfilePage() {
     const { id } = useParams<{ id: string }>()
@@ -38,64 +87,329 @@ export default function EmergencyCaseProfilePage() {
     const [caseData, setCaseData] = useState<any>(null)
     const [vitalSigns, setVitalSigns] = useState<any[]>([])
 
-    useEffect(() => {
-        const fetchCaseData = async () => {
-            if (!id) return;
-            try {
-                setLoading(true)
-                const res = await import('@/services/api').then(m => m.emergencyAPI.getCase(id))
-                const data = res.data
+    // Estados de datos adicionales
+    const [medications, setMedications] = useState<any[]>([])
+    const [procedures, setProcedures] = useState<any[]>([])
+    const [attachments, setAttachments] = useState<any[]>([])
+    const [medicalHistory, setMedicalHistory] = useState<any[]>([])
 
-                setCaseData({
-                    id: data.id,
-                    patient: {
-                        name: data.patientName,
-                        age: data.patientAge,
-                        gender: 'Unknown', // Not in EmergencyCase model
-                        bloodType: 'Unknown',
-                    },
-                    admission: {
-                        date: new Date(data.admissionDate),
-                        bedNumber: data.bedNumber,
-                        priority: data.triageLevel,
-                        diagnosis: data.diagnosis,
-                        chiefComplaint: data.chiefComplaint,
-                    },
-                    doctor: {
-                        name: data.doctorName,
-                        specialty: 'Emergency Medicine',
-                    },
-                })
+    // Modal states
+    const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false)
+    const [isMedsModalOpen, setIsMedsModalOpen] = useState(false)
+    const [isProcsModalOpen, setIsProcsModalOpen] = useState(false)
+    const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
+    const [isReferralModalOpen, setIsReferralModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [referralInitialWard, setReferralInitialWard] = useState<string>('General')
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-                if (data.vitalSigns && typeof data.vitalSigns === 'object') {
-                    setVitalSigns([{
-                        time: new Date(data.updatedAt || data.createdAt),
-                        heartRate: Math.round(data.vitalSigns.hr || 0),
-                        bloodPressure: data.vitalSigns.bp || '--/--',
-                        temperature: data.vitalSigns.temp ? Number(data.vitalSigns.temp).toFixed(1) : 0,
-                        spo2: Math.round(data.vitalSigns.spo2 || 0),
-                        respiratoryRate: 18, // Default if missing
-                    }])
-                }
+    // Doc edit state
+    const [editingDoc, setEditingDoc] = useState<any>(null)
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
-            } catch (error) {
-                toast({
-                    title: 'Error',
-                    description: 'No se pudo cargar el caso',
-                    variant: 'destructive'
-                })
-                navigate('/emergency')
-            } finally {
-                setLoading(false)
+    // Form Schemas
+    const vitalsSchema = z.object({
+        hr: z.string().min(1, 'Requerido'),
+        bp: z.string().min(1, 'Requerido'),
+        temp: z.string().min(1, 'Requerido'),
+        spo2: z.string().min(1, 'Requerido'),
+        rr: z.string().optional(),
+    })
+
+    const medsSchema = z.object({
+        name: z.string().min(1, 'Requerido'),
+        dosage: z.string().min(1, 'Requerido'),
+        route: z.string().min(1, 'Requerido'),
+        notes: z.string().optional(),
+    })
+
+    const procsSchema = z.object({
+        name: z.string().min(1, 'Requerido'),
+        description: z.string().optional(),
+        result: z.string().optional(),
+    })
+
+    const docsSchema = z.object({
+        title: z.string().min(1, 'Requerido'),
+    })
+
+    const vitalsForm = useForm<z.infer<typeof vitalsSchema>>({
+        resolver: zodResolver(vitalsSchema),
+        defaultValues: { hr: '', bp: '', temp: '', spo2: '', rr: '18' }
+    })
+
+    const medsForm = useForm<z.infer<typeof medsSchema>>({
+        resolver: zodResolver(medsSchema),
+        defaultValues: { name: '', dosage: '', route: 'IV', notes: '' }
+    })
+
+    const procsForm = useForm<z.infer<typeof procsSchema>>({
+        resolver: zodResolver(procsSchema),
+        defaultValues: { name: '', description: '', result: '' }
+    })
+
+    const docsForm = useForm<z.infer<typeof docsSchema>>({
+        resolver: zodResolver(docsSchema),
+        defaultValues: { title: '' }
+    })
+
+    const fetchCaseData = async () => {
+        if (!id) return;
+        try {
+            setLoading(true)
+            const res = await emergencyAPI.getCase(id)
+            const data = res.data
+
+            // Traducir género
+            const genderMap: Record<string, string> = {
+                'MALE': 'Masculino',
+                'FEMALE': 'Femenino',
+                'OTHER': 'Otro',
+                'Unknown': 'Desconocido'
             }
+
+            setCaseData({
+                id: data.id,
+                patient: {
+                    name: data.patient?.firstName ? `${data.patient.firstName} ${data.patient.lastName}` : data.patientName,
+                    age: data.patient?.dateOfBirth ?
+                        new Date().getFullYear() - new Date(data.patient.dateOfBirth).getFullYear() :
+                        data.patientAge,
+                    gender: genderMap[data.patient?.gender] || 'Desconocido',
+                    bloodType: data.patient?.bloodType || 'NR',
+                },
+                admission: {
+                    date: new Date(data.admissionDate),
+                    bedNumber: data.bedNumber || 'Sin asignar',
+                    priority: data.triageLevel,
+                    diagnosis: data.diagnosis || 'Pendiente de diagnóstico',
+                    chiefComplaint: data.chiefComplaint,
+                    vitalSigns: data.vitalSigns || null, // [NEW] Keep track of admission vitals
+                },
+                doctor: {
+                    name: data.doctor?.user ? `Dr. ${data.doctor.user.firstName} ${data.doctor.user.lastName}` : data.doctorName || 'Sin asignar',
+                    specialty: data.doctor?.specialty?.name || data.doctor?.specialization || 'Medicina de Emergencias',
+                },
+                patientId: data.patientId,
+                doctorId: data.doctorId,
+                bedId: data.bedId,
+                notes: data.notes,
+                raw: data // For the modal to have everything it needs
+            })
+
+            // Fetch medical history for the patient
+            if (data.patientId) {
+                const historyRes = await patientsAPI.getMedicalHistory(data.patientId)
+                setMedicalHistory(historyRes.data)
+            }
+
+            let history: any[] = []
+
+            if (data.vitalSignsHistory && data.vitalSignsHistory.length > 0) {
+                history = data.vitalSignsHistory.map((vs: any) => ({
+                    time: new Date(vs.createdAt),
+                    heartRate: Math.round(vs.hr || 0),
+                    bloodPressure: vs.bp || '--/--',
+                    temperature: vs.temp ? Number(vs.temp).toFixed(1) : 0,
+                    spo2: Math.round(vs.spo2 || 0),
+                    respiratoryRate: vs.rr || 18,
+                }))
+            } else if (data.vitalSigns && typeof data.vitalSigns === 'object') {
+                // [SENIOR FALLBACK] Use admission vitals if history is empty
+                history = [{
+                    time: new Date(data.admissionDate || data.createdAt),
+                    heartRate: Math.round(data.vitalSigns.hr || 0),
+                    bloodPressure: data.vitalSigns.bp || '--/--',
+                    temperature: data.vitalSigns.temp ? Number(data.vitalSigns.temp).toFixed(1) : 0,
+                    spo2: Math.round(data.vitalSigns.spo2 || 0),
+                    respiratoryRate: data.vitalSigns.rr || 18,
+                }]
+            }
+
+            setVitalSigns(history)
+
+            // Auto-fill form with last vitals as reference
+            if (history.length > 0) {
+                const last = history[0];
+                vitalsForm.reset({
+                    hr: last.heartRate.toString(),
+                    bp: last.bloodPressure,
+                    temp: last.temperature.toString(),
+                    spo2: last.spo2.toString(),
+                    rr: last.respiratoryRate.toString()
+                })
+            }
+
+            if (data.medications) setMedications(data.medications)
+            if (data.procedures) setProcedures(data.procedures)
+            if (data.attachments) setAttachments(data.attachments)
+
+        } catch (error) {
+            console.error(error)
+            toast({
+                title: 'Error',
+                description: 'No se pudo cargar el caso',
+                variant: 'destructive'
+            })
+            navigate('/emergency')
+        } finally {
+            setLoading(false)
         }
+    }
+
+    useEffect(() => {
         fetchCaseData()
     }, [id, navigate, toast])
 
-    // Empty states for missing tabs
-    const medications: any[] = []
-    const procedures: any[] = []
-    const attachments: any[] = []
+    const handleAddVitals = async (values: z.infer<typeof vitalsSchema>) => {
+        if (!id) return
+        try {
+            setIsSubmitting(true)
+            await emergencyAPI.addVitalSign(id, values)
+            toast({ title: 'Éxito', description: 'Signos vitales registrados correctamente' })
+            setIsVitalsModalOpen(false)
+            vitalsForm.reset()
+            fetchCaseData()
+        } catch (error) {
+            toast({ title: 'Error', description: 'No se pudo registrar', variant: 'destructive' })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleAddMed = async (values: z.infer<typeof medsSchema>) => {
+        if (!id) return
+        try {
+            setIsSubmitting(true)
+            await emergencyAPI.addMedication(id, values)
+            toast({ title: 'Éxito', description: 'Medicamento registrado' })
+            setIsMedsModalOpen(false)
+            medsForm.reset()
+            fetchCaseData()
+        } catch (error) {
+            toast({ title: 'Error', description: 'No se pudo registrar', variant: 'destructive' })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleAddProc = async (values: z.infer<typeof procsSchema>) => {
+        if (!id) return
+        try {
+            setIsSubmitting(true)
+            await emergencyAPI.addProcedure(id, values)
+            toast({ title: 'Éxito', description: 'Procedimiento registrado' })
+            setIsProcsModalOpen(false)
+            procsForm.reset()
+            fetchCaseData()
+        } catch (error) {
+            toast({ title: 'Error', description: 'No se pudo registrar', variant: 'destructive' })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleTransfer = (targetWard: string) => {
+        setReferralInitialWard(targetWard)
+        setIsReferralModalOpen(true)
+    }
+
+    const handleAddDoc = async (values: z.infer<typeof docsSchema>) => {
+        if (!id) return
+        try {
+            setIsSubmitting(true)
+
+            if (editingDoc) {
+                // Rename mode
+                await emergencyAPI.updateAttachment(editingDoc.id, { title: values.title })
+                toast({ title: 'Éxito', description: 'Documento renombrado' })
+            } else {
+                // Upload mode
+                if (!selectedFile) {
+                    toast({ title: 'Error', description: 'Seleccione un archivo', variant: 'destructive' })
+                    return
+                }
+
+                // 1. Upload file binary
+                const uploadRes = await emergencyAPI.uploadFile(selectedFile)
+                const { url, type } = uploadRes.data
+
+                // 2. Save metadata
+                await emergencyAPI.addAttachment(id, {
+                    title: values.title,
+                    url: url,
+                    type: type.includes('image') ? 'IMAGE' : type.includes('pdf') ? 'PDF' : 'DOCUMENT'
+                })
+
+                toast({ title: 'Éxito', description: 'Archivo subido correctamente' })
+            }
+
+            setIsDocsModalOpen(false)
+            setEditingDoc(null)
+            setSelectedFile(null)
+            docsForm.reset()
+            fetchCaseData()
+        } catch (error) {
+            toast({ title: 'Error', description: 'No se pudo procesar el archivo', variant: 'destructive' })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleDeleteDoc = async (docId: string) => {
+        if (!confirm('¿Confirma que desea eliminar este documento?')) return
+        try {
+            await emergencyAPI.deleteAttachment(docId)
+            toast({ title: 'Éxito', description: 'Documento eliminado' })
+            fetchCaseData()
+        } catch (error) {
+            toast({ title: 'Error', description: 'No se pudo eliminar', variant: 'destructive' })
+        }
+    }
+
+    const handleDownload = (url: string) => {
+        // Assume context is http://localhost:3000
+        const fullUrl = url.startsWith('http') ? url : `http://localhost:3000${url}`
+        window.open(fullUrl, '_blank')
+    }
+
+    const calculateNEWS2 = (vitals: any) => {
+        if (!vitals) return { score: 0, risks: [] };
+        let score = 0;
+        const risks: string[] = [];
+
+        // 1. Respiration Rate
+        const rr = parseInt(vitals.respiratoryRate);
+        if (rr <= 8 || rr >= 25) { score += 3; risks.push("FR crítica"); }
+        else if (rr >= 21 && rr <= 24) { score += 2; risks.push("Taquipnea moderada"); }
+        else if (rr >= 9 && rr <= 11) { score += 1; risks.push("FR baja"); }
+
+        // 2. SpO2
+        const spo2 = parseInt(vitals.spo2);
+        if (spo2 <= 91) { score += 3; risks.push("Desaturación grave"); }
+        else if (spo2 >= 92 && spo2 <= 93) { score += 2; risks.push("Desaturación moderada"); }
+        else if (spo2 >= 94 && spo2 <= 95) { score += 1; risks.push("Desaturación leve"); }
+
+        // 3. Systolic BP (Extract from "120/80")
+        const sys = parseInt(vitals.bloodPressure?.split('/')[0] || "0");
+        if (sys <= 90 || sys >= 220) { score += 3; risks.push("PA sistólica crítica"); }
+        else if (sys >= 91 && sys <= 100) { score += 2; risks.push("Hipotensión moderada"); }
+        else if (sys >= 101 && sys <= 110) { score += 1; risks.push("Hipotensión leve"); }
+
+        // 4. Heart Rate
+        const hr = parseInt(vitals.heartRate);
+        if (hr <= 40 || hr >= 131) { score += 3; risks.push("FC crítica"); }
+        else if (hr >= 111 && hr <= 130) { score += 2; risks.push("Taquicardia moderada"); }
+        else if ((hr >= 41 && hr <= 50) || (hr >= 91 && hr <= 110)) { score += 1; risks.push("FC fuera de rango"); }
+
+        // 5. Temperature
+        const temp = parseFloat(vitals.temperature);
+        if (temp <= 35.0) { score += 3; risks.push("Hipotermia grave"); }
+        else if (temp >= 39.1) { score += 2; risks.push("Fiebre alta"); }
+        else if (temp <= 36.0 || (temp >= 38.1 && temp <= 39.0)) { score += 1; risks.push("Temp fuera de rango"); }
+
+        return { score, risks };
+    }
 
     if (loading || !caseData) {
         return (
@@ -103,6 +417,17 @@ export default function EmergencyCaseProfilePage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         )
+    }
+
+    const getPriorityLabel = (priority: number) => {
+        const labels: Record<number, string> = {
+            1: 'CRÍTICO',
+            2: 'EMERGENCIA',
+            3: 'URGENCIA',
+            4: 'URGENCIA MENOR',
+            5: 'NO URGENTE',
+        }
+        return labels[priority] || 'DESCONOCIDO'
     }
 
     const getPriorityColor = (priority: number) => {
@@ -118,92 +443,100 @@ export default function EmergencyCaseProfilePage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
+            {/* Encabezado */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" onClick={() => navigate('/emergency')}>
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back
+                        Volver
                     </Button>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Emergency Case Profile</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Perfil de Emergencia</h1>
                         <p className="text-muted-foreground">
-                            {caseData.patient.name} • Bed {caseData.admission.bedNumber}
+                            {caseData.patient.name} • Cama {caseData.admission.bedNumber}
                         </p>
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Editar Caso
+                    </Button>
+                    <Button variant="outline" onClick={() => handleTransfer('General')}>
                         <Building2 className="h-4 w-4 mr-2" />
-                        Transfer to Ward
+                        Trasladar a Piso
                     </Button>
                 </div>
             </div>
 
-            {/* Patient Header Card */}
+            {/* Tarjeta de Información del Paciente */}
             <Card>
                 <CardContent className="pt-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground">Patient</p>
+                                <p className="text-sm text-muted-foreground">Paciente</p>
                                 <p className="font-medium text-lg">{caseData.patient.name}</p>
                                 <p className="text-sm text-muted-foreground">
-                                    {caseData.patient.age} years • {caseData.patient.gender}
+                                    {caseData.patient.age} años • {caseData.patient.gender}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Blood Type</p>
+                                <p className="text-sm text-muted-foreground">Grupo Sanguíneo</p>
                                 <p className="font-medium">{caseData.patient.bloodType}</p>
                             </div>
                         </div>
 
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground">Admission Time</p>
-                                <p className="font-medium">{format(caseData.admission.date, 'PPpp')}</p>
+                                <p className="text-sm text-muted-foreground">Hora de Ingreso</p>
+                                <p className="font-medium">{format(caseData.admission.date, "d 'de' MMMM, yyyy, HH:mm", { locale: es })}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Bed Number</p>
+                                <p className="text-sm text-muted-foreground">Número de Cama</p>
                                 <p className="font-medium">{caseData.admission.bedNumber}</p>
                             </div>
                         </div>
 
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground">Priority</p>
+                                <p className="text-sm text-muted-foreground">Prioridad</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     <div className={`h-6 w-6 rounded-full ${getPriorityColor(caseData.admission.priority)} flex items-center justify-center text-white text-xs font-bold`}>
                                         {caseData.admission.priority}
                                     </div>
-                                    <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
-                                        CRITICAL
+                                    <span className={cn(
+                                        "text-xs px-2 py-1 rounded-full font-medium",
+                                        caseData.admission.priority === 1 ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"
+                                    )}>
+                                        {getPriorityLabel(caseData.admission.priority)}
                                     </span>
                                 </div>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Diagnosis</p>
+                                <p className="text-sm text-muted-foreground">Diagnóstico</p>
                                 <p className="font-medium">{caseData.admission.diagnosis}</p>
                             </div>
                         </div>
 
                         <div className="space-y-3">
                             <div>
-                                <p className="text-sm text-muted-foreground">Attending Physician</p>
+                                <p className="text-sm text-muted-foreground">Médico Tratante</p>
                                 <p className="font-medium">{caseData.doctor.name}</p>
-                                <p className="text-sm text-muted-foreground">{caseData.doctor.specialty}</p>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-primary/70 mt-1">Especialidad</p>
+                                <p className="text-sm font-medium text-zinc-300">{caseData.doctor.specialty}</p>
                             </div>
                         </div>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Chief Complaint */}
+            {/* Motivo de Consulta */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-xl">
                         <AlertCircle className="h-5 w-5 text-red-500" />
-                        Chief Complaint
+                        Motivo de Consulta
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -211,73 +544,84 @@ export default function EmergencyCaseProfilePage() {
                 </CardContent>
             </Card>
 
-            {/* Tabs */}
+            {/* Pestañas */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="vitals">
                         <Heart className="h-4 w-4 mr-2" />
-                        Vital Signs
+                        Signos Vitales
                     </TabsTrigger>
                     <TabsTrigger value="medications">
                         <Pill className="h-4 w-4 mr-2" />
-                        Medications
+                        Medicamentos
                     </TabsTrigger>
                     <TabsTrigger value="procedures">
                         <Activity className="h-4 w-4 mr-2" />
-                        Procedures
+                        Procedimientos
                     </TabsTrigger>
                     <TabsTrigger value="attachments">
                         <FileText className="h-4 w-4 mr-2" />
-                        Attachments
+                        Documentos
+                    </TabsTrigger>
+                    <TabsTrigger value="history">
+                        <History className="h-4 w-4 mr-2" />
+                        Historial Clínico
                     </TabsTrigger>
                 </TabsList>
 
-                {/* Vital Signs Tab */}
                 <TabsContent value="vitals" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Vital Signs History</CardTitle>
-                            <CardDescription>Real-time monitoring of patient vital signs</CardDescription>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Signos Vitales</CardTitle>
+                                    <CardDescription>Monitoreo de constantes vitales en tiempo real</CardDescription>
+                                </div>
+                                <Button size="sm" onClick={() => setIsVitalsModalOpen(true)} className="bg-zinc-100 text-zinc-950 hover:bg-zinc-200">
+                                    <Activity className="h-4 w-4 mr-2" />
+                                    Nueva Toma
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Time</TableHead>
+                                        <TableHead>Hora</TableHead>
                                         <TableHead>
                                             <div className="flex items-center gap-2">
                                                 <Heart className="h-4 w-4" />
-                                                Heart Rate
+                                                Frec. Cardíaca
                                             </div>
                                         </TableHead>
                                         <TableHead>
                                             <div className="flex items-center gap-2">
                                                 <Activity className="h-4 w-4" />
-                                                Blood Pressure
+                                                Presión Arterial
                                             </div>
                                         </TableHead>
                                         <TableHead>
                                             <div className="flex items-center gap-2">
                                                 <Thermometer className="h-4 w-4" />
-                                                Temperature
+                                                Temperatura
                                             </div>
                                         </TableHead>
                                         <TableHead>
                                             <div className="flex items-center gap-2">
                                                 <Wind className="h-4 w-4" />
-                                                SpO2
+                                                Saturación (SpO2)
                                             </div>
                                         </TableHead>
                                         <TableHead>
                                             <div className="flex items-center gap-2">
                                                 <Droplet className="h-4 w-4" />
-                                                Resp. Rate
+                                                Frec. Resp.
                                             </div>
                                         </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {vitalSigns.map((vital, idx) => (
+                                    {vitalSigns.length > 0 ? vitalSigns.map((vital, idx) => (
                                         <TableRow key={idx}>
                                             <TableCell className="font-medium">
                                                 {format(vital.time, 'HH:mm:ss')}
@@ -303,155 +647,673 @@ export default function EmergencyCaseProfilePage() {
                                                 </span>
                                             </TableCell>
                                             <TableCell>
-                                                <span className={vital.respiratoryRate > 20 ? 'text-orange-600 font-semibold' : ''}>
+                                                <span className={vital.respiratoryRate > 20 || vital.respiratoryRate < 10 ? 'text-red-500 font-bold' : ''}>
                                                     {vital.respiratoryRate} /min
                                                 </span>
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                                                No hay registros recientes
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* Medications Tab */}
                 <TabsContent value="medications" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Medications Administered</CardTitle>
-                            <CardDescription>Complete medication administration record</CardDescription>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Medicamentos Administrados</CardTitle>
+                                    <CardDescription>Registro completo de medicación</CardDescription>
+                                </div>
+                                <Button size="sm" onClick={() => setIsMedsModalOpen(true)} className="bg-zinc-100 text-zinc-950 hover:bg-zinc-200">
+                                    <Pill className="h-4 w-4 mr-2" />
+                                    Registrar Medicación
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Time</TableHead>
-                                        <TableHead>Medication</TableHead>
-                                        <TableHead>Dose</TableHead>
-                                        <TableHead>Route</TableHead>
-                                        <TableHead>Administered By</TableHead>
+                                        <TableHead>Hora</TableHead>
+                                        <TableHead>Medicamento</TableHead>
+                                        <TableHead>Dosis</TableHead>
+                                        <TableHead>Vía</TableHead>
+                                        <TableHead>Administrado por</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {medications.map((med) => (
-                                        <TableRow key={med.id}>
+                                    {medications.length > 0 ? medications.map((med, idx) => (
+                                        <TableRow key={idx}>
                                             <TableCell className="font-medium">
-                                                {format(med.time, 'HH:mm')}
+                                                {format(new Date(med.administeredAt), 'HH:mm:ss')}
                                             </TableCell>
-                                            <TableCell className="font-semibold">{med.name}</TableCell>
-                                            <TableCell>{med.dose}</TableCell>
-                                            <TableCell>{med.route}</TableCell>
-                                            <TableCell>{med.administeredBy}</TableCell>
+                                            <TableCell className="font-semibold text-zinc-100">{med.name}</TableCell>
+                                            <TableCell>{med.dosage}</TableCell>
+                                            <TableCell>
+                                                <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs font-medium">
+                                                    {med.route}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>{med.administeredBy || 'Sistema'}</TableCell>
                                         </TableRow>
-                                    ))}
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground italic">
+                                                No hay medicamentos registrados para este caso
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* Procedures Tab */}
                 <TabsContent value="procedures" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Procedures Performed</CardTitle>
-                            <CardDescription>Diagnostic and therapeutic procedures</CardDescription>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Procedimientos</CardTitle>
+                                    <CardDescription>Estudios y acciones terapéuticas realizadas</CardDescription>
+                                </div>
+                                <Button size="sm" onClick={() => setIsProcsModalOpen(true)} className="bg-zinc-100 text-zinc-950 hover:bg-zinc-200">
+                                    <Activity className="h-4 w-4 mr-2" />
+                                    Nuevo Procedimiento
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                {procedures.map((proc) => (
-                                    <div key={proc.id} className="p-4 border rounded-lg">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <p className="font-semibold text-lg">{proc.name}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    Performed by {proc.performedBy}
-                                                </p>
-                                            </div>
-                                            <p className="text-sm text-muted-foreground">
-                                                {format(proc.time, 'HH:mm')}
-                                            </p>
-                                        </div>
-                                        <div className="mt-2 p-3 bg-accent rounded">
-                                            <p className="text-sm font-medium">Result:</p>
-                                            <p className="text-sm">{proc.result}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Hora</TableHead>
+                                        <TableHead>Procedimiento</TableHead>
+                                        <TableHead>Descripción / Resultado</TableHead>
+                                        <TableHead>Realizado por</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {procedures.length > 0 ? procedures.map((proc, idx) => (
+                                        <TableRow key={idx}>
+                                            <TableCell className="font-medium">
+                                                {format(new Date(proc.performedAt), 'HH:mm:ss')}
+                                            </TableCell>
+                                            <TableCell className="font-semibold text-zinc-100">{proc.name}</TableCell>
+                                            <TableCell>{proc.description || proc.result || 'Sin detalles'}</TableCell>
+                                            <TableCell>{proc.performedBy || 'Sistema'}</TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground italic">
+                                                No hay procedimientos registrados para este caso
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* Attachments Tab */}
                 <TabsContent value="attachments" className="mt-4">
                     <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <CardTitle>Attached Documents</CardTitle>
-                                    <CardDescription>Medical records, images, and reports</CardDescription>
+                                    <CardTitle>Documentos Adjuntos</CardTitle>
+                                    <CardDescription>Informes, imágenes y otros archivos del paciente</CardDescription>
                                 </div>
-                                <Button>
+                                <Button
+                                    size="sm"
+                                    onClick={() => {
+                                        setEditingDoc(null)
+                                        docsForm.reset()
+                                        setIsDocsModalOpen(true)
+                                    }}
+                                    className="bg-zinc-100 text-zinc-950 hover:bg-zinc-200"
+                                >
                                     <Upload className="h-4 w-4 mr-2" />
-                                    Upload File
+                                    Subir Archivo
                                 </Button>
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-3">
-                                {attachments.map((file) => (
-                                    <div key={file.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center">
-                                                <FileText className="h-5 w-5 text-primary" />
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Archivo</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Fecha</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {attachments.length > 0 ? attachments.map((doc, idx) => (
+                                        <TableRow key={idx}>
+                                            <TableCell className="font-medium">
+                                                <div className="flex items-center gap-2">
+                                                    <File className="h-4 w-4 text-zinc-500" />
+                                                    <span className="text-zinc-100">{doc.title}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] font-bold">
+                                                    {doc.type}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-sm">
+                                                {format(new Date(doc.createdAt), 'dd/MM/yyyy HH:mm')}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-zinc-400 hover:text-zinc-100"
+                                                        onClick={() => handleDownload(doc.url)}
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-zinc-400 hover:text-zinc-100"
+                                                        onClick={() => {
+                                                            setEditingDoc(doc)
+                                                            docsForm.setValue('title', doc.title)
+                                                            setIsDocsModalOpen(true)
+                                                        }}
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-red-500/50 hover:text-red-500 hover:bg-red-500/10"
+                                                        onClick={() => handleDeleteDoc(doc.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
+                                                No hay documentos vinculados a este caso de emergencia
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="history" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <div>
+                                <CardTitle>Historial Clínico Completo</CardTitle>
+                                <CardDescription>Registro cronológico de todas las atenciones y derivaciones</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-6">
+                                {medicalHistory.length > 0 ? (
+                                    <div className="relative space-y-4 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-zinc-800 before:to-transparent">
+                                        {medicalHistory.map((record, idx) => (
+                                            <div key={idx} className="relative flex items-start gap-4 group">
+                                                <div className="absolute left-0 mt-1.5 flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950 border border-zinc-800 shadow-md transition-all group-hover:border-primary/50 group-hover:shadow-primary/10">
+                                                    <FileText className="h-5 w-5 text-zinc-500 group-hover:text-primary transition-colors" />
+                                                </div>
+                                                <div className="ml-14 flex-1 pb-8 border-b border-zinc-900 last:border-0 last:pb-0">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                                        <div>
+                                                            <h4 className="font-bold text-zinc-100 flex items-center gap-2">
+                                                                {record.treatment?.includes('TRASLADO') ? (
+                                                                    <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">Derivación Interna</Badge>
+                                                                ) : (
+                                                                    <Badge variant="outline">Atención Médica</Badge>
+                                                                )}
+                                                                {record.diagnosis}
+                                                            </h4>
+                                                            <div className="flex items-center gap-2 text-[10px] text-zinc-500 mt-1 font-medium bg-zinc-900/50 w-fit px-2 py-0.5 rounded border border-zinc-800">
+                                                                <Clock className="h-3 w-3" />
+                                                                {format(new Date(record.visitDate), "PPP 'a las' HH:mm", { locale: es })}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 pr-2">
+                                                            <div className="text-right">
+                                                                <p className="text-xs font-bold text-zinc-300">{record.doctor?.user ? `Dr. ${record.doctor.user.firstName} ${record.doctor.user.lastName}` : 'Médico Medisync'}</p>
+                                                                <p className="text-[10px] text-zinc-500 uppercase tracking-tighter">{record.doctor?.specialty || 'Especialista'}</p>
+                                                            </div>
+                                                            <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xs">
+                                                                {record.doctor?.user?.firstName?.charAt(0) || 'D'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                                                        <div className="p-3 rounded-lg bg-zinc-900/40 border border-zinc-800/50">
+                                                            <span className="text-[10px] font-bold uppercase text-zinc-500 block mb-1">Motivo / Diagnóstico</span>
+                                                            <p className="text-xs text-zinc-300 leading-relaxed italic">"{record.chiefComplaint}"</p>
+                                                        </div>
+                                                        <div className="p-3 rounded-lg bg-zinc-900/40 border border-zinc-800/50">
+                                                            <span className="text-[10px] font-bold uppercase text-zinc-500 block mb-1">Indicaciones / Evolución</span>
+                                                            <p className="text-xs text-zinc-200 leading-relaxed font-medium">{record.notes}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-medium">{file.name}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {file.type} • {file.size} • {format(file.uploadedAt, 'PPp')}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <Button variant="ghost" size="sm">
-                                            Download
-                                        </Button>
+                                        ))}
                                     </div>
-                                ))}
+                                ) : (
+                                    <div className="py-20 text-center space-y-4">
+                                        <div className="h-16 w-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto opacity-40">
+                                            <History className="h-8 w-8 text-zinc-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-zinc-400 font-medium">Sin antecedentes registrados</p>
+                                            <p className="text-xs text-zinc-600 mt-1">Este paciente no tiene historial clínico previo en el sistema.</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
 
-            {/* Hospitalization Referral */}
-            <Card className="border-2 border-orange-200">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Building2 className="h-5 w-5 text-orange-600" />
-                        Hospitalization Referral
-                    </CardTitle>
-                    <CardDescription>Transfer patient to inpatient ward</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <p className="text-sm">
-                            Based on the current assessment and vital signs, this patient requires admission to:
-                        </p>
-                        <div className="p-4 bg-orange-50 rounded-lg">
-                            <p className="font-semibold text-lg">Recommended Ward: Cardiac Care Unit (CCU)</p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                Reason: Acute coronary syndrome with elevated troponin levels
-                            </p>
-                        </div>
-                        <Button className="w-full" size="lg">
-                            <Building2 className="h-4 w-4 mr-2" />
-                            Initiate Transfer to CCU
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+            {/* Referencia de Hospitalización Profesional (NEWS2) */}
+            {(() => {
+                const latestVitals = vitalSigns[0] || null;
+                const { score, risks } = calculateNEWS2(latestVitals);
+                const isCritical = score >= 5 || caseData.admission.priority <= 2;
+
+                return (
+                    <Card className={cn(
+                        "border-2 transition-all duration-300",
+                        score >= 7 || caseData.admission.priority === 1 ? "border-red-600 bg-red-950/20" :
+                            score >= 5 ? "border-orange-500 bg-orange-950/20" :
+                                "border-zinc-800 bg-zinc-900/50"
+                    )}>
+                        <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2 text-xl">
+                                        <ShieldAlert className={cn(
+                                            "h-6 w-6",
+                                            score >= 5 ? "text-red-500 animate-pulse" : "text-zinc-400"
+                                        )} />
+                                        Protocolo de Derivación NEWS2
+                                    </CardTitle>
+                                    <CardDescription>Evaluación de riesgo clínico basada en constantes vitales actuales</CardDescription>
+                                </div>
+                                <div className={cn(
+                                    "px-4 py-2 rounded-xl border-2 flex flex-col items-center",
+                                    score >= 7 ? "border-red-500 bg-red-500/10 text-red-500" :
+                                        score >= 5 ? "border-orange-500 bg-orange-500/10 text-orange-500" :
+                                            "border-green-500 bg-green-500/10 text-green-500"
+                                )}>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="ghost" className="h-auto p-0 hover:bg-transparent flex flex-col items-center group">
+                                                <span className="text-xs font-bold uppercase tracking-widest text-zinc-500 group-hover:text-primary transition-colors">Puntaje NEWS2</span>
+                                                <span className="text-3xl font-black">{score}</span>
+                                                <Info className="h-3 w-3 mt-1 text-zinc-600 group-hover:text-primary animate-pulse" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-80 bg-zinc-950 border-zinc-800 text-zinc-100 p-4">
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <h4 className="font-bold text-sm flex items-center gap-2">
+                                                        <ShieldAlert className="h-4 w-4 text-primary" />
+                                                        ¿Qué significa este puntaje?
+                                                    </h4>
+                                                    <p className="text-xs text-zinc-400 mt-1">
+                                                        NEWS2 es el estándar mundial para detectar pacientes en riesgo. Suma puntos según la alteración de signos vitales.
+                                                    </p>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                                                        <span className="font-bold w-12 text-green-500">0-4</span>
+                                                        <span className="text-zinc-500 font-medium">Estable (Bajo riesgo)</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <div className="h-2 w-2 rounded-full bg-orange-500" />
+                                                        <span className="font-bold w-12 text-orange-500">5-6</span>
+                                                        <span className="text-zinc-500 font-medium">Urgencia (Riesgo medio)</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                                                        <span className="font-bold w-12 text-red-500">7+</span>
+                                                        <span className="text-zinc-500 font-medium">Emergencia (Riesgo alto)</span>
+                                                    </div>
+                                                </div>
+                                                <div className="pt-2 border-t border-zinc-800">
+                                                    <p className="text-[10px] italic text-zinc-500">
+                                                        * Este sistema automatiza la seguridad y reduce el error humano en la clínica.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn(
+                                            "h-10 w-10 rounded-full flex items-center justify-center font-bold",
+                                            caseData.admission.priority <= 2 ? "bg-red-500 text-white" : "bg-zinc-800 text-zinc-400"
+                                        )}>
+                                            {caseData.admission.priority}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium">Prioridad de Triaje</p>
+                                            <p className="text-xs text-muted-foreground">{getPriorityLabel(caseData.admission.priority)}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-lg bg-zinc-950/50 border border-zinc-800">
+                                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                                            <Info className="h-4 w-4 text-primary" />
+                                            Análisis de Estabilidad
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {risks.length > 0 ? risks.map((r, i) => (
+                                                <div key={i} className="flex items-center gap-2 text-xs text-red-400">
+                                                    <AlertCircle className="h-3 w-3" />
+                                                    {r}
+                                                </div>
+                                            )) : (
+                                                <div className="text-xs text-green-400 flex items-center gap-2">
+                                                    <Activity className="h-3 w-3" />
+                                                    Parámetros dentro de rangos basales
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col justify-between">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs uppercase tracking-tighter text-zinc-500">Destino Recomendado</Label>
+                                        <div className={cn(
+                                            "p-4 rounded-lg border-2",
+                                            isCritical ? "border-red-500/30 bg-red-500/5 text-red-500" : "border-zinc-800 bg-zinc-900 text-zinc-300"
+                                        )}>
+                                            <p className="font-bold text-lg flex items-center gap-2">
+                                                <Building2 className="h-5 w-5" />
+                                                {isCritical ? "Unidad de Cuidados Intensivos (UCI)" : "Hospitalización General"}
+                                            </p>
+                                            <p className="text-xs mt-1 opacity-80 italic">
+                                                * Basado en algoritmos de soporte vital avanzado y puntaje de alerta temprana.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2 mt-6">
+                                        <Button
+                                            className={cn(
+                                                "flex-1 h-12 text-sm font-bold",
+                                                isCritical ? "bg-red-600 hover:bg-red-700 text-white" : "bg-orange-600 hover:bg-orange-700 text-white"
+                                            )}
+                                            onClick={() => handleTransfer(isCritical ? 'UCI' : 'General')}
+                                        >
+                                            {isCritical ? <Activity className="mr-2 h-4 w-4" /> : <Building2 className="mr-2 h-4 w-4" />}
+                                            Ejecutar Traslado Sugerido
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="h-12 px-6 border-zinc-700 hover:bg-zinc-800"
+                                            onClick={() => handleTransfer(isCritical ? 'General' : 'UCI')}
+                                        >
+                                            Omitir Lógica
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            })()}
+
+            {/* MODALES DE ACCIÓN */}
+
+            {/* Modal Vitals */}
+            <Dialog open={isVitalsModalOpen} onOpenChange={setIsVitalsModalOpen}>
+                <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Nueva Toma de Signos Vitales</DialogTitle>
+                        <DialogDescription className="text-zinc-400 font-medium">Ingrese los valores actuales del paciente.</DialogDescription>
+                    </DialogHeader>
+                    <Form {...vitalsForm}>
+                        <form onSubmit={vitalsForm.handleSubmit(handleAddVitals)} className="space-y-4 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={vitalsForm.control} name="hr" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>F. Cardíaca (bpm)</FormLabel>
+                                        <FormControl><Input placeholder="80" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={vitalsForm.control} name="bp" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>P. Arterial (mmHg)</FormLabel>
+                                        <FormControl><Input placeholder="120/80" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={vitalsForm.control} name="temp" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Temp (°C)</FormLabel>
+                                        <FormControl><Input placeholder="36.5" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={vitalsForm.control} name="spo2" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>SpO2 (%)</FormLabel>
+                                        <FormControl><Input placeholder="98" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={vitalsForm.control} name="rr" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>F. Resp. (/min)</FormLabel>
+                                        <FormControl><Input placeholder="18" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                            <Button type="submit" className="w-full bg-zinc-100 text-zinc-950" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                Guardar Signos Vitales
+                            </Button>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal Medicación */}
+            <Dialog open={isMedsModalOpen} onOpenChange={setIsMedsModalOpen}>
+                <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+                    <DialogHeader>
+                        <DialogTitle>Registrar Administación de Medicamento</DialogTitle>
+                    </DialogHeader>
+                    <Form {...medsForm}>
+                        <form onSubmit={medsForm.handleSubmit(handleAddMed)} className="space-y-4 py-4">
+                            <FormField control={medsForm.control} name="name" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Medicamento</FormLabel>
+                                    <FormControl><Input placeholder="Ej. Paracetamol" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={medsForm.control} name="dosage" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Dosis</FormLabel>
+                                        <FormControl><Input placeholder="500mg" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={medsForm.control} name="route" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Vía</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                                                    <SelectValue placeholder="Seleccione vía" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                                                <SelectItem value="ORAL">Oral</SelectItem>
+                                                <SelectItem value="IV">Intravenosa (IV)</SelectItem>
+                                                <SelectItem value="IM">Intramuscular (IM)</SelectItem>
+                                                <SelectItem value="SC">Subcutánea</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                            <Button type="submit" className="w-full bg-zinc-100 text-zinc-950" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                Registrar Medicación
+                            </Button>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal Procedimiento */}
+            <Dialog open={isProcsModalOpen} onOpenChange={setIsProcsModalOpen}>
+                <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+                    <DialogHeader>
+                        <DialogTitle>Registrar Procedimiento</DialogTitle>
+                    </DialogHeader>
+                    <Form {...procsForm}>
+                        <form onSubmit={procsForm.handleSubmit(handleAddProc)} className="space-y-4 py-4">
+                            <FormField control={procsForm.control} name="name" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Nombre del Procedimiento</FormLabel>
+                                    <FormControl><Input placeholder="Ej. Sutura de herida, EKG" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={procsForm.control} name="description" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Descripción / Notas</FormLabel>
+                                    <FormControl><Textarea {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <Button type="submit" className="w-full bg-zinc-100 text-zinc-950" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                Registrar Procedimiento
+                            </Button>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal Documentos */}
+            <Dialog open={isDocsModalOpen} onOpenChange={(open) => {
+                setIsDocsModalOpen(open)
+                if (!open) {
+                    setEditingDoc(null)
+                    setSelectedFile(null)
+                    docsForm.reset()
+                }
+            }}>
+                <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingDoc ? 'Renombrar Documento' : 'Subir Nuevo Documento'}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <Form {...docsForm}>
+                        <form onSubmit={docsForm.handleSubmit(handleAddDoc)} className="space-y-4 py-4">
+                            <FormField control={docsForm.control} name="title" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Título del Documento</FormLabel>
+                                    <FormControl><Input placeholder="Ej. Radiografía de Tórax" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+
+                            {!editingDoc && (
+                                <div className="space-y-2">
+                                    <Label>Seleccionar Archivo</Label>
+                                    <div className="flex items-center gap-2 p-3 bg-zinc-900 border border-dashed border-zinc-700 rounded-lg">
+                                        <input
+                                            type="file"
+                                            id="file-upload"
+                                            className="hidden"
+                                            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => document.getElementById('file-upload')?.click()}
+                                        >
+                                            {selectedFile ? 'Cambiar Archivo' : 'Elegir de Mi PC'}
+                                        </Button>
+                                        <span className="text-xs text-zinc-400 truncate max-w-[200px]">
+                                            {selectedFile ? selectedFile.name : 'Ningún archivo seleccionado'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <Button type="submit" className="w-full bg-zinc-100 text-zinc-950" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                {editingDoc ? 'Guardar Cambios' : 'Subir Documento'}
+                            </Button>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+            {caseData && (
+                <ReferralModal
+                    isOpen={isReferralModalOpen}
+                    onClose={() => setIsReferralModalOpen(false)}
+                    caseId={id!}
+                    patientName={caseData.patient.name}
+                    currentVitals={vitalSigns[0]}
+                    news2Score={calculateNEWS2(vitalSigns[0]).score}
+                    isCritical={calculateNEWS2(vitalSigns[0]).score >= 5 || caseData.admission.priority <= 2}
+                    doctorName={caseData.doctor.name}
+                    doctorSpecialty={caseData.doctor.specialty}
+                    initialWard={referralInitialWard}
+                    onSuccess={() => navigate(`/beds?ward=${referralInitialWard}`)}
+                />
+            )}
+
+            {isEditModalOpen && (
+                <EmergencyModal
+                    open={isEditModalOpen}
+                    onOpenChange={setIsEditModalOpen}
+                    initialData={caseData.raw}
+                    onSuccess={fetchCaseData}
+                />
+            )}
         </div>
     )
 }

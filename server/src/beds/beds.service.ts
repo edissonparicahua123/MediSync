@@ -75,6 +75,9 @@ export class BedsService {
                 status: 'OCCUPIED',
                 patientId: data.patientId,
                 admissionDate: new Date(),
+                diagnosis: (data as any).diagnosis,
+                specialty: (data as any).specialty,
+                estimatedDischarge: (data as any).estimatedDischarge ? new Date((data as any).estimatedDischarge) : null,
             },
             include: { patient: true },
         });
@@ -84,7 +87,7 @@ export class BedsService {
             data: {
                 bedId: id,
                 action: 'ASIGNACION',
-                details: `Paciente asignado: ${updated.patient?.firstName} ${updated.patient?.lastName}`,
+                details: `Paciente asignado: ${updated.patient?.firstName} ${updated.patient?.lastName}. DX: ${updated.diagnosis || 'Pendiente'}`,
             },
         });
 
@@ -104,6 +107,10 @@ export class BedsService {
                 status: 'CLEANING',
                 patientId: null,
                 admissionDate: null,
+                diagnosis: null,
+                specialty: null,
+                estimatedDischarge: null,
+                notes: null
             },
         });
 
@@ -138,5 +145,17 @@ export class BedsService {
             reserved,
             occupancyRate: total > 0 ? Math.round((occupied / total) * 100) : 0,
         };
+    }
+
+    async findAllActivities() {
+        return this.prisma.bedActivity.findMany({
+            include: {
+                bed: {
+                    select: { number: true }
+                }
+            },
+            orderBy: { timestamp: 'desc' },
+            take: 20
+        });
     }
 }

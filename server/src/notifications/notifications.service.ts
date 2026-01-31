@@ -221,4 +221,13 @@ export class NotificationsService {
             meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
         };
     }
+    async findByRelatedEntity(entityType: string, entityId: string) {
+        return (this.prisma as any).notification.findMany({
+            where: {
+                relatedEntityType: entityType,
+                relatedEntityId: entityId,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
 }

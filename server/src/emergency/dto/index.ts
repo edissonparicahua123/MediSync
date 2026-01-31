@@ -35,5 +35,64 @@ export class UpdateBedStatusDto {
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()
+    diagnosis?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    specialty?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
     notes?: string;
+}
+
+export class CreateEmergencyCaseDto {
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    patientName?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsInt()
+    patientAge?: number;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    patientId?: string;
+
+    @ApiProperty()
+    @IsInt()
+    triageLevel: number;
+
+    @ApiProperty()
+    @IsString()
+    chiefComplaint: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    diagnosis?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    bedId?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsUUID()
+    doctorId?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
+    notes?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    vitalSigns?: any;
 }

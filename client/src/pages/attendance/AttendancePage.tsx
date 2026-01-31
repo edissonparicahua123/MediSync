@@ -105,15 +105,18 @@ export default function AttendancePage() {
         setActiveTab(getTabFromPath())
     }, [location.pathname])
 
-    // Data State - INITIALIZED WITH MOCK DATA TO PREVENT BLANK SCREEN
+    // Data State
     const [data, setData] = useState<any>({
         employees: [],
         attendance: [],
-        payroll: [],
         shifts: [],
-        configs: [],
-        auditLogs: [],
-        organization: null // NEW: Store organization info
+        auditConfig: null,
+        stats: {
+            present: 0,
+            late: 0,
+            absent: 0,
+            total: 0
+        }
     })
 
     console.log('AttendancePage Render:', { activeTab, loading, employees: data.employees?.length, path: location.pathname })

@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './node_modules/.prisma/client/index';
+// @ts-ignore
 
 const prisma = new PrismaClient();
 
@@ -17,8 +18,8 @@ async function main() {
     // 2. Get available "OCCUPIED" beds
     // In a real scenario, we'd match usage more carefully, 
     // but here we just want to assign valid strings for display.
-    const beds = await prisma.bedStatus.findMany({
-        orderBy: { bedNumber: 'asc' }
+    const beds = await prisma.bed.findMany({
+        orderBy: { number: 'asc' }
     });
 
     console.log(`Found ${beds.length} total beds.`);
@@ -29,11 +30,11 @@ async function main() {
         // Cycle through beds if there are more cases than beds (unlikely in this seed)
         const bed = beds[i % beds.length];
 
-        console.log(`Assigning Bed ${bed.bedNumber} to Case ${kase.id}`);
+        console.log(`Assigning Bed ${bed.number} to Case ${kase.id}`);
 
         await prisma.emergencyCase.update({
             where: { id: kase.id },
-            data: { bedNumber: bed.bedNumber }
+            data: { bedNumber: bed.number }
         });
     }
 

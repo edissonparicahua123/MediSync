@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { doctorsAPI, appointmentsAPI } from '@/services/api'
+import { doctorsAPI, appointmentsAPI, messagesAPI } from '@/services/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -20,20 +20,82 @@ import {
     Edit,
     CheckCircle2,
     XCircle,
+    Upload,
+    Trash,
+    File
 } from 'lucide-react'
 import { format, isToday, startOfWeek, endOfWeek, eachDayOfInterval, addDays } from 'date-fns'
 import { useToast } from '@/components/ui/use-toast'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import DoctorCalendar from '@/components/calendar/DoctorCalendar'
+import DoctorModal from '@/components/modals/DoctorModal'
 
 export default function DoctorProfilePage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const { toast } = useToast()
     const [activeTab, setActiveTab] = useState('general')
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [documents, setDocuments] = useState<any[]>([])
+
+    const fetchDocuments = async () => {
+        if (!id) return
+        try {
+            const res = await doctorsAPI.getDocuments(id)
+            setDocuments(res.data)
+        } catch (error) {
+            console.error('Error fetching documents', error)
+        }
+    }
+
+    useEffect(() => {
+        if (activeTab === 'documents') {
+            fetchDocuments()
+        }
+    }, [activeTab, id])
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !id) return
+
+        try {
+            toast({ title: "Subiendo documento...", description: "Por favor espere." })
+
+            // 1. Upload file
+            const uploadRes = await messagesAPI.uploadFile(file)
+            const fileData = uploadRes.data
+
+            // 2. Add to doctor
+            await doctorsAPI.addDocument(id, {
+                title: file.name,
+                url: fileData.url,
+                type: fileData.type,
+                size: fileData.size
+            })
+
+            toast({ title: "Documento guardado exitosamente" })
+            fetchDocuments()
+        } catch (error) {
+            console.error(error)
+            toast({ title: "Error al subir documento", variant: "destructive" })
+        }
+        // Reset input
+        e.target.value = ''
+    }
+
+    const handleDeleteDocument = async (docId: string) => {
+        if (!id) return
+        try {
+            await doctorsAPI.deleteDocument(id, docId)
+            toast({ title: "Documento eliminado" })
+            fetchDocuments()
+        } catch (error) {
+            toast({ title: "Error al eliminar", variant: "destructive" })
+        }
+    }
 
     // Cargar datos del doctor
-    const { data: doctorData, isLoading } = useQuery({
+    const { data: doctorData, isLoading, refetch: refetchDoctor } = useQuery({
         queryKey: ['doctor', id],
         queryFn: () => doctorsAPI.getOne(id!),
         enabled: !!id,
@@ -87,11 +149,21 @@ export default function DoctorProfilePage() {
     }))
 
     const monthlyStats = Array.from({ length: 6 }, (_, i) => {
-        const month = new Date()
-        month.setMonth(month.getMonth() - (5 - i))
+        const date = new Date()
+        date.setMonth(date.getMonth() - (5 - i))
+        const monthKey = format(date, 'yyyy-MM')
+
+        const count = doctorAppointments.filter((apt: any) => {
+            try {
+                return format(new Date(apt.appointmentDate), 'yyyy-MM') === monthKey && apt.status === 'COMPLETED'
+            } catch {
+                return false
+            }
+        }).length
+
         return {
-            month: format(month, 'MMM'),
-            patients: Math.floor(Math.random() * 50) + 20,
+            month: format(date, 'MMM'),
+            patients: count,
         }
     })
 
@@ -151,7 +223,7 @@ export default function DoctorProfilePage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={() => setIsModalOpen(true)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar Perfil
                     </Button>
@@ -204,7 +276,7 @@ export default function DoctorProfilePage() {
                                 </div>
                                 <div>
                                     <p className="text-xs text-muted-foreground">Experiencia</p>
-                                    <p className="font-medium">{doctor.yearsOfExperience || 5} años</p>
+                                    <p className="font-medium">{doctor.yearsExperience || doctor.yearsOfExperience || 0} años</p>
                                 </div>
                             </div>
 
@@ -276,8 +348,8 @@ export default function DoctorProfilePage() {
                         General
                     </TabsTrigger>
                     <TabsTrigger value="schedule">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Horario
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Agenda
                     </TabsTrigger>
                     <TabsTrigger value="calendar">
                         <Calendar className="h-4 w-4 mr-2" />
@@ -301,7 +373,7 @@ export default function DoctorProfilePage() {
                     </TabsTrigger>
                     <TabsTrigger value="hours">
                         <Clock className="h-4 w-4 mr-2" />
-                        Horas
+                        Horario
                     </TabsTrigger>
                 </TabsList>
 
@@ -349,7 +421,7 @@ export default function DoctorProfilePage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Años de Experiencia</p>
-                                    <p className="font-medium">{doctor.yearsOfExperience || 5} años</p>
+                                    <p className="font-medium">{doctor.yearsExperience || doctor.yearsOfExperience || 0} años</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -360,7 +432,7 @@ export default function DoctorProfilePage() {
                 <TabsContent value="schedule">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Horario Semanal</CardTitle>
+                            <CardTitle>Agenda Semanal</CardTitle>
                             <CardDescription>Distribución de citas esta semana</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -461,11 +533,28 @@ export default function DoctorProfilePage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                                    <Award className="h-5 w-5 text-blue-500" />
+                                <div className="flex items-center gap-3 p-4 border rounded-xl bg-slate-50/50">
+                                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <Award className="h-5 w-5 text-blue-600" />
+                                    </div>
                                     <div>
-                                        <p className="font-medium">{doctor.specialization || 'Medicina General'}</p>
-                                        <p className="text-sm text-muted-foreground">Especialidad Primaria</p>
+                                        <p className="font-semibold text-base">{doctor.specialty?.name || doctor.specialization || 'Medicina General'}</p>
+                                        <p className="text-xs text-muted-foreground">Especialidad Principal</p>
+                                    </div>
+                                    <div className="ml-auto">
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">Verificada</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3 p-4 border rounded-xl bg-slate-50/50">
+                                    <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                        <FileText className="h-5 w-5 text-purple-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-base">Licencia Médica</p>
+                                        <p className="text-xs text-muted-foreground">{doctor.licenseNumber}</p>
+                                    </div>
+                                    <div className="ml-auto">
+                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Activa</span>
                                     </div>
                                 </div>
                             </div>
@@ -480,7 +569,65 @@ export default function DoctorProfilePage() {
                             <CardTitle>Documentos y Contratos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">No hay documentos disponibles</p>
+                            <div className="space-y-4">
+                                {/* Upload Area */}
+                                <div className="flex flex-col items-center justify-center py-6 text-center space-y-3 border-2 border-dashed rounded-xl bg-slate-50">
+                                    <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                        <Upload className="h-6 w-6 text-indigo-500" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="font-medium text-slate-900">Subir nuevo documento</h3>
+                                        <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                                            PDF, Word, Excel o Imágenes (Max 10MB)
+                                        </p>
+                                    </div>
+                                    <div className="relative">
+                                        <Button variant="outline" className="mt-2 relative z-10">
+                                            Seleccionar Archivo
+                                        </Button>
+                                        <input
+                                            type="file"
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                                            onChange={handleFileUpload}
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Documents List */}
+                                <div className="space-y-2">
+                                    {documents.length === 0 ? (
+                                        <p className="text-sm text-center text-muted-foreground py-4">No hay documentos guardados aún.</p>
+                                    ) : (
+                                        documents.map((doc: any) => (
+                                            <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg bg-white hover:shadow-sm transition-shadow">
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                                                        <FileText className="h-5 w-5 text-indigo-600" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="font-medium text-sm truncate text-slate-900">{doc.title}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {new Date(doc.createdAt).toLocaleDateString()} • {(doc.size / 1024).toFixed(1)} KB
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => {
+                                                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                                                        window.open(doc.url.startsWith('http') ? doc.url : `${apiUrl}${doc.url}`, '_blank');
+                                                    }}>
+                                                        <File className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteDocument(doc.id)}>
+                                                        <Trash className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -489,29 +636,56 @@ export default function DoctorProfilePage() {
                 <TabsContent value="hours">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Horas de Trabajo</CardTitle>
+                            <CardTitle>Horario de Atención</CardTitle>
+                            <CardDescription>Jornada laboral configurada</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'].map(day => (
-                                    <div key={day} className="flex justify-between items-center p-3 border rounded-lg">
-                                        <span className="font-medium">{day}</span>
-                                        <span className="text-sm text-muted-foreground">8:00 AM - 5:00 PM</span>
+                                {doctor.schedules && doctor.schedules.length > 0 ? (
+                                    // Sort by day number
+                                    [...doctor.schedules].sort((a: any, b: any) => a.dayOfWeek - b.dayOfWeek).map((schedule: any) => {
+                                        const dayName = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][schedule.dayOfWeek]
+                                        return (
+                                            <div key={dayName} className="flex justify-between items-center p-4 border rounded-xl hover:bg-slate-50 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                                                        {dayName.substring(0, 3)}
+                                                    </div>
+                                                    <span className="font-medium text-slate-900">{dayName}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border text-sm font-mono text-slate-600 shadow-sm">
+                                                    <Clock className="w-3 h-3 text-slate-400" />
+                                                    {schedule.startTime} - {schedule.endTime}
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center p-8 border rounded-xl bg-slate-50 border-dashed text-center">
+                                        <Clock className="h-8 w-8 text-slate-300 mb-2" />
+                                        <span className="font-medium text-slate-600">Sin Horario Definido</span>
+                                        <span className="text-xs text-muted-foreground mt-1">Este doctor no tiene horarios configurados.</span>
+                                        <Button variant="link" size="sm" className="mt-2 text-indigo-600" onClick={() => navigate('/doctors')}>
+                                            Ir a lista para configurar
+                                        </Button>
                                     </div>
-                                ))}
-                                <div className="flex justify-between items-center p-3 border rounded-lg bg-muted">
-                                    <span className="font-medium">Sábado</span>
-                                    <span className="text-sm text-muted-foreground">Cerrado</span>
-                                </div>
-                                <div className="flex justify-between items-center p-3 border rounded-lg bg-muted">
-                                    <span className="font-medium">Domingo</span>
-                                    <span className="text-sm text-muted-foreground">Cerrado</span>
-                                </div>
+                                )}
+
                             </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            <DoctorModal
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+                doctor={doctor}
+                onSuccess={() => {
+                    refetchDoctor()
+                    refetchAppointments()
+                }}
+            />
         </div>
     )
 }

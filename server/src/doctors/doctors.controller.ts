@@ -41,4 +41,22 @@ export class DoctorsController {
     remove(@Param('id') id: string) {
         return this.doctorsService.remove(id);
     }
+
+    @Post(':id/documents')
+    @ApiOperation({ summary: 'Add document to doctor' })
+    addDocument(@Param('id') id: string, @Body() data: any) {
+        return this.doctorsService.addDocument(id, data);
+    }
+
+    @Get(':id/documents')
+    @ApiOperation({ summary: 'Get doctor documents' })
+    getDocuments(@Param('id') id: string) {
+        return this.doctorsService.getDocuments(id);
+    }
+
+    @Delete(':id/documents/:docId')
+    @ApiOperation({ summary: 'Delete doctor document' })
+    removeDocument(@Param('id') id: string, @Param('docId') docId: string) {
+        return this.doctorsService.removeDocument(id, docId);
+    }
 }

@@ -101,12 +101,16 @@ export class LaboratoryService {
             // Explicitly pick fields to avoid passing 'doctorId' which is not in the schema
             const { patientId, testType, testName, priority, notes, status } = data;
 
+            // Use testType as testName if testName is missing (frontend only sends testType)
+            const resolvedTestName = testName || testType || 'General Test';
+            const resolvedTestType = testType || 'General';
+
             return await this.prisma.labOrder.create({
                 data: {
                     orderNumber: `LAB-${Date.now()}`,
                     patientId,
-                    testType,
-                    testName,
+                    testType: resolvedTestType,
+                    testName: resolvedTestName,
                     priority: priority || 'NORMAL',
                     status: status || 'PENDING',
                     notes

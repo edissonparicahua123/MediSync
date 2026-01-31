@@ -28,7 +28,7 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Upload, X, User } from 'lucide-react'
 import { patientsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -190,7 +190,7 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                 // Optional fields
                 emergencyContact: data.emergencyContact === '' ? undefined : data.emergencyContact,
                 emergencyPhone: data.emergencyPhone === '' ? undefined : data.emergencyPhone,
-                insuranceProvider: data.insuranceProvider === '' ? undefined : data.insuranceProvider,
+                insuranceProvider: data.insuranceProvider === '' || data.insuranceProvider === 'NONE' ? undefined : data.insuranceProvider,
                 insuranceNumber: data.insuranceNumber === '' ? undefined : data.insuranceNumber,
                 bloodType: data.bloodType === '' ? undefined : data.bloodType,
                 allergies: data.allergies === '' ? undefined : data.allergies,
@@ -326,7 +326,72 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                         <FormItem>
                                             <FormLabel>Foto del paciente (Opcional)</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="URL de la imagen..." {...field} />
+                                                <div className="flex items-center gap-4">
+                                                    {/* Preview */}
+                                                    <div className="relative group shrink-0">
+                                                        <div className="h-20 w-20 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-100 flex items-center justify-center">
+                                                            {field.value ? (
+                                                                <img
+                                                                    src={field.value}
+                                                                    alt="Preview"
+                                                                    className="h-full w-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <User className="h-10 w-10 text-slate-400" />
+                                                            )}
+                                                        </div>
+                                                        {field.value && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => field.onChange('')}
+                                                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                title="Eliminar foto"
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Upload Button */}
+                                                    <div className="flex-1">
+                                                        <Input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            id="photo-upload"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0]
+                                                                if (file) {
+                                                                    if (file.size > 5 * 1024 * 1024) {
+                                                                        toast({
+                                                                            title: "Error",
+                                                                            description: "La imagen es demasiado grande (máx 5MB)",
+                                                                            variant: "destructive"
+                                                                        })
+                                                                        return
+                                                                    }
+                                                                    const reader = new FileReader()
+                                                                    reader.onloadend = () => {
+                                                                        field.onChange(reader.result as string)
+                                                                    }
+                                                                    reader.readAsDataURL(file)
+                                                                }
+                                                            }}
+                                                        />
+                                                        <label
+                                                            htmlFor="photo-upload"
+                                                            className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
+                                                        >
+                                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                                <Upload className="w-6 h-6 text-slate-400 mb-1" />
+                                                                <p className="text-xs text-slate-500">
+                                                                    <span className="font-semibold">Clic para subir</span>
+                                                                </p>
+                                                                <p className="text-[10px] text-slate-400">PNG, JPG (MAX. 5MB)</p>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -444,6 +509,19 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="chronicConditions"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Condiciones Crónicas</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Diabetes, Hipertensión..." {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
                         </div>
 
@@ -460,9 +538,26 @@ export default function PatientModal({ open, onOpenChange, patient, onSuccess }:
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Aseguradora</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Ej. Pacifico, Rimac..." {...field} />
-                                            </FormControl>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecciona aseguradora" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="NONE">Sin Seguro</SelectItem>
+                                                    <SelectItem value="Pacífico Seguros">Pacífico Seguros</SelectItem>
+                                                    <SelectItem value="Rímac Seguros">Rímac Seguros</SelectItem>
+                                                    <SelectItem value="La Positiva">La Positiva</SelectItem>
+                                                    <SelectItem value="Mapfre Perú">Mapfre Perú</SelectItem>
+                                                    <SelectItem value="Sanitas Perú">Sanitas Perú</SelectItem>
+                                                    <SelectItem value="Oncosalud">Oncosalud</SelectItem>
+                                                    <SelectItem value="Vida Seguros">Vida Seguros</SelectItem>
+                                                    <SelectItem value="Internacional de Seguros">Internacional de Seguros</SelectItem>
+                                                    <SelectItem value="EsSalud">EsSalud</SelectItem>
+                                                    <SelectItem value="SIS - Seguro Integral de Salud">SIS - Seguro Integral de Salud</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )}

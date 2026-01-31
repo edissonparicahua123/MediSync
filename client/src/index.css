@@ -127,3 +127,192 @@
     z-index: 0;
   }
 }
+
+/* =========================================
+   ESTILOS DE IMPRESIÓN PROFESIONAL
+   ========================================= */
+@media print {
+
+  /* 1. Ocultar elementos de la interfaz (UI) */
+  aside,
+  nav,
+  [role="navigation"],
+  .sidebar,
+  button,
+  .button,
+  [role="button"],
+  input,
+  select,
+  .filters-section,
+  .no-print {
+    display: none !important;
+  }
+
+  /* 2. Resetear el layout y QUITAR FONDO DE FORMA AGRESIVA */
+  body,
+  #root,
+  .app-container,
+  .bg-medical-portal,
+  .bg-attendance-portal {
+    background-color: white !important;
+    background-image: none !important;
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* ELIMINAR PSEUDO-ELEMENTOS CON LA IMAGEN */
+  .bg-medical-portal::before,
+  .bg-attendance-portal::before,
+  div::before,
+  div::after {
+    display: none !important;
+    background-image: none !important;
+    content: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  /* 3. Ajustar el contenedor principal */
+  main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    position: static !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  /* 4. Estilizar la tabla para reporte */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10pt !important;
+    font-family: 'Arial', sans-serif !important;
+    color: #000 !important;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    /* Gris claro para encabezados */
+    color: #111827 !important;
+    font-weight: bold !important;
+    border-bottom: 2px solid #000 !important;
+    padding: 8px !important;
+    text-align: left !important;
+  }
+
+  td {
+    border-bottom: 1px solid #e5e7eb !important;
+    padding: 8px !important;
+    color: #374151 !important;
+  }
+
+  /* 5. Ocultar columna de acciones (última columna) */
+  th:last-child,
+  td:last-child,
+  .actions-cell {
+    display: none !important;
+  }
+
+  /* 6. Cabecera del Reporte (aparece solo al imprimir) */
+  body::before {
+    content: "MEDISYNC - REPORTE DE PACIENTES";
+    display: block;
+    font-size: 24pt;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    color: #0f766e;
+    /* Color primario teal */
+    border-bottom: 3px solid #0f766e;
+    padding-bottom: 10px;
+  }
+
+  /* 7. Manejo de saltos de página */
+  tr {
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* 8. Limpiar sombras y efectos */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: none !important;
+  }
+
+  /* Quitar fondos oscuros del tema */
+  .dark {
+    color-scheme: light !important;
+  }
+
+  .glass-card,
+  .bg-card,
+  .card {
+    background: white !important;
+    border: none !important;
+  }
+}
+
+/* Print Styles */
+@media print {
+
+  /* Hide sidebar and navigation */
+  aside,
+  nav,
+  [role="navigation"],
+  .sidebar {
+    display: none !important;
+  }
+
+  /* Hide all buttons */
+  button,
+  .button,
+  [role="button"] {
+    display: none !important;
+  }
+
+  /* Hide search and filters */
+  input[type="search"],
+  select,
+  .filters-section {
+    display: none !important;
+  }
+
+  /* Full width for main content */
+  main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+  }
+
+  /* Optimize table */
+  table {
+    width: 100% !important;
+    font-size: 9pt !important;
+    page-break-inside: auto !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+  }
+
+  /* Hide action columns */
+  th:last-child,
+  td:last-child {
+    display: none !important;
+  }
+}

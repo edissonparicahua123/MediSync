@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { appointmentsAPI } from '@/services/api'
@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
     ArrowLeft,
     Calendar,
-    User,
     Clock,
     FileText,
     Bell,
@@ -18,62 +17,102 @@ import {
     XCircle,
     AlertCircle,
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, differenceInMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
+import AppointmentModal from '@/components/modals/AppointmentModal'
 
 export default function AppointmentDetailsPage() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const { toast } = useToast()
     const [activeTab, setActiveTab] = useState('details')
+    const [showEditModal, setShowEditModal] = useState(false)
 
     // Cargar datos de la cita
-    const { data: appointmentData, isLoading } = useQuery({
+    const { data: appointmentData, isLoading, refetch } = useQuery({
         queryKey: ['appointment', id],
         queryFn: () => appointmentsAPI.getOne(id!),
         enabled: !!id,
     })
 
+    // Cargar notificaciones de la cita
+    const { data: notificationsData } = useQuery({
+        queryKey: ['appointment-notifications', id],
+        queryFn: () => appointmentsAPI.getNotifications(id!),
+        enabled: !!id,
+    })
+
     const appointment = appointmentData?.data
+    const notifications = notificationsData?.data || []
 
-    // Datos simulados para historial y notificaciones
-    // Datos simulados para historial y notificaciones
-    const mockHistory = [
-        {
-            id: '1',
-            date: new Date(),
-            user: 'Dr. Smith',
-            action: 'Cita creada',
-            details: 'Cita inicial programada',
-        },
-        {
-            id: '2',
-            date: new Date(Date.now() - 3600000),
-            user: 'Recepcionista',
-            action: 'Estado cambiado',
-            details: 'De SCHEDULED a CONFIRMED',
-        },
-    ]
+    // Calcular duración real (en minutos)
+    const calculateDuration = () => {
+        if (appointment?.duration) return appointment.duration
+        if (appointment?.endTime && appointment?.appointmentDate) {
+            const diff = differenceInMinutes(
+                new Date(appointment.endTime),
+                new Date(appointment.appointmentDate)
+            )
+            return diff > 0 ? diff : 0
+        }
+        return 0
+    }
 
-    const mockNotifications = [
-        {
-            id: '1',
-            type: 'email',
-            date: new Date(),
-            recipient: 'paciente@example.com',
-            status: 'enviado',
-            message: 'Confirmación de cita',
-        },
-        {
-            id: '2',
-            type: 'sms',
-            date: new Date(Date.now() - 7200000),
-            recipient: '+1234567890',
-            status: 'enviado',
-            message: 'Recordatorio de cita',
-        },
-    ]
+    const handleEditSuccess = () => {
+        refetch()
+        toast({
+            title: 'Éxito',
+            description: 'Cita actualizada correctamente',
+        })
+    }
+
+    const handleCompleteAppointment = async () => {
+        try {
+            const now = new Date()
+            const appointmentDate = new Date(appointment.appointmentDate)
+
+            // Si la cita es futura, actualizar fecha de inicio a AHORA para evitar duración negativa
+            const shouldUpdateStartDate = appointmentDate > now
+
+            await appointmentsAPI.update(id!, {
+                status: 'COMPLETED',
+                endTime: now.toISOString(),
+                ...(shouldUpdateStartDate && { appointmentDate: now.toISOString() })
+            })
+            refetch()
+            toast({
+                title: 'Consulta Finalizada',
+                description: 'La duración ha sido calculada automáticamente.',
+            })
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'No se pudo finalizar la cita',
+                variant: 'destructive',
+            })
+        }
+    }
+
+    const handleCancelAppointment = async () => {
+        try {
+            await appointmentsAPI.update(id!, {
+                status: 'CANCELLED'
+            })
+            refetch()
+            toast({
+                title: 'Cita Cancelada',
+                description: 'La cita ha sido marcada como cancelada.',
+                variant: 'destructive'
+            })
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'No se pudo cancelar la cita',
+                variant: 'destructive',
+            })
+        }
+    }
 
     if (isLoading) {
         return (
@@ -108,6 +147,29 @@ export default function AppointmentDetailsPage() {
         }
     }
 
+    const translateStatus = (status: string) => {
+        const statuses: Record<string, string> = {
+            'SCHEDULED': 'Programada',
+            'CONFIRMED': 'Confirmada',
+            'COMPLETED': 'Completada',
+            'CANCELLED': 'Cancelada',
+            'NO_SHOW': 'No Asistió',
+            'PENDING': 'Pendiente',
+            'IN_PROGRESS': 'En Progreso'
+        }
+        return statuses[status] || status
+    }
+
+    const translateType = (type: string) => {
+        const types: Record<string, string> = {
+            'APPOINTMENT_REMINDER': 'Recordatorio de Cita',
+            'LAB_READY': 'Resultados Listos',
+            'email': 'Correo',
+            'sms': 'SMS'
+        }
+        return types[type] || type
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -125,7 +187,25 @@ export default function AppointmentDetailsPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline">
+                    {appointment.status !== 'COMPLETED' && appointment.status !== 'CANCELLED' && (
+                        <Button
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={handleCompleteAppointment}
+                        >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Finalizar Consulta
+                        </Button>
+                    )}
+                    {appointment.status !== 'COMPLETED' && appointment.status !== 'CANCELLED' && (
+                        <Button
+                            variant="destructive"
+                            onClick={handleCancelAppointment}
+                        >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Cancelar
+                        </Button>
+                    )}
+                    <Button variant="outline" onClick={() => setShowEditModal(true)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                     </Button>
@@ -160,7 +240,11 @@ export default function AppointmentDetailsPage() {
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Duración</p>
-                                <p className="font-medium">1 hora</p>
+                                <p className="font-medium">
+                                    {calculateDuration() > 0
+                                        ? `${calculateDuration()} min (${Math.floor(calculateDuration() / 60)}h ${calculateDuration() % 60}m)`
+                                        : 'No especificada'}
+                                </p>
                             </div>
                         </div>
 
@@ -169,7 +253,7 @@ export default function AppointmentDetailsPage() {
                                 <p className="text-sm text-muted-foreground">Estado</p>
                                 <div className="flex items-center gap-2 mt-1">
                                     {getStatusIcon(appointment.status)}
-                                    <span className="font-medium">{appointment.status}</span>
+                                    <span className="font-medium">{translateStatus(appointment.status)}</span>
                                 </div>
                             </div>
                             <div>
@@ -181,8 +265,8 @@ export default function AppointmentDetailsPage() {
                 </CardContent>
             </Card>
 
-            {/* Wait Time Stats */}
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* Real Time Stats */}
+            <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Hora Programada</CardTitle>
@@ -198,23 +282,14 @@ export default function AppointmentDetailsPage() {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tiempo de Espera</CardTitle>
-                        <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">15 min</div>
-                        <p className="text-xs text-muted-foreground">Tiempo de espera promedio</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tiempo de Consulta</CardTitle>
+                        <CardTitle className="text-sm font-medium">Duración Estimada</CardTitle>
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">45 min</div>
-                        <p className="text-xs text-muted-foreground">Duración de la consulta</p>
+                        <div className="text-2xl font-bold">
+                            {calculateDuration() > 0 ? `${calculateDuration()} min` : 'Pendiente'}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Tiempo de consulta programado</p>
                     </CardContent>
                 </Card>
             </div>
@@ -275,31 +350,43 @@ export default function AppointmentDetailsPage() {
                             <CardDescription>Rastrea todos los cambios realizados a esta cita</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                {mockHistory.map((change) => (
-                                    <div key={change.id} className="flex gap-4 p-4 border rounded-lg">
-                                        <div className="flex-shrink-0">
-                                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <FileText className="h-5 w-5 text-primary" />
+                            {appointment.history && appointment.history.length > 0 ? (
+                                <div className="space-y-4">
+                                    {appointment.history.map((change: any, index: number) => (
+                                        <div key={change.id || index} className="flex gap-4 p-4 border rounded-lg">
+                                            <div className="flex-shrink-0">
+                                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-primary" />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-medium">{change.action}</p>
-                                                    <p className="text-sm text-muted-foreground">{change.details}</p>
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                        por {change.user}
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="font-medium">Cambio de Estado: {translateStatus(change.status)}</p>
+                                                        <p className="text-sm text-muted-foreground">{change.notes}</p>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {change.createdAt ? format(new Date(change.createdAt), 'PPp', { locale: es }) : 'N/A'}
                                                     </p>
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {format(change.date, 'PPp', { locale: es })}
-                                                </p>
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                    <Calendar className="h-16 w-16 text-muted-foreground/50" />
+                                    <div className="text-center">
+                                        <p className="font-medium text-lg">Sin Historial Registrado</p>
+                                        <p className="text-sm text-muted-foreground mt-2">
+                                            No hay cambios registrados para esta cita.
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-4">
+                                            Creada: {appointment.createdAt ? format(new Date(appointment.createdAt), 'PPpp', { locale: es }) : 'N/A'}
+                                        </p>
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -312,37 +399,63 @@ export default function AppointmentDetailsPage() {
                             <CardDescription>Todas las notificaciones relacionadas a esta cita</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
-                                {mockNotifications.map((notification) => (
-                                    <div key={notification.id} className="flex gap-4 p-4 border rounded-lg">
-                                        <div className="flex-shrink-0">
-                                            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                                                <Bell className="h-5 w-5 text-green-600" />
-                                            </div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-medium">{notification.message}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {notification.type.toUpperCase()} a {notification.recipient}
-                                                    </p>
-                                                    <span className="inline-block mt-2 text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                                                        {notification.status}
-                                                    </span>
+                            {notifications && notifications.length > 0 ? (
+                                <div className="space-y-4">
+                                    {notifications.map((notification: any) => (
+                                        <div key={notification.id} className="flex gap-4 p-4 border rounded-lg">
+                                            <div className="flex-shrink-0">
+                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <Bell className="h-5 w-5 text-blue-600" />
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {format(notification.date, 'PPp', { locale: es })}
-                                                </p>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="font-medium">{notification.title}</p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {notification.message}
+                                                        </p>
+                                                        <span className="inline-block mt-2 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                                                            {translateType(notification.type)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {format(new Date(notification.createdAt), 'PPp', { locale: es })}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                    <Bell className="h-16 w-16 text-muted-foreground/50" />
+                                    <div className="text-center">
+                                        <p className="font-medium text-lg">Sin Notificaciones</p>
+                                        <p className="text-sm text-muted-foreground mt-2">
+                                            No hay notificaciones automáticas registradas para esta cita.
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-4">
+                                            Paciente: {appointment.patient?.email || 'Sin email'}<br />
+                                            Teléfono: {appointment.patient?.phone || 'Sin teléfono'}
+                                        </p>
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Edit Modal */}
+            {appointment && (
+                <AppointmentModal
+                    open={showEditModal}
+                    onOpenChange={setShowEditModal}
+                    appointment={appointment}
+                    onSuccess={handleEditSuccess}
+                />
+            )}
         </div>
     )
 }

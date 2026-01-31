@@ -30,3 +30,4 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         });
     }
 }
+// Force type refresh - Emergency module integration

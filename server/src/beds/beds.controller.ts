@@ -25,6 +25,12 @@ export class BedsController {
         return this.bedsService.getStats();
     }
 
+    @Get('activities')
+    @ApiOperation({ summary: 'Get global bed activity logs' })
+    getActivities() {
+        return this.bedsService.findAllActivities();
+    }
+
     @Get(':id')
     @ApiOperation({ summary: 'Get a bed by id' })
     findOne(@Param('id') id: string) {
