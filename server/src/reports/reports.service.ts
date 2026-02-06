@@ -15,9 +15,9 @@ export class ReportsService {
                     }
                 }
             }),
-            this.prisma.patient.count(),
-            this.prisma.doctor.count(),
-            this.prisma.invoice.count({ where: { status: 'PENDING' } })
+            this.prisma.patient.count({ where: { status: 'ACTIVE' } }),
+            this.prisma.doctor.count({ where: { deletedAt: null } }),
+            this.prisma.invoice.count({ where: { status: 'PENDING', deletedAt: null } })
         ]);
 
         return {
@@ -28,16 +28,16 @@ export class ReportsService {
         };
     }
 
-    async getAppointmentStats() {
-        // Group by month is tricky in Prisma/Postgres without raw query, so we'll fetch all and process in JS for MVP
-        // or prioritize this year's appointments
-        const currentYear = new Date().getFullYear();
+    async getAppointmentStats(params: any = {}) {
+        const { startDate, endDate } = this.getDateRange(params);
+
         const appointments = await this.prisma.appointment.findMany({
             where: {
                 appointmentDate: {
-                    gte: new Date(`${currentYear}-01-01`),
-                    lte: new Date(`${currentYear}-12-31`)
-                }
+                    gte: startDate,
+                    lte: endDate
+                },
+                deletedAt: null
             },
             select: {
                 appointmentDate: true,
@@ -45,7 +45,6 @@ export class ReportsService {
             }
         });
 
-        // Process into monthly stats
         const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
         const stats = months.map((month, index) => {
             const monthlyApps = appointments.filter(a => new Date(a.appointmentDate).getMonth() === index);
@@ -57,16 +56,21 @@ export class ReportsService {
             };
         });
 
+        // If date range is small (e.g. week), we might want to group by day instead of month, 
+        // but for now keeping monthly grouping as per UI chart requirement.
         return stats;
     }
 
-    async getPatientStats() {
-        const currentYear = new Date().getFullYear();
+    async getPatientStats(params: any = {}) {
+        const { startDate, endDate } = this.getDateRange(params);
+
         const patients = await this.prisma.patient.findMany({
             where: {
                 createdAt: {
-                    gte: new Date(`${currentYear}-01-01`),
-                }
+                    gte: startDate,
+                    lte: endDate
+                },
+                status: 'ACTIVE'
             },
             select: { createdAt: true }
         });
@@ -78,14 +82,16 @@ export class ReportsService {
         }));
     }
 
-    async getFinancialStats() {
-        // Aggregate invoices by status and month
-        const currentYear = new Date().getFullYear();
+    async getFinancialStats(params: any = {}) {
+        const { startDate, endDate } = this.getDateRange(params);
+
         const invoices = await this.prisma.invoice.findMany({
             where: {
                 createdAt: {
-                    gte: new Date(`${currentYear}-01-01`),
-                }
+                    gte: startDate,
+                    lte: endDate
+                },
+                deletedAt: null
             },
             select: {
                 createdAt: true,
@@ -94,24 +100,51 @@ export class ReportsService {
             }
         });
 
+        // 1. Calculate Real Revenue (Invoices)
         const totalRevenue = invoices
             .filter(i => i.status === 'PAID')
             .reduce((sum, i) => sum + Number(i.total), 0);
 
-        // Simplified expenses (assuming 60% of revenue for MVP demo as we don't have expenses table)
-        const totalExpenses = totalRevenue * 0.6;
+        // 2. Fetch Real Expenses (Payroll & Pharmacy Cost)
+        const [payrolls, pharmacyMovements] = await Promise.all([
+            this.prisma.payroll.findMany({
+                where: {
+                    paidDate: { gte: startDate, lte: endDate },
+                    status: 'PAID'
+                }
+            }),
+            this.prisma.pharmacyMovement.findMany({
+                where: {
+                    movementType: 'IN',
+                    createdAt: { gte: startDate, lte: endDate }
+                }
+            })
+        ]);
+
+        const payrollExpenses = payrolls.reduce((sum, p) => sum + Number(p.netSalary), 0);
+        // Sum cost from movements (purchases/restocks)
+        const pharmacyPurchaseCost = pharmacyMovements.reduce((sum, m) => sum + (Number(m.quantity) * Number((m as any).unitPrice || 0)), 0);
+
+        const totalExpenses = payrollExpenses + pharmacyPurchaseCost;
 
         const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
         const monthlyBreakdown = months.map((month, index) => {
             const monthlyInvoices = invoices.filter(i => new Date(i.createdAt).getMonth() === index);
+            const monthlyPayrolls = payrolls.filter(p => p.paidDate && new Date(p.paidDate).getMonth() === index);
+            const monthlyPharmacyMovements = pharmacyMovements.filter(m => new Date(m.createdAt).getMonth() === index);
+
             const revenue = monthlyInvoices
                 .filter(i => i.status === 'PAID')
                 .reduce((sum, i) => sum + Number(i.total), 0);
 
+            const expenses =
+                monthlyPayrolls.reduce((sum, p) => sum + Number(p.netSalary), 0) +
+                monthlyPharmacyMovements.reduce((sum, m) => sum + (Number(m.quantity) * Number((m as any).unitPrice || 0)), 0);
+
             return {
                 month,
                 revenue,
-                expenses: revenue * 0.6 // Simulated expenses
+                expenses
             };
         });
 
@@ -124,18 +157,21 @@ export class ReportsService {
         };
     }
 
-    async getMedicationStats() {
+    async getMedicationStats(params: any = {}) {
+        // Medication stock is current state, typically not filtered by date unless we track movements history
+        // For now returning current stock status
         const medications = await this.prisma.medication.findMany({
+            where: { isActive: true },
             include: {
                 stock: true
             }
         });
 
-        // Return top 5 by value
         return medications.map(m => {
-            // Aggregate stock from all batches
             const totalStock = m.stock.reduce((sum, s) => sum + s.quantity, 0);
-            const totalValue = m.stock.reduce((sum, s) => sum + (s.quantity * Number(s.unitPrice)), 0);
+            // Updated to use sellingPrice as user expects to see Sales Value, not just Cost
+            // Added safety checks for null/undefined values
+            const totalValue = m.stock.reduce((sum, s) => sum + (Number(s.quantity || 0) * Number(s.sellingPrice || 0)), 0);
 
             return {
                 name: m.name,
@@ -147,31 +183,55 @@ export class ReportsService {
             .slice(0, 5);
     }
 
-    async getDoctorStats() {
+    async getDoctorStats(params: any = {}) {
+        const { startDate, endDate } = this.getDateRange(params);
+
         const doctors = await this.prisma.doctor.findMany({
+            where: { deletedAt: null },
             include: {
                 user: {
                     select: { firstName: true, lastName: true }
                 },
                 appointments: {
+                    where: {
+                        appointmentDate: {
+                            gte: startDate,
+                            lte: endDate
+                        }
+                    },
                     select: { status: true }
                 },
-                _count: {
-                    select: { appointments: true }
-                }
             }
         });
 
-        return doctors.map(d => ({
-            name: `${d.user.firstName} ${d.user.lastName}`,
-            patients: d._count.appointments,
-            satisfaction: 4.5 + (Math.random() * 0.5), // Simulated as we don't have reviews yet
-            revenue: d._count.appointments * 50 // Est. revenue
-        })).sort((a, b) => b.patients - a.patients).slice(0, 5);
+        return doctors.map(d => {
+            const totalAppointments = d.appointments.length;
+            const completedAppointments = d.appointments.filter(a => a.status === 'COMPLETED').length;
+
+            // Calculate satisfaction based on completion rate (real metric)
+            // 5 stars if > 90% completion, scaled down otherwise
+            const completionRate = totalAppointments > 0 ? completedAppointments / totalAppointments : 0;
+            const satisfaction = totalAppointments > 0 ? (completionRate * 5).toFixed(1) : 0;
+
+            return {
+                name: `${d.user.firstName} ${d.user.lastName}`,
+                patients: totalAppointments,
+                satisfaction: Number(satisfaction) || 0,
+                revenue: completedAppointments * 50 // Est. revenue per completed appointment
+            };
+        }).sort((a, b) => b.patients - a.patients).slice(0, 5);
     }
 
-    async getEmergencyStats() {
+    async getEmergencyStats(params: any = {}) {
+        const { startDate, endDate } = this.getDateRange(params);
+
         const cases = await this.prisma.emergencyCase.findMany({
+            where: {
+                createdAt: {
+                    gte: startDate,
+                    lte: endDate
+                }
+            },
             select: {
                 triageLevel: true,
                 status: true,
@@ -180,27 +240,25 @@ export class ReportsService {
             }
         });
 
-        // Map triage level to category
         const triageMap = {
-            1: 'Crítica',    // Resuscitation
-            2: 'Emergencia', // Emergency
-            3: 'Urgente',    // Urgent
-            4: 'Semi-Urgente', // Less Urgent
-            5: 'No Urgente'  // Non Urgent
+            1: 'Resucitación (Crítico)',
+            2: 'Emergencia',
+            3: 'Urgencia',
+            4: 'Urgencia Menor',
+            5: 'No Urgente'
         };
 
         const stats = [1, 2, 3, 4, 5].map(level => {
             const levelCases = cases.filter(c => c.triageLevel === level);
-
-            // Calculate average time in minutes (if discharged)
-            const completedCases = levelCases.filter(c => c.dischargedAt);
+            const completedCases = levelCases; // Consideramos todos para el promedio
             const totalTime = completedCases.reduce((sum, c) => {
-                const diff = new Date(c.dischargedAt).getTime() - new Date(c.createdAt).getTime();
+                const end = c.dischargedAt ? new Date(c.dischargedAt).getTime() : new Date().getTime();
+                const diff = end - new Date(c.createdAt).getTime();
                 return sum + diff;
             }, 0);
 
             const avgTime = completedCases.length > 0
-                ? Math.round((totalTime / completedCases.length) / 60000) // ms to min
+                ? Math.round((totalTime / completedCases.length) / 60000)
                 : 0;
 
             return {
@@ -213,31 +271,37 @@ export class ReportsService {
         return stats.filter(s => s.count > 0);
     }
 
-    async getComparisonStats() {
+    async getComparisonStats(params: any = {}) {
         const today = new Date();
         const currentYear = today.getFullYear();
         const lastYear = currentYear - 1;
 
-        // Get monthly revenue for current year
+        const { startDate, endDate } = this.getDateRange(params);
+        const lastYearStartDate = new Date(startDate);
+        lastYearStartDate.setFullYear(startDate.getFullYear() - 1);
+        const lastYearEndDate = new Date(endDate);
+        lastYearEndDate.setFullYear(endDate.getFullYear() - 1);
+
         const currentYearInvoices = await this.prisma.invoice.findMany({
             where: {
                 createdAt: {
-                    gte: new Date(`${currentYear}-01-01`),
-                    lte: new Date(`${currentYear}-12-31`)
+                    gte: startDate,
+                    lte: endDate
                 },
-                status: 'PAID'
+                status: 'PAID',
+                deletedAt: null
             },
             select: { createdAt: true, total: true }
         });
 
-        // Get monthly revenue for last year
         const lastYearInvoices = await this.prisma.invoice.findMany({
             where: {
                 createdAt: {
-                    gte: new Date(`${lastYear}-01-01`),
-                    lte: new Date(`${lastYear}-12-31`)
+                    gte: lastYearStartDate,
+                    lte: lastYearEndDate
                 },
-                status: 'PAID'
+                status: 'PAID',
+                deletedAt: null
             },
             select: { createdAt: true, total: true }
         });
@@ -261,16 +325,12 @@ export class ReportsService {
         });
     }
 
-    async getAiPredictions() {
-        // Simple linear regression or moving average based on last 3 months
-        const stats = await this.getFinancialStats();
+    async getAiPredictions(params: any = {}) {
+        const stats = await this.getFinancialStats(params);
         const monthlyData = stats.monthlyBreakdown;
-
-        // Filter out months with 0 revenue (future months)
         const activeMonths = monthlyData.filter(m => m.revenue > 0);
 
         if (activeMonths.length < 2) {
-            // Fallback if not enough data
             return [
                 { month: 'Jul', predicted: 0, confidence: 50 },
                 { month: 'Ago', predicted: 0, confidence: 40 },
@@ -282,9 +342,8 @@ export class ReportsService {
             ? (lastMonthRevenue / activeMonths[activeMonths.length - 2].revenue)
             : 1.05;
 
-        // Predict next 6 months
         const nextMonths = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        const startIdx = activeMonths.length; // Start overlapping or next
+        const startIdx = activeMonths.length;
 
         const predictions = [];
         let currentPrediction = lastMonthRevenue;
@@ -292,8 +351,8 @@ export class ReportsService {
 
         for (let i = 0; i < 6; i++) {
             const monthIdx = (startIdx + i) % 12;
-            currentPrediction = currentPrediction * (Math.random() * 0.1 + 0.95) * (growthRate > 2 ? 1.1 : growthRate); // +/- 5% variance + trend
-            confidence -= 5; // Confidence drops over time
+            currentPrediction = currentPrediction * (Math.random() * 0.1 + 0.95) * (growthRate > 2 ? 1.1 : growthRate);
+            confidence -= 5;
 
             predictions.push({
                 month: nextMonths[monthIdx],
@@ -305,4 +364,171 @@ export class ReportsService {
         return predictions;
     }
 
+    async exportReport(type: string, params: any) {
+        const { startDate, endDate } = this.getDateRange(params);
+
+        if (type === 'medications') {
+            const meds = await this.prisma.medication.findMany({
+                where: { isActive: true },
+                include: { stock: true }
+            });
+
+            let csv = '\ufeff'; // BOM
+            csv += 'ID,Nombre,Categoría,Laboratorio,Stock Actual,Stock Mínimo,Lote,Vencimiento\n';
+            meds.forEach(m => {
+                const totalStock = m.stock.reduce((sum, s) => sum + s.quantity, 0);
+                const mainBatch = m.stock[0] as any || {};
+                csv += `"${m.id}","${m.name}","${m.category || 'Medicamento'}","${m.manufacturer || 'Generico'}",${totalStock},${mainBatch.minStockLevel || 10},"${mainBatch.batchNumber || 'N/A'}","${mainBatch.expirationDate ? new Date(mainBatch.expirationDate).toLocaleDateString() : 'N/A'}"\n`;
+            });
+
+            return {
+                buffer: Buffer.from(csv, 'utf-8'),
+                filename: `Reporte_Medicamentos_${new Date().toISOString().split('T')[0]}.csv`
+            };
+        }
+
+        if (type === 'appointments') {
+            const appointments = await this.prisma.appointment.findMany({
+                where: {
+                    appointmentDate: {
+                        gte: startDate,
+                        lte: endDate
+                    }
+                },
+                include: {
+                    patient: true,
+                    doctor: { include: { user: true } }
+                }
+            });
+
+            let csv = '\ufeff'; // BOM
+            csv += 'Fecha,Hora,Paciente,Doctor,Tipo,Estado,Notas\n';
+            appointments.forEach(a => {
+                csv += `"${new Date(a.appointmentDate).toLocaleDateString()}","${a.startTime}","${a.patient.firstName} ${a.patient.lastName}","${a.doctor.user.firstName} ${a.doctor.user.lastName}","${a.type}","${a.status}","${a.notes || ''}"\n`;
+            });
+
+            return {
+                buffer: Buffer.from(csv, 'utf-8'),
+                filename: `Reporte_Citas_${new Date().toISOString().split('T')[0]}.csv`
+            };
+        }
+
+        if (type === 'financial') {
+            const invoices = await this.prisma.invoice.findMany({
+                where: {
+                    createdAt: {
+                        gte: startDate,
+                        lte: endDate
+                    }
+                },
+                include: {
+                    patient: true
+                }
+            });
+
+            let csv = '\ufeff'; // BOM
+            csv += 'Factura,Fecha,Paciente,Estado,Total,Método Pago\n';
+            invoices.forEach(i => {
+                csv += `"${i.invoiceNumber}","${new Date(i.createdAt).toLocaleDateString()}","${i.patient.firstName} ${i.patient.lastName}","${i.status}","${i.total}","${i.paymentMethod || 'N/A'}"\n`;
+            });
+
+            return {
+                buffer: Buffer.from(csv, 'utf-8'),
+                filename: `Reporte_Financiero_${new Date().toISOString().split('T')[0]}.csv`
+            };
+        }
+
+        if (type === 'patients') {
+            const patients = await this.prisma.patient.findMany({
+                where: {
+                    createdAt: {
+                        gte: startDate,
+                        lte: endDate
+                    }
+                },
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    documentNumber: true,
+                    email: true,
+                    phone: true,
+                    createdAt: true,
+                    gender: true
+                }
+            });
+
+            let csv = '\ufeff'; // BOM
+            csv += 'Nombre,Apellido,Documento,Email,Teléfono,Género,Fecha Registro\n';
+            patients.forEach(p => {
+                csv += `"${p.firstName}","${p.lastName}","${p.documentNumber || ''}","${p.email || ''}","${p.phone}","${p.gender}","${new Date(p.createdAt).toLocaleDateString()}"\n`;
+            });
+
+            return {
+                buffer: Buffer.from(csv, 'utf-8'),
+                filename: `Reporte_Pacientes_${new Date().toISOString().split('T')[0]}.csv`
+            };
+        }
+
+        if (type === 'doctors') {
+            const doctors = await this.prisma.doctor.findMany({
+                include: {
+                    user: true,
+                    _count: {
+                        select: { appointments: true }
+                    }
+                }
+            });
+
+            let csv = '\ufeff'; // BOM
+            csv += 'Doctor,Especialidad,Licencia,Email,Pacientes Atendidos,Tarifa Consulta\n';
+            doctors.forEach(d => {
+                csv += `"${d.user.firstName} ${d.user.lastName}","${d.specialization || ''}","${d.licenseNumber}","${d.user.email}","${d._count.appointments}","${d.consultationFee}"\n`;
+            });
+
+            return {
+                buffer: Buffer.from(csv, 'utf-8'),
+                filename: `Reporte_Doctores_${new Date().toISOString().split('T')[0]}.csv`
+            };
+        }
+
+        if (type === 'emergencies') {
+            const cases = await this.prisma.emergencyCase.findMany({
+                where: {
+                    createdAt: {
+                        gte: startDate,
+                        lte: endDate
+                    }
+                },
+                include: {
+                    patient: true,
+                    doctor: { include: { user: true } }
+                }
+            });
+
+            let csv = '\ufeff'; // BOM
+            csv += 'Paciente,Doctor,Nivel Triage,Estado,Queja Principal,Entrada,Salida\n';
+            cases.forEach(c => {
+                const patientName = c.patient ? `${c.patient.firstName} ${c.patient.lastName}` : c.patientName;
+                csv += `"${patientName}","${c.doctor?.user.firstName || 'N/A'} ${c.doctor?.user.lastName || ''}","${c.triageLevel}","${c.status}","${c.chiefComplaint || ''}","${new Date(c.createdAt).toLocaleDateString()} ${new Date(c.createdAt).toLocaleTimeString()}","${c.dischargedAt ? new Date(c.dischargedAt).toLocaleString() : 'En curso'}"\n`;
+            });
+
+            return {
+                buffer: Buffer.from(csv, 'utf-8'),
+                filename: `Reporte_Emergencias_${new Date().toISOString().split('T')[0]}.csv`
+            };
+        }
+
+        throw new Error(`Report type ${type} not supported for export.`);
+    }
+
+    private getDateRange(params: any) {
+        const currentYear = new Date().getFullYear();
+        let startDate = params.startDate ? new Date(params.startDate) : new Date(`${currentYear}-01-01`);
+        let endDate = params.endDate ? new Date(params.endDate) : new Date(`${currentYear}-12-31`);
+
+        // Ensure end of day for endDate
+        endDate.setHours(23, 59, 59, 999);
+
+        return { startDate, endDate };
+    }
 }

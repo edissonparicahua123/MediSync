@@ -1,4 +1,5 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Res, Param } from '@nestjs/common';
+import { Response } from 'express';
 import { ReportsService } from './reports.service';
 
 @Controller('reports')
@@ -11,33 +12,33 @@ export class ReportsController {
     }
 
     @Get('appointments')
-    getAppointmentStats() {
-        return this.reportsService.getAppointmentStats();
+    getAppointmentStats(@Query() params: any) {
+        return this.reportsService.getAppointmentStats(params);
     }
 
     @Get('patients')
-    getPatientStats() {
-        return this.reportsService.getPatientStats();
+    getPatientStats(@Query() params: any) {
+        return this.reportsService.getPatientStats(params);
     }
 
     @Get('finance')
-    getFinancialStats() {
-        return this.reportsService.getFinancialStats();
+    getFinancialStats(@Query() params: any) {
+        return this.reportsService.getFinancialStats(params);
     }
 
     @Get('medications')
-    getMedicationStats() {
-        return this.reportsService.getMedicationStats();
+    getMedicationStats(@Query() params: any) {
+        return this.reportsService.getMedicationStats(params);
     }
 
     @Get('doctors')
-    getDoctorStats() {
-        return this.reportsService.getDoctorStats();
+    getDoctorStats(@Query() params: any) {
+        return this.reportsService.getDoctorStats(params);
     }
 
     @Get('emergencies')
-    getEmergencyStats() {
-        return this.reportsService.getEmergencyStats();
+    getEmergencyStats(@Query() params: any) {
+        return this.reportsService.getEmergencyStats(params);
     }
 
     @Get('comparison')
@@ -48,5 +49,25 @@ export class ReportsController {
     @Get('ai-predictions')
     getAiPredictions() {
         return this.reportsService.getAiPredictions();
+    }
+
+    @Get('export/:type')
+    async exportReport(
+        @Param('type') type: string,
+        @Res() res: Response,
+        @Query() params: any
+    ) {
+        const { buffer, filename } = await this.reportsService.exportReport(type, params);
+
+        const contentType = filename.endsWith('.csv')
+            ? 'text/csv'
+            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+        res.set({
+            'Content-Type': contentType,
+            'Content-Disposition': `attachment; filename=${filename}`,
+            'Content-Length': buffer.length,
+        });
+        res.end(buffer);
     }
 }

@@ -152,11 +152,11 @@ export default function EmergencyPage() {
             const data = response.data
 
             const colors: Record<number, { bg: string; text: string; label: string }> = {
-                1: { bg: 'bg-red-100', text: 'text-red-800', label: 'CRÍTICO' },
-                2: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'URGENTE' },
-                3: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'SEMI-URGENTE' },
-                4: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'NO URGENTE' },
-                5: { bg: 'bg-green-100', text: 'text-green-800', label: 'BAJA PRIORIDAD' },
+                1: { bg: 'bg-red-100', text: 'text-red-800', label: 'RESUCITACIÓN (CRÍTICO)' },
+                2: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'EMERGENCIA' },
+                3: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'URGENCIA' },
+                4: { bg: 'bg-green-100', text: 'text-green-800', label: 'URGENCIA MENOR' },
+                5: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'NO URGENTE' },
             }
 
             setTriageResult({
@@ -181,8 +181,8 @@ export default function EmergencyPage() {
             1: 'bg-red-500',
             2: 'bg-orange-500',
             3: 'bg-yellow-500',
-            4: 'bg-blue-500',
-            5: 'bg-green-500',
+            4: 'bg-green-500', // Corrected: Level 4 is Green
+            5: 'bg-blue-500',  // Corrected: Level 5 is Blue
         }
         return colors[priority] || 'bg-gray-500'
     }

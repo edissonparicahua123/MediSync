@@ -88,6 +88,9 @@ export class EmergencyService {
                 },
                 attachments: {
                     orderBy: { createdAt: 'desc' }
+                },
+                pharmacyOrders: {
+                    orderBy: { createdAt: 'desc' }
                 }
             }
         });
@@ -457,16 +460,60 @@ export class EmergencyService {
     }
 
     async addMedication(caseId: string, data: any) {
-        return this.prisma.emergencyMedication.create({
+        const emergencyCase = await this.prisma.emergencyCase.findUnique({
+            where: { id: caseId },
+            select: { patientId: true, doctorId: true, doctorName: true }
+        });
+
+        // 1. Create clinical record
+        const newMed = await this.prisma.emergencyMedication.create({
             data: {
                 emergencyCaseId: caseId,
+                medicationId: data.medicationId || null,
                 name: data.name,
                 dosage: data.dosage,
                 route: data.route,
-                administeredBy: data.administeredBy,
-                notes: data.notes
+                administeredBy: data.administeredBy || null,
+                notes: data.notes || null,
             }
         });
+
+        // 2. Create Pharmacy Order link
+        if (emergencyCase?.patientId && emergencyCase?.doctorId) {
+            const orderCount = await this.prisma.pharmacyOrder.count();
+            const orderNumber = `ORD-ER-${(orderCount + 1).toString().padStart(5, '0')}`;
+
+            // [SENIOR] Precise linking
+            let medication = null;
+            if (data.medicationId) {
+                medication = await this.prisma.medication.findUnique({
+                    where: { id: data.medicationId }
+                });
+            } else {
+                medication = await this.prisma.medication.findFirst({
+                    where: { name: { contains: data.name, mode: 'insensitive' } }
+                });
+            }
+
+            if (medication) {
+                await this.prisma.pharmacyOrder.create({
+                    data: {
+                        orderNumber,
+                        medicationId: medication.id,
+                        emergencyCaseId: caseId, // [NEW] Explicit Case Link
+                        quantity: 1, // Default unit for ER
+                        doctorId: emergencyCase.doctorId,
+                        patientId: emergencyCase.patientId,
+                        status: 'PENDIENTE'
+                    }
+                });
+                console.log(`[EmergencyService] Pharmacy order ${orderNumber} created for case ${caseId} linked to med ${medication.id}`);
+            } else {
+                console.warn(`[EmergencyService] Medication "${data.name}" (ID: ${data.medicationId}) not found in pharmacy library. Skipping order creation.`);
+            }
+        }
+
+        return newMed;
     }
 
     async addProcedure(caseId: string, data: any) {

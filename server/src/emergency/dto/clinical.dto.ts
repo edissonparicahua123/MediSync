@@ -53,6 +53,11 @@ export class AddMedicationDto {
     @ApiPropertyOptional()
     @IsOptional()
     @IsString()
+    medicationId?: string;
+
+    @ApiPropertyOptional()
+    @IsOptional()
+    @IsString()
     notes?: string;
 }
 

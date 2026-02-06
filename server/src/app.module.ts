@@ -22,6 +22,7 @@ import { AdminModule } from './admin/admin.module';
 import { MessagesModule } from './messages/messages.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { BedsModule } from './beds/beds.module';
+import { ServicesCatalogModule } from './services-catalog/services-catalog.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -64,6 +65,7 @@ import { HealthController } from './health/health.controller';
         MessagesModule,
         AnalyticsModule,
         BedsModule,
+        ServicesCatalogModule,
     ],
     controllers: [HealthController],
 })

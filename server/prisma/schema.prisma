@@ -321,16 +321,21 @@ model PatientMedication {
   patientId    String
   patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
   medicationId String?
+  medication   Medication? @relation(fields: [medicationId], references: [id])
   name         String
   dosage       String
   frequency    String
+  instructions String?     @map("notes") // Match our service use of 'instructions'
   route        String? // ORAL, IV, IM, TOPICAL, etc
   startDate    DateTime
   endDate      DateTime?
-  prescribedBy String?
-  isActive     Boolean   @default(true)
-  notes        String?
-  createdAt    DateTime  @default(now())
+  
+  prescribedById String?
+  prescribedBy   Doctor?   @relation(fields: [prescribedById], references: [id])
+  
+  status       String?     @default("ACTIVE") // ACTIVE, INACTIVE
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
 
   @@index([patientId])
   @@index([isActive])
@@ -396,6 +401,8 @@ model Doctor {
   medicalRecords MedicalRecord[]
   emergencyCases EmergencyCase[]
   pharmacyOrders PharmacyOrder[]
+  prescribedMedications PatientMedication[]
+  labOrders      LabOrder[] @relation("DoctorLabOrders")
 
   @@index([licenseNumber])
   @@map("doctors")
@@ -604,6 +611,7 @@ model Medication {
   stock     PharmacyStock[]
   movements PharmacyMovement[]
   orders    PharmacyOrder[]
+  patientMedications PatientMedication[]
 
   @@index([name])
   @@map("medications")
@@ -640,6 +648,8 @@ model PharmacyMovement {
   referenceNumber String?
   performedBy     String?
   notes           String?
+  resultingStock  Int? // [NEW] Tracking final stock after movement
+  unitPrice       Decimal? @db.Decimal(10, 2) // [NEW] Cost price at movement time
   createdAt       DateTime @default(now())
 
   // Relations
@@ -663,16 +673,18 @@ model PharmacyOrder {
   patientId    String
   patient      Patient    @relation(fields: [patientId], references: [id])
 
+  emergencyCaseId String? // [LINK] To Emergency Case
+  emergencyCase   EmergencyCase? @relation(fields: [emergencyCaseId], references: [id])
+
   status String @default("PENDING") // PENDING, APPROVED, REJECTED, DISPENSED
 
+  createdAt       DateTime  @default(now())
   requestedAt     DateTime  @default(now())
   approvedAt      DateTime?
   approvedBy      String?
   rejectedAt      DateTime?
   rejectedBy      String?
   rejectionReason String?
-
-  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([medicationId])
@@ -686,16 +698,32 @@ model PharmacyOrder {
 // LABORATORY
 // ============================================
 
+model LabTest {
+  id          String   @id @default(uuid())
+  name        String
+  category    String   // Hematology, Chemistry, etc.
+  description String?
+  normalRange String?
+  unit        String?
+  price       Decimal  @default(0) @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders      LabOrder[]
+
+  @@map("lab_tests")
+}
+
 model LabOrder {
   id                String    @id @default(uuid())
   orderNumber       String    @unique
-  testType          String
-  testName          String
   priority          String    @default("NORMAL") // ROUTINE, URGENT, STAT
   status            String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
-  sampleType        String? // blood, urine, stool, etc.
+  sampleType        String?   // blood, urine, stool, etc.
   sampleCollectedAt DateTime?
   notes             String?
+  resultFile        String?   // [NEW] Added for actual file storage path
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
@@ -703,8 +731,18 @@ model LabOrder {
   // Relations
   patientId String
   patient   Patient @relation(fields: [patientId], references: [id])
+  
+  doctorId  String? 
+  doctor    Doctor? @relation("DoctorLabOrders", fields: [doctorId], references: [id])
 
-  results LabResult[]
+  testId    String? 
+  test      LabTest? @relation(fields: [testId], references: [id])
+
+  // For compatibility with legacy data
+  testType  String?
+  testName  String?
+
+  results   LabResult[]
 
   @@index([patientId])
   @@index([orderNumber])
@@ -723,6 +761,7 @@ model LabResult {
   performedBy    String?
   verifiedBy     String?
   resultDate     DateTime?
+  attachmentUrl  String?   // [NEW] URL for result document
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -739,19 +778,26 @@ model LabResult {
 // ============================================
 
 model Invoice {
-  id            String    @id @default(uuid())
-  invoiceNumber String    @unique
-  invoiceDate   DateTime  @default(now())
-  dueDate       DateTime?
-  subtotal      Decimal   @db.Decimal(10, 2)
-  tax           Decimal   @default(0) @db.Decimal(10, 2)
-  discount      Decimal   @default(0) @db.Decimal(10, 2)
-  total         Decimal   @db.Decimal(10, 2)
-  status        String    @default("PENDING") // PENDING, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
-  notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+  id                   String    @id @default(uuid())
+  invoiceNumber        String    @unique
+  invoiceDate          DateTime  @default(now())
+  dueDate              DateTime?
+  subtotal             Decimal   @db.Decimal(10, 2)
+  tax                  Decimal   @default(0) @db.Decimal(10, 2)
+  discount             Decimal   @default(0) @db.Decimal(10, 2)
+  total                Decimal   @db.Decimal(10, 2)
+  status               String    @default("PENDING") // PENDING, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
+  notes                String?
+  
+  // Payment-related fields
+  paymentMethod        String? // Efectivo, Transferencia BCP, Yape, Plin, etc.
+  paymentDate          DateTime?
+  destinationAccountId String? // ID of company account where payment was received
+  operationNumber      String? // Reference/transaction number
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
 
   // Relations
   patientId String
@@ -1040,6 +1086,7 @@ model EmergencyCase {
   medications       EmergencyMedication[]
   procedures        EmergencyProcedure[]
   attachments       EmergencyAttachment[]
+  pharmacyOrders    PharmacyOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1072,6 +1119,7 @@ model EmergencyMedication {
   emergencyCaseId String
   emergencyCase   EmergencyCase @relation(fields: [emergencyCaseId], references: [id], onDelete: Cascade)
   
+  medicationId   String? // [LINK] To Pharmacy inventory
   name           String
   dosage         String
   route          String // ORAL, IV, IM, etc.
@@ -1141,4 +1189,23 @@ model Message {
   @@index([isRead])
   @@index([createdAt])
   @@map("messages")
+}
+
+// ============================================
+// SERVICES CATALOG
+// ============================================
+
+model ServiceCatalog {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  category    String   // "CONSULTA", "EXAMEN", "PROCEDIMIENTO", "TERAPIA"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+  @@map("services_catalog")
 }

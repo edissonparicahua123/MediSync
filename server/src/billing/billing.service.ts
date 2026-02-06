@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PharmacyService } from '../pharmacy/pharmacy.service';
 
 @Injectable()
 export class BillingService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private pharmacyService: PharmacyService
+    ) { }
 
     async getInvoices(query: any) {
         try {
@@ -71,21 +75,46 @@ export class BillingService {
 
     async createInvoice(data: any) {
         try {
-            const { patientId, items, discount, tax, total, paymentMethod } = data;
+            const {
+                patientId,
+                items,
+                discount,
+                tax,
+                total,
+                subtotal,
+                status,
+                paymentMethod,
+                paymentDate,
+                destinationAccountId,
+                operationNumber,
+                invoiceDate,
+                dueDate,
+                notes
+            } = data;
 
             // Generate invoice number
             const invoiceNumber = `INV-${Date.now()}`;
 
+            // Calculate subtotal if not provided
+            const calculatedSubtotal = subtotal || (total - (tax || 0) + (discount || 0));
+
             // Use transaction to ensure both header and items are created
-            return await this.prisma.invoice.create({
+            const invoice = await this.prisma.invoice.create({
                 data: {
                     invoiceNumber,
                     patientId,
-                    subtotal: total - (tax || 0) + (discount || 0), // Approximation if not sent
+                    subtotal: calculatedSubtotal,
                     tax: tax || 0,
                     discount: discount || 0,
                     total: total,
-                    status: 'PENDING', // Default status
+                    status: status || 'PENDING', // Use status from request or default to PENDING
+                    paymentMethod: paymentMethod || null,
+                    paymentDate: paymentDate ? new Date(paymentDate) : null,
+                    destinationAccountId: destinationAccountId || null,
+                    operationNumber: operationNumber || null,
+                    invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
+                    dueDate: dueDate ? new Date(dueDate) : null,
+                    notes: notes || null,
                     items: {
                         create: items.map((item: any) => ({
                             description: item.name || item.description,
@@ -101,11 +130,25 @@ export class BillingService {
                     payments: true
                 }
             });
+
+            // If invoice is marked as PAID, reduce stock automatically
+            if (status === 'PAID' && items && items.length > 0) {
+                try {
+                    await this.pharmacyService.reduceStockFromInvoice(invoice.id, items);
+                    console.log(`✅ Stock reducido para factura ${invoice.invoiceNumber}`);
+                } catch (error) {
+                    console.error('⚠️ Error reduciendo stock:', error);
+                    // Don't fail invoice creation if stock reduction fails
+                }
+            }
+
+            return invoice;
         } catch (error) {
             console.error("Error creating invoice:", error);
             throw error;
         }
     }
+
 
     async updateInvoice(id: string, data: any) {
         try {
@@ -156,12 +199,31 @@ export class BillingService {
     async updateStatus(id: string, data: any) {
         try {
             const { status } = data;
-            return await this.prisma.invoice.update({
+
+            // Get invoice with items before updating
+            const invoice = await this.prisma.invoice.findUnique({
                 where: { id },
-                data: {
-                    status,
-                },
+                include: { items: true }
             });
+
+            // Update status
+            const updated = await this.prisma.invoice.update({
+                where: { id },
+                data: { status },
+            });
+
+            // If changing to PAID and wasn't paid before, reduce stock
+            if (status === 'PAID' && invoice && invoice.status !== 'PAID' && invoice.items.length > 0) {
+                try {
+                    await this.pharmacyService.reduceStockFromInvoice(id, invoice.items);
+                    console.log(`✅ Stock reducido para factura ${invoice.invoiceNumber}`);
+                } catch (error) {
+                    console.error('⚠️ Error reduciendo stock:', error);
+                    // Don't fail status update if stock reduction fails
+                }
+            }
+
+            return updated;
         } catch (error) {
             console.error("Error updating invoice status:", error);
             throw error;

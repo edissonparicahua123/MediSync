@@ -5,6 +5,7 @@ import { appointmentsAPI } from '@/services/api'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { UnifiedInvoiceModal } from '@/components/modals/UnifiedInvoiceModal'
 import {
     ArrowLeft,
     Calendar,
@@ -16,6 +17,7 @@ import {
     CheckCircle2,
     XCircle,
     AlertCircle,
+    Banknote,
 } from 'lucide-react'
 import { format, differenceInMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -28,6 +30,8 @@ export default function AppointmentDetailsPage() {
     const { toast } = useToast()
     const [activeTab, setActiveTab] = useState('details')
     const [showEditModal, setShowEditModal] = useState(false)
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+    const [invoiceInitialData, setInvoiceInitialData] = useState<any>(null)
 
     // Cargar datos de la cita
     const { data: appointmentData, isLoading, refetch } = useQuery({
@@ -65,6 +69,18 @@ export default function AppointmentDetailsPage() {
             title: 'Éxito',
             description: 'Cita actualizada correctamente',
         })
+    }
+
+    const handleBilling = () => {
+        if (!appointment) return
+
+        setInvoiceInitialData({
+            patientId: appointment.patient?.id,
+            serviceDescription: `Consulta Médica - ${appointment.reason || 'General'}`,
+            servicePrice: 50,
+            doctorName: appointment.doctor?.user ? `${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName}` : undefined
+        })
+        setShowInvoiceModal(true)
     }
 
     const handleCompleteAppointment = async () => {
@@ -187,6 +203,14 @@ export default function AppointmentDetailsPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <Button
+                        onClick={handleBilling}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                    >
+                        <Banknote className="h-4 w-4 mr-2" />
+                        Facturar
+                    </Button>
+
                     {appointment.status !== 'COMPLETED' && appointment.status !== 'CANCELLED' && (
                         <Button
                             className="bg-green-600 hover:bg-green-700"
@@ -456,6 +480,20 @@ export default function AppointmentDetailsPage() {
                     onSuccess={handleEditSuccess}
                 />
             )}
+
+            {/* Invoice Modal */}
+            <UnifiedInvoiceModal
+                open={showInvoiceModal}
+                onOpenChange={setShowInvoiceModal}
+                initialData={invoiceInitialData}
+                onSuccess={() => {
+                    setShowInvoiceModal(false)
+                    toast({
+                        title: "Factura Creada",
+                        description: "La factura se ha generado correctamente desde la cita."
+                    })
+                }}
+            />
         </div>
     )
 }

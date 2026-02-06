@@ -33,10 +33,12 @@ import {
     Clock,
     History,
     ChevronRight,
+    FlaskConical,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import ReferralModal from '@/components/modals/ReferralModal'
 import EmergencyModal from '@/components/modals/EmergencyModal'
+import LabOrderModal from '@/components/modals/LabOrderModal'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
@@ -64,7 +66,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover'
-import { emergencyAPI, patientsAPI } from '@/services/api'
+import { emergencyAPI, patientsAPI, pharmacyAPI } from '@/services/api'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -76,6 +78,15 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form'
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import { Check, ChevronsUpDown } from "lucide-react"
 
 export default function EmergencyCaseProfilePage() {
     const { id } = useParams<{ id: string }>()
@@ -89,9 +100,12 @@ export default function EmergencyCaseProfilePage() {
 
     // Estados de datos adicionales
     const [medications, setMedications] = useState<any[]>([])
+    const [isLabOrderOpen, setIsLabOrderOpen] = useState(false)
     const [procedures, setProcedures] = useState<any[]>([])
     const [attachments, setAttachments] = useState<any[]>([])
     const [medicalHistory, setMedicalHistory] = useState<any[]>([])
+    const [availableMeds, setAvailableMeds] = useState<any[]>([])
+    const [inventoryLoading, setInventoryLoading] = useState(false)
 
     // Modal states
     const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false)
@@ -143,6 +157,10 @@ export default function EmergencyCaseProfilePage() {
         defaultValues: { name: '', dosage: '', route: 'IV', notes: '' }
     })
 
+    // Inventory selection state
+    const [medSearchOpen, setMedSearchOpen] = useState(false)
+    const [selectedMedId, setSelectedMedId] = useState<string | null>(null)
+
     const procsForm = useForm<z.infer<typeof procsSchema>>({
         resolver: zodResolver(procsSchema),
         defaultValues: { name: '', description: '', result: '' }
@@ -159,6 +177,14 @@ export default function EmergencyCaseProfilePage() {
             setLoading(true)
             const res = await emergencyAPI.getCase(id)
             const data = res.data
+
+            // Traducir estados de medicamentos
+            const statusMap: any = {
+                'PENDING': 'PENDIENTE',
+                'APPROVED': 'APROBADO',
+                'REJECTED': 'RECHAZADO',
+                'DISPENSED': 'DESPACHADO'
+            }
 
             // Traducir género
             const genderMap: Record<string, string> = {
@@ -257,8 +283,23 @@ export default function EmergencyCaseProfilePage() {
         }
     }
 
+    const fetchInventory = async () => {
+        try {
+            setInventoryLoading(true)
+            const res = await pharmacyAPI.getMedications()
+            // The API returns { data: { data: [...] } } or { data: [...] }
+            const meds = res.data?.data?.data || res.data?.data || res.data || []
+            setAvailableMeds(meds)
+        } catch (error) {
+            console.error('Error fetching inventory:', error)
+        } finally {
+            setInventoryLoading(false)
+        }
+    }
+
     useEffect(() => {
         fetchCaseData()
+        fetchInventory()
     }, [id, navigate, toast])
 
     const handleAddVitals = async (values: z.infer<typeof vitalsSchema>) => {
@@ -281,10 +322,16 @@ export default function EmergencyCaseProfilePage() {
         if (!id) return
         try {
             setIsSubmitting(true)
-            await emergencyAPI.addMedication(id, values)
+            // Add medicationId to payload if selected from list
+            const payload = {
+                ...values,
+                medicationId: selectedMedId
+            }
+            await emergencyAPI.addMedication(id, payload)
             toast({ title: 'Éxito', description: 'Medicamento registrado' })
             setIsMedsModalOpen(false)
             medsForm.reset()
+            setSelectedMedId(null)
             fetchCaseData()
         } catch (error) {
             toast({ title: 'Error', description: 'No se pudo registrar', variant: 'destructive' })
@@ -559,6 +606,10 @@ export default function EmergencyCaseProfilePage() {
                         <Activity className="h-4 w-4 mr-2" />
                         Procedimientos
                     </TabsTrigger>
+                    <TabsTrigger value="laboratory">
+                        <FlaskConical className="h-4 w-4 mr-2" />
+                        Laboratorio
+                    </TabsTrigger>
                     <TabsTrigger value="attachments">
                         <FileText className="h-4 w-4 mr-2" />
                         Documentos
@@ -568,6 +619,37 @@ export default function EmergencyCaseProfilePage() {
                         Historial Clínico
                     </TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="laboratory">
+                    <Card>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Órdenes de Laboratorio</CardTitle>
+                                    <CardDescription>Gestión de análisis clínicos para urgencias</CardDescription>
+                                </div>
+                                <Button onClick={() => setIsLabOrderOpen(true)} className="bg-red-600 hover:bg-red-700 text-white">
+                                    <FlaskConical className="h-4 w-4 mr-2" />
+                                    Nueva Orden
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-center py-12 border-2 border-dashed rounded-lg bg-slate-50/50">
+                                <div className="mx-auto h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center mb-3">
+                                    <FlaskConical className="h-6 w-6 text-blue-500" />
+                                </div>
+                                <h3 className="text-lg font-medium text-slate-900">Historial de Laboratorio</h3>
+                                <p className="text-sm text-slate-500 max-w-sm mx-auto mb-4">
+                                    Las órdenes creadas aparecerán aquí. (Integración con API de laboratorio en proceso)
+                                </p>
+                                <Button variant="outline" onClick={() => setIsLabOrderOpen(true)}>
+                                    Crear Orden
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 <TabsContent value="vitals" className="mt-4">
                     <Card>
@@ -686,7 +768,8 @@ export default function EmergencyCaseProfilePage() {
                                         <TableHead>Hora</TableHead>
                                         <TableHead>Medicamento</TableHead>
                                         <TableHead>Dosis</TableHead>
-                                        <TableHead>Vía</TableHead>
+                                        <TableHead>V vía</TableHead>
+                                        <TableHead>Estado Farmacia</TableHead>
                                         <TableHead>Administrado por</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -702,6 +785,34 @@ export default function EmergencyCaseProfilePage() {
                                                 <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs font-medium">
                                                     {med.route}
                                                 </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                {(() => {
+                                                    const order = caseData?.raw?.pharmacyOrders?.find((o: any) =>
+                                                        (med.medicationId && o.medicationId === med.medicationId) ||
+                                                        (!med.medicationId && o.medicationName === med.name)
+                                                    );
+
+                                                    if (!order) return <span className="text-[10px] text-zinc-500 italic">No solicitado</span>;
+
+                                                    const status = order.status;
+                                                    const badgeStyles: any = {
+                                                        'PENDIENTE': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+                                                        'APROBADO': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+                                                        'RECHAZADO': 'bg-rose-500/10 text-rose-500 border-rose-500/20',
+                                                        'PENDING': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+                                                        'APPROVED': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+                                                        'REJECTED': 'bg-rose-500/10 text-rose-500 border-rose-500/20',
+                                                    };
+
+                                                    return (
+                                                        <Badge variant="outline" className={cn("text-[10px] font-bold uppercase", badgeStyles[status] || 'bg-zinc-500/10 text-zinc-500')}>
+                                                            {status === 'PENDING' ? 'PENDIENTE' :
+                                                                status === 'APPROVED' ? 'APROBADO' :
+                                                                    status === 'REJECTED' ? 'RECHAZADO' : status}
+                                                        </Badge>
+                                                    );
+                                                })()}
                                             </TableCell>
                                             <TableCell>{med.administeredBy || 'Sistema'}</TableCell>
                                         </TableRow>
@@ -1154,13 +1265,76 @@ export default function EmergencyCaseProfilePage() {
                 <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                     <DialogHeader>
                         <DialogTitle>Registrar Administación de Medicamento</DialogTitle>
+                        <DialogDescription className="text-zinc-400">Complete los detalles de la dosis y vía de administración.</DialogDescription>
                     </DialogHeader>
                     <Form {...medsForm}>
                         <form onSubmit={medsForm.handleSubmit(handleAddMed)} className="space-y-4 py-4">
                             <FormField control={medsForm.control} name="name" render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-col">
                                     <FormLabel>Medicamento</FormLabel>
-                                    <FormControl><Input placeholder="Ej. Paracetamol" {...field} className="bg-zinc-900 border-zinc-700" /></FormControl>
+                                    <Popover open={medSearchOpen} onOpenChange={setMedSearchOpen}>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    aria-expanded={medSearchOpen}
+                                                    className={cn(
+                                                        "w-full justify-between bg-zinc-900 border-zinc-700 text-left font-normal",
+                                                        !field.value && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {field.value
+                                                        ? availableMeds.find((med: any) => med.name === field.value)?.name || field.value
+                                                        : "Seleccione un medicamento..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0 bg-zinc-900 border-zinc-800" align="start">
+                                            <Command className="bg-zinc-900">
+                                                <CommandInput placeholder="Buscar medicamento..." className="h-9" />
+                                                <CommandList>
+                                                    <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {availableMeds.map((med: any) => (
+                                                            <CommandItem
+                                                                key={med.id}
+                                                                value={med.name}
+                                                                onSelect={() => {
+                                                                    medsForm.setValue("name", med.name)
+                                                                    setSelectedMedId(med.id)
+                                                                    setMedSearchOpen(false)
+                                                                }}
+                                                                className="flex items-center justify-between cursor-pointer hover:bg-zinc-800"
+                                                            >
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-medium text-zinc-100">{med.name}</span>
+                                                                    <span className="text-xs text-zinc-500">{med.manufacturer || med.laboratory || 'Genérico'}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Badge variant="outline" className={cn(
+                                                                        "text-[10px] px-1 py-0",
+                                                                        med.currentStock > med.minStock ? "border-emerald-500/50 text-emerald-500" :
+                                                                            med.currentStock > 0 ? "border-orange-500/50 text-orange-500" :
+                                                                                "border-red-500/50 text-red-500"
+                                                                    )}>
+                                                                        {med.currentStock} und
+                                                                    </Badge>
+                                                                    <Check
+                                                                        className={cn(
+                                                                            "h-4 w-4",
+                                                                            field.value === med.name ? "opacity-100" : "opacity-0"
+                                                                        )}
+                                                                    />
+                                                                </div>
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                     <FormMessage />
                                 </FormItem>
                             )} />
@@ -1206,6 +1380,7 @@ export default function EmergencyCaseProfilePage() {
                 <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
                     <DialogHeader>
                         <DialogTitle>Registrar Procedimiento</DialogTitle>
+                        <DialogDescription className="text-zinc-400">Registre los detalles de intervenciones o estudios realizados.</DialogDescription>
                     </DialogHeader>
                     <Form {...procsForm}>
                         <form onSubmit={procsForm.handleSubmit(handleAddProc)} className="space-y-4 py-4">
@@ -1246,6 +1421,7 @@ export default function EmergencyCaseProfilePage() {
                         <DialogTitle>
                             {editingDoc ? 'Renombrar Documento' : 'Subir Nuevo Documento'}
                         </DialogTitle>
+                        <DialogDescription className="text-zinc-400">Adjunte archivos clínicos, imágenes o informes al caso.</DialogDescription>
                     </DialogHeader>
                     <Form {...docsForm}>
                         <form onSubmit={docsForm.handleSubmit(handleAddDoc)} className="space-y-4 py-4">
@@ -1314,6 +1490,14 @@ export default function EmergencyCaseProfilePage() {
                     onSuccess={fetchCaseData}
                 />
             )}
+
+            <LabOrderModal
+                open={isLabOrderOpen}
+                onOpenChange={setIsLabOrderOpen}
+                defaultPatientId={caseData?.patient?.id}
+                defaultDoctorId={caseData?.doctor?.id}
+                onSuccess={fetchCaseData}
+            />
         </div>
     )
 }

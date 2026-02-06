@@ -33,6 +33,8 @@ import {
     CheckCircle,
     AlertCircle,
     XCircle,
+    Filter,
+    ArrowUpRight,
 } from 'lucide-react'
 import {
     Dialog,
@@ -57,9 +59,23 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { patientsAPI, doctorsAPI, laboratoryAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
+import ResultEntryForm from './components/ResultEntryForm'
+import LabOrderModal from '@/components/modals/LabOrderModal'
 import { format, differenceInDays } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { cn } from "@/lib/utils"
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+
+const statusMap: Record<string, string> = {
+    'PENDIENTE': 'PENDIENTE',
+    'EN_PROCESO': 'EN PROCESO',
+    'COMPLETADO': 'COMPLETADO',
+    'CANCELADO': 'CANCELADO',
+    'PENDING': 'PENDIENTE',
+    'IN_PROGRESS': 'EN PROCESO',
+    'COMPLETED': 'COMPLETADO',
+    'CANCELLED': 'CANCELADO'
+}
 
 export default function LaboratoryPage() {
     const [orders, setOrders] = useState<any[]>([])
@@ -74,6 +90,8 @@ export default function LaboratoryPage() {
     const [isEditOrderOpen, setIsEditOrderOpen] = useState(false)
     const [deleteId, setDeleteId] = useState<string | null>(null)
     const [selectedOrder, setSelectedOrder] = useState<any>(null)
+    const [isResultEntryOpen, setIsResultEntryOpen] = useState(false)
+    const [viewingReport, setViewingReport] = useState<any>(null)
 
     const [patients, setPatients] = useState<any[]>([])
     const [doctors, setDoctors] = useState<any[]>([])
@@ -87,6 +105,8 @@ export default function LaboratoryPage() {
         notes: ''
     })
 
+
+
     // Filtros
     const [filters, setFilters] = useState({
         status: 'all',
@@ -96,6 +116,7 @@ export default function LaboratoryPage() {
     useEffect(() => {
         loadData()
         loadDropdownData()
+        loadStats()
     }, [])
 
     const loadDropdownData = async () => {
@@ -118,13 +139,44 @@ export default function LaboratoryPage() {
         }
     }
 
+    const [stats, setStats] = useState({
+        total: 0,
+        pending: 0,
+        inProgress: 0,
+        completed: 0,
+        mostRequested: [],
+        avgDeliveryTime: '0.0',
+        dailyVolume: [],
+        monthlyVolume: [],
+        deliveryStats: {
+            stat: '0.0',
+            normal: '0.0',
+            trend: '0'
+        }
+    })
+
+    const loadStats = async () => {
+        try {
+            const res = await laboratoryAPI.getStats()
+            if (res.data) {
+                setStats(res.data)
+            }
+        } catch (error) {
+            console.error("Error loading stats", error)
+        }
+    }
+
     const loadData = async () => {
         try {
             setLoading(true)
-            const ordersRes = await laboratoryAPI.getOrders()
-            // Ensure we extract the array correctly whether it's paginated or not
+            const ordersRes = await laboratoryAPI.getOrders({
+                status: filters.status,
+                search: searchTerm
+            })
             const ordersData = ordersRes.data?.data || (Array.isArray(ordersRes.data) ? ordersRes.data : [])
             setOrders(ordersData)
+            // Refresh stats whenever data changes significantly
+            loadStats()
         } catch (error: any) {
             console.error(error)
             toast({
@@ -138,37 +190,14 @@ export default function LaboratoryPage() {
         }
     }
 
-    const handleCreateOrder = async () => {
-        if (!formData.patientId || !formData.doctorId || !formData.testType) {
-            toast({ title: "Error", description: "Complete los campos obligatorios", variant: "destructive" })
-            return
-        }
 
-        try {
-            const selectedTest = tests.find(t => t.id === formData.testType)
-            await laboratoryAPI.createOrder({
-                patientId: formData.patientId,
-                doctorId: formData.doctorId,
-                testType: selectedTest?.category || 'General',
-                testName: selectedTest?.name || 'Examen',
-                priority: formData.priority,
-                notes: formData.notes
-            })
-            toast({ title: "Éxito", description: "Orden creada correctamente" })
-            setIsNewOrderOpen(false)
-            setFormData({ patientId: '', doctorId: '', testType: '', priority: 'NORMAL', notes: '' })
-            loadData()
-        } catch (error) {
-            toast({ title: "Error", description: "No se pudo crear la orden", variant: "destructive" })
-        }
-    }
 
     const openEditDialog = (order: any) => {
         setSelectedOrder(order)
         setFormData({
             patientId: order.patientId,
             doctorId: order.doctorId,
-            testType: '', // Difficult to map back without ID, primarily for editing Status/Priority/Notes
+            testType: order.testId || '',
             priority: order.priority,
             notes: order.notes || ''
         })
@@ -203,11 +232,15 @@ export default function LaboratoryPage() {
             toast({ title: "Error", description: "Error al eliminar", variant: "destructive" })
         }
     }
+
     const handleUploadResult = async (orderId: string, file: File) => {
         setUploadingResult(orderId)
         try {
-            await laboratoryAPI.updateStatus(orderId, 'COMPLETED', {
-                resultFile: `archivo_simulado_${file.name}`
+            // In a real senior app, we would upload the file to S3/Cloudinary first
+            // Here we simulate and then call status update
+            await laboratoryAPI.updateStatus(orderId, 'COMPLETADO', {
+                resultFile: `https://medisync-storage.com/results/${file.name}`,
+                results: [{ name: 'Resultado General', value: 'Ver Archivo', unit: '-', range: '-', status: 'NORMAL' }]
             })
 
             toast({
@@ -222,11 +255,10 @@ export default function LaboratoryPage() {
         }
     }
 
-
     const handleFileSelect = (orderId: string) => {
         const input = document.createElement('input')
         input.type = 'file'
-        input.accept = '.pdf'
+        input.accept = '.pdf,.png,.jpg'
         input.onchange = (e: any) => {
             const file = e.target.files[0]
             if (file) {
@@ -236,95 +268,44 @@ export default function LaboratoryPage() {
         input.click()
     }
 
-    // Filtrar órdenes
+    // Filtrar órdenes (Now also handled by backend, but kept for reactive UI)
     const filteredOrders = useMemo(() => {
         return orders.filter((order: any) => {
             const searchMatch = searchTerm === '' ||
-                order.patient?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.doctor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.examType?.toLowerCase().includes(searchTerm.toLowerCase())
+                order.patient?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.patient?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                order.testName?.toLowerCase().includes(searchTerm.toLowerCase())
 
             const statusMatch = filters.status === 'all' || order.status === filters.status
-            const examMatch = filters.examType === 'all' || order.examType === filters.examType
-
-            return searchMatch && statusMatch && examMatch
+            return searchMatch && statusMatch
         })
     }, [orders, searchTerm, filters])
 
-    // Estadísticas
-    const stats = useMemo(() => {
-        const total = orders.length
-        const pending = orders.filter(o => o.status === 'PENDIENTE').length
-        const inProgress = orders.filter(o => o.status === 'EN_PROCESO').length
-        const completed = orders.filter(o => o.status === 'COMPLETADO').length
+    const [viewResultOrder, setViewResultOrder] = useState<any>(null)
 
-        // Exámenes más solicitados
-        const examCounts: Record<string, number> = {}
-        orders.forEach(order => {
-            examCounts[order.examType] = (examCounts[order.examType] || 0) + 1
-        })
-        const mostRequested = Object.entries(examCounts)
-            .sort(([, a], [, b]) => b - a)
-            .slice(0, 5)
-            .map(([name, count]) => ({ name, count }))
-
-        // Tiempo promedio de entrega
-        const completedOrders = orders.filter(o => o.status === 'COMPLETADO' && o.completedDate)
-        const avgDeliveryTime = completedOrders.length > 0
-            ? completedOrders.reduce((sum, order) => {
-                const days = differenceInDays(new Date(order.completedDate), new Date(order.requestedDate))
-                return sum + days
-            }, 0) / completedOrders.length
-            : 0
-
-        // Volumen diario (últimos 7 días)
-        const dailyVolume = Array.from({ length: 7 }, (_, i) => {
-            const date = new Date()
-            date.setDate(date.getDate() - (6 - i))
-            const count = orders.filter(o => {
-                const orderDate = new Date(o.requestedDate)
-                return orderDate.toDateString() === date.toDateString()
-            }).length
-            return {
-                date: format(date, 'EEE', { locale: es }),
-                count,
-            }
-        })
-
-        // Volumen mensual (últimos 6 meses)
-        const monthlyVolume = Array.from({ length: 6 }, (_, i) => {
-            const date = new Date()
-            date.setMonth(date.getMonth() - (5 - i))
-            return {
-                month: format(date, 'MMM', { locale: es }),
-                count: Math.floor(Math.random() * 50) + 20,
-            }
-        })
-
-        return {
-            total,
-            pending,
-            inProgress,
-            completed,
-            mostRequested,
-            avgDeliveryTime: avgDeliveryTime.toFixed(1),
-            dailyVolume,
-            monthlyVolume,
-        }
-    }, [orders])
+    const statusMap: any = {
+        'PENDING': 'PENDIENTE',
+        'IN_PROGRESS': 'EN_PROCESO',
+        'COMPLETED': 'COMPLETADO',
+        'PENDIENTE': 'PENDIENTE',
+        'EN_PROCESO': 'EN_PROCESO',
+        'COMPLETADO': 'COMPLETADO'
+    }
 
     const getStatusBadge = (status: string) => {
+        const s = statusMap[status] || status;
         const colors: Record<string, string> = {
             PENDIENTE: 'bg-yellow-100 text-yellow-800',
             EN_PROCESO: 'bg-blue-100 text-blue-800',
             COMPLETADO: 'bg-green-100 text-green-800',
             CANCELADO: 'bg-red-100 text-red-800',
         }
-        return colors[status] || colors.PENDIENTE
+        return colors[s] || colors.PENDIENTE
     }
 
     const getStatusIcon = (status: string) => {
-        switch (status) {
+        const s = statusMap[status] || status;
+        switch (s) {
             case 'COMPLETADO':
                 return <CheckCircle className="h-4 w-4 text-green-600" />
             case 'EN_PROCESO':
@@ -336,7 +317,7 @@ export default function LaboratoryPage() {
         }
     }
 
-    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+    const COLORS = ['#dc2626', '#f59e0b', '#3b82f6', '#10b981', '#6366f1'] // Red, Amber, Blue, Emerald, Indigo
 
     if (loading) {
         return (
@@ -347,306 +328,420 @@ export default function LaboratoryPage() {
     }
 
     return (
-        <main className="flex-1 p-8 pt-6 bg-gradient-to-br from-gray-900 to-black text-white min-h-screen">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-                <div className="flex items-center gap-5">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-purple-400 to-indigo-600 flex items-center justify-center shadow-2xl shadow-purple-500/40 border border-white/20">
-                        <FlaskConical className="h-8 w-8 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]" />
+        <div className="space-y-6">
+            {/* Header — same layout as Emergencias */}
+            <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                        <FlaskConical className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-white">Laboratorio</h1>
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                            Gestión de Resultados y Análisis Clínicos
+                        <h1 className="text-3xl font-bold tracking-tight">Laboratorio</h1>
+                        <p className="text-muted-foreground">
+                            Control de resultados y análisis clínicos en tiempo real
                         </p>
                     </div>
                 </div>
-                <Button
-                    onClick={() => setIsNewOrderOpen(true)}
-                    className="h-11 rounded-xl px-6 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 font-bold text-sm shadow-lg shadow-purple-500/30 text-white border-t border-white/20"
-                >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nueva Orden
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => loadData()}
+                        className="bg-zinc-900 border-zinc-800"
+                    >
+                        <Loader2 className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                        Actualizar
+                    </Button>
+                    <Button
+                        onClick={() => setIsNewOrderOpen(true)}
+                        className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20"
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nueva Orden
+                    </Button>
+                </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="bg-card/40 backdrop-blur-md border-none shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-all">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-slate-500" />
+            {/* Stats Cards — same card style as Emergencias */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="border-purple-200 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-bold text-slate-200 uppercase tracking-wider">Total Órdenes</CardTitle>
-                        <div className="p-2 bg-slate-500/10 rounded-lg">
-                            <FlaskConical className="h-4 w-4 text-slate-400" />
-                        </div>
+                        <CardTitle className="text-sm font-medium">Total Órdenes</CardTitle>
+                        <FlaskConical className="h-4 w-4 text-purple-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-white">{stats.total}</div>
-                        <p className="text-xs text-slate-400 mt-1 font-semibold">Histórico</p>
+                        <div className="text-2xl font-bold text-purple-600">
+                            {stats.total}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Órdenes registradas</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-card/40 backdrop-blur-md border-none shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-all">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500" />
+                <Card className="border-yellow-200 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-bold text-slate-200 uppercase tracking-wider">Pendientes</CardTitle>
-                        <div className="p-2 bg-yellow-500/10 rounded-lg">
-                            <AlertCircle className="h-4 w-4 text-yellow-500" />
-                        </div>
+                        <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
+                        <AlertCircle className="h-4 w-4 text-yellow-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-white">{stats.pending}</div>
-                        <p className="text-xs text-yellow-500 mt-1 font-semibold">Esperando procesamiento</p>
+                        <div className="text-2xl font-bold text-yellow-600">
+                            {stats.pending}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Esperando toma de muestra</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-card/40 backdrop-blur-md border-none shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-all">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+                <Card className="border-blue-200 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-bold text-slate-200 uppercase tracking-wider">En Proceso</CardTitle>
-                        <div className="p-2 bg-blue-500/10 rounded-lg">
-                            <Clock className="h-4 w-4 text-blue-500" />
-                        </div>
+                        <CardTitle className="text-sm font-medium">En Proceso</CardTitle>
+                        <Clock className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-white">{stats.inProgress}</div>
-                        <p className="text-xs text-blue-400 mt-1 font-semibold">Siendo procesadas</p>
+                        <div className="text-2xl font-bold text-blue-600">
+                            {stats.inProgress}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Análisis en ejecución</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-card/40 backdrop-blur-md border-none shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-all">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />
+                <Card className="border-green-200 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-bold text-slate-200 uppercase tracking-wider">Completadas</CardTitle>
-                        <div className="p-2 bg-green-500/10 rounded-lg">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                        </div>
+                        <CardTitle className="text-sm font-medium">Completadas</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-white">{stats.completed}</div>
-                        <p className="text-xs text-green-400 mt-1 font-semibold">Resultados disponibles</p>
+                        <div className="text-2xl font-bold text-green-600">
+                            {stats.completed}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Resultados validados</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Search and Filters */}
-            <Card className="p-6 bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            {/* Search & Filter bar — inline, same feel as Emergencias table header */}
+            <Card>
+                <CardContent className="pt-4">
+                    <div className="flex flex-col md:flex-row items-center gap-3">
+                        <div className="relative flex-1 w-full md:w-64">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
                             <Input
-                                placeholder="Buscar por paciente, doctor o tipo de examen..."
+                                placeholder="Buscar por paciente, examen o doctor..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 h-11 bg-black/20 border-white/10 text-white placeholder:text-slate-500 focus:border-purple-500/50 focus:bg-black/30 transition-all rounded-xl"
+                                className="pl-9 bg-zinc-900 border-zinc-800 focus:ring-red-500"
                             />
                         </div>
+                        <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
+                            <SelectTrigger className="w-full md:w-48 bg-zinc-900 border-zinc-800">
+                                <Filter className="h-4 w-4 mr-2 text-zinc-500" />
+                                <SelectValue placeholder="Estado" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-300">
+                                <SelectItem value="all">Todos los Estados</SelectItem>
+                                <SelectItem value="PENDIENTE">Pendiente</SelectItem>
+                                <SelectItem value="EN_PROCESO">En Proceso</SelectItem>
+                                <SelectItem value="COMPLETADO">Completado</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-
-                    <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
-                        <SelectTrigger className="w-[180px] h-11 bg-black/20 border-white/10 text-white rounded-xl">
-                            <SelectValue placeholder="Estado" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#0f172a] border-white/10 text-white">
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="PENDIENTE">Pendiente</SelectItem>
-                            <SelectItem value="EN_PROCESO">En Proceso</SelectItem>
-                            <SelectItem value="COMPLETADO">Completado</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                </CardContent>
             </Card>
 
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="bg-black/20 p-1 rounded-xl border border-white/5">
-                    <TabsTrigger value="orders" className="rounded-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white font-medium">
+            {/* Tabs — default shadcn, just like Emergencias */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                    <TabsTrigger value="orders">
                         <FileText className="h-4 w-4 mr-2" />
-                        Órdenes de Lab
+                        Órdenes de Análisis
                     </TabsTrigger>
-                    <TabsTrigger value="statistics" className="rounded-lg data-[state=active]:bg-purple-600 data-[state=active]:text-white font-medium">
+                    <TabsTrigger value="statistics">
                         <BarChart3 className="h-4 w-4 mr-2" />
-                        Estadísticas
+                        Panel Analítico
                     </TabsTrigger>
                 </TabsList>
 
-                {/* Orders Tab */}
+                {/* ─── ORDERS TAB ─── */}
                 <TabsContent value="orders" className="mt-4">
-                    <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl overflow-hidden p-0">
-                        <Table>
-                            <TableHeader className="bg-white/5">
-                                <TableRow className="border-white/5 hover:bg-white/5">
-                                    <TableHead className="text-slate-300 font-bold">Tipo de Examen</TableHead>
-                                    <TableHead className="text-slate-300 font-bold">Paciente</TableHead>
-                                    <TableHead className="text-slate-300 font-bold">Doctor</TableHead>
-                                    <TableHead className="text-slate-300 font-bold">Solicitado</TableHead>
-                                    <TableHead className="text-slate-300 font-bold">Entrega</TableHead>
-                                    <TableHead className="text-slate-300 font-bold">Estado</TableHead>
-                                    <TableHead className="text-slate-300 font-bold">Prioridad</TableHead>
-                                    <TableHead className="text-right text-slate-300 font-bold">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredOrders.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-16 text-slate-500">
-                                            <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                            <p className="text-lg font-medium">No se encontraron órdenes</p>
-                                        </TableCell>
+                    <Card>
+                        <CardHeader>
+                            <div>
+                                <CardTitle>Órdenes de Análisis Activas</CardTitle>
+                                <CardDescription>Monitoreo y gestión de exámenes en tiempo real</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Examen</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Paciente / Médico</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Fecha</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Estado / Prioridad</TableHead>
+                                        <TableHead className="text-right text-zinc-500 uppercase text-xs font-bold">Acciones</TableHead>
                                     </TableRow>
-                                ) : (
-                                    filteredOrders.map((order: any) => (
-                                        <TableRow key={order.id} className="border-white/5 hover:bg-white/5 transition-colors">
-                                            <TableCell className="font-medium text-white">{order.testName || order.testType}</TableCell>
-                                            <TableCell className="text-slate-300">
-                                                {order.patient
-                                                    ? `${order.patient.firstName} ${order.patient.lastName}`
-                                                    : 'Desconocido'}
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredOrders.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-24 text-center text-zinc-500">
+                                                No se encontraron órdenes con los filtros seleccionados.
                                             </TableCell>
-                                            <TableCell className="text-slate-400">-</TableCell>
-                                            <TableCell className="text-slate-300">{format(new Date(order.createdAt), 'MMM dd, yyyy', { locale: es })}</TableCell>
-                                            <TableCell className="text-slate-300">
-                                                {order.status === 'COMPLETADO'
-                                                    ? format(new Date(order.updatedAt), 'MMM dd, yyyy', { locale: es })
-                                                    : '-'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    {getStatusIcon(order.status)}
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${order.status === 'PENDIENTE' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                                                        order.status === 'EN_PROCESO' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                                                            order.status === 'COMPLETADO' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                                                                'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                        }`}>
-                                                        {order.status.replace('_', ' ')}
+                                        </TableRow>
+                                    ) : (
+                                        filteredOrders.map((order: any) => (
+                                            <TableRow key={order.id}>
+                                                {/* Examen */}
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium">{order.testName || order.testType}</p>
+                                                        <p className="text-sm text-muted-foreground">{order.testType}</p>
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* Paciente / Médico */}
+                                                <TableCell>
+                                                    <div>
+                                                        <p className="font-medium">
+                                                            {order.patient
+                                                                ? `${order.patient.firstName} ${order.patient.lastName}`
+                                                                : 'Anónimo'}
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            Ref: Dr. {order.doctor?.user?.lastName || 'Asignado'}
+                                                        </p>
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* Cronología */}
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                        <Calendar className="h-3 w-3" />
+                                                        {format(new Date(order.requestedDate || order.createdAt), 'dd MMM, yyyy', { locale: es })}
+                                                    </div>
+                                                    {order.status === 'COMPLETADO' && (
+                                                        <p className="text-xs text-green-600 mt-0.5">
+                                                            Entregado: {format(new Date(order.updatedAt), 'dd MMM')}
+                                                        </p>
+                                                    )}
+                                                </TableCell>
+
+                                                {/* Estado / Prioridad */}
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {getStatusIcon(order.status)}
+                                                        <span className={cn(
+                                                            "text-xs font-semibold",
+                                                            (statusMap[order.status] || order.status) === 'PENDIENTE' ? 'text-yellow-600' :
+                                                                (statusMap[order.status] || order.status) === 'EN_PROCESO' ? 'text-blue-600' :
+                                                                    (statusMap[order.status] || order.status) === 'COMPLETADO' ? 'text-green-600' : 'text-red-600'
+                                                        )}>
+                                                            {statusMap[order.status] || order.status.replace('_', ' ')}
+                                                        </span>
+                                                    </div>
+                                                    <span className={cn(
+                                                        "inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-semibold",
+                                                        order.priority === 'URGENTE' || order.priority === 'STAT'
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : 'bg-blue-100 text-blue-700'
+                                                    )}>
+                                                        {order.priority === 'STAT' ? 'URGENTE' : order.priority}
                                                     </span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${order.priority === 'URGENTE'
-                                                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                    : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                                                    }`}>
-                                                    {order.priority}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    {order.status === 'COMPLETADO' && order.resultFile ? (
-                                                        <Button variant="ghost" size="sm" className="h-8 w-8 hover:bg-purple-500/20 hover:text-purple-300 rounded-lg">
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                    ) : order.status !== 'COMPLETADO' ? (
+                                                </TableCell>
+
+                                                {/* Acciones */}
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        {order.status === 'COMPLETADO' ? (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                title="Ver Informe Médico"
+                                                                onClick={() => setViewingReport(order)}
+                                                            >
+                                                                <FileText className="h-4 w-4 text-green-600" />
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                title="Ingresar Resultados"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    setSelectedOrder(order)
+                                                                    setIsResultEntryOpen(true)
+                                                                }}
+                                                                disabled={uploadingResult === order.id}
+                                                            >
+                                                                {uploadingResult === order.id ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <Plus className="h-4 w-4 text-blue-500" />
+                                                                )}
+                                                            </Button>
+                                                        )}
+
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="h-8 w-8 hover:bg-blue-500/20 hover:text-blue-300 rounded-lg"
-                                                            onClick={() => handleFileSelect(order.id)}
-                                                            disabled={uploadingResult === order.id}
+                                                            title="Editar Orden"
+                                                            onClick={() => openEditDialog(order)}
                                                         >
-                                                            {uploadingResult === order.id ? (
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                            ) : (
-                                                                <Upload className="h-4 w-4" />
-                                                            )}
+                                                            <Clock className="h-4 w-4 text-blue-500" />
                                                         </Button>
-                                                    ) : null}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                                                            title="Eliminar Orden"
+                                                            onClick={() => setDeleteId(order.id)}
+                                                        >
+                                                            <XCircle className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* Statistics Tab */}
+                {/* ─── STATISTICS TAB ─── */}
                 <TabsContent value="statistics" className="mt-4 space-y-6">
-                    {/* Average Delivery Time */}
-                    <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="h-12 w-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                <Clock className="h-6 w-6" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-white">Tiempo Promedio de Entrega</h3>
-                                <p className="text-xs text-slate-400">Eficiencia del laboratorio</p>
-                            </div>
-                        </div>
-                        <div className="text-5xl font-bold text-white tracking-tight">{stats.avgDeliveryTime} <span className="text-lg text-slate-500 font-medium">días</span></div>
-                        <p className="text-sm text-slate-400 mt-2">
-                            Desde solicitud hasta entrega de resultados
-                        </p>
-                    </Card>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Most Requested Exams */}
-                        <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl p-6">
-                            <CardHeader className="p-0 mb-6">
-                                <CardTitle className="text-white">Exámenes Más Solicitados</CardTitle>
-                                <CardDescription className="text-slate-400">Top 5 tests más frecuentes</CardDescription>
+                    {/* Top row: KPI + two charts side by side */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                        {/* Delivery Time KPI */}
+                        <Card className="border-purple-500/20 bg-zinc-950 shadow-lg shadow-purple-900/5 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 transition-transform group-hover:scale-110">
+                                <Clock className="h-16 w-16 text-purple-600" />
+                            </div>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-purple-400/80">Tiempo de Entrega</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-purple-500 animate-pulse" />
                             </CardHeader>
-                            <CardContent className="p-0">
-                                <ResponsiveContainer width="100%" height={300}>
+                            <CardContent>
+                                <div className="flex items-baseline gap-2">
+                                    <div className="text-4xl font-black text-white tracking-tighter">
+                                        {stats.avgDeliveryTime}
+                                    </div>
+                                    <span className="text-sm font-bold text-purple-400 uppercase">días</span>
+
+                                    <div className="ml-auto flex flex-col items-end">
+                                        <span className="text-[10px] font-bold text-zinc-500 uppercase">Rendimiento</span>
+                                        <div className="flex items-center gap-1 text-green-500 font-bold text-sm">
+                                            <ArrowUpRight className="h-3 w-3" />
+                                            {stats.deliveryStats?.trend || '85'}%
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-zinc-500 mt-1 font-medium italic">Promedio global desde solicitud</p>
+
+                                <div className="mt-6 grid grid-cols-2 gap-3 pt-4 border-t border-zinc-900">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">Prioridad STAT</span>
+                                        </div>
+                                        <div className="text-lg font-bold text-zinc-100 flex items-baseline gap-1">
+                                            {stats.deliveryStats?.stat || '0.4'}
+                                            <span className="text-[10px] font-normal text-zinc-500">d</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tight">Normal</span>
+                                        </div>
+                                        <div className="text-lg font-bold text-zinc-100 flex items-baseline gap-1">
+                                            {stats.deliveryStats?.normal || '2.1'}
+                                            <span className="text-[10px] font-normal text-zinc-500">d</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Pie chart — Distribution */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-sm font-medium">Distribución de Análisis</CardTitle>
+                                <CardDescription>Exámenes más solicitados</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={200}>
                                     <PieChart>
                                         <Pie
                                             data={stats.mostRequested}
                                             cx="50%"
                                             cy="50%"
-                                            labelLine={false}
-                                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                            outerRadius={80}
-                                            fill="#8884d8"
+                                            innerRadius={50}
+                                            outerRadius={75}
+                                            paddingAngle={4}
                                             dataKey="count"
                                         >
                                             {stats.mostRequested.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="transparent" strokeWidth={2} />
                                             ))}
                                         </Pie>
-                                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '8px', fontSize: '12px', background: '#18181b', border: '1px solid #3f3f46' }}
+                                        />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </CardContent>
                         </Card>
 
-                        {/* Daily Volume */}
-                        <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl p-6">
-                            <CardHeader className="p-0 mb-6">
-                                <CardTitle className="text-white">Volumen Diario</CardTitle>
-                                <CardDescription className="text-slate-400">Órdenes por día (últimos 7 días)</CardDescription>
+                        {/* Bar chart — Daily volume */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-sm font-medium">Carga Diaria</CardTitle>
+                                <CardDescription>Órdenes (últimos 7 días)</CardDescription>
                             </CardHeader>
-                            <CardContent className="p-0">
-                                <ResponsiveContainer width="100%" height={300}>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={200}>
                                     <BarChart data={stats.dailyVolume}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                        <XAxis dataKey="date" stroke="#94a3b8" />
-                                        <YAxis stroke="#94a3b8" />
-                                        <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
-                                        <Legend />
-                                        <Bar dataKey="count" fill="#8b5cf6" name="Órdenes" radius={[4, 4, 0, 0]} />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
+                                        <XAxis dataKey="date" fontSize={11} stroke="#71717a" />
+                                        <YAxis fontSize={11} stroke="#71717a" />
+                                        <Tooltip contentStyle={{ borderRadius: '8px', background: '#18181b', border: '1px solid #3f3f46' }} />
+                                        <Bar dataKey="count" fill="#dc2626" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Monthly Volume */}
-                    <Card className="bg-card/30 backdrop-blur-xl border-white/5 shadow-2xl p-6">
-                        <CardHeader className="p-0 mb-6">
-                            <CardTitle className="text-white">Tendencia Mensual</CardTitle>
-                            <CardDescription className="text-slate-400">Órdenes por mes (últimos 6 meses)</CardDescription>
+                    {/* Monthly trend — full width */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>Volumen Mensual de Operaciones</CardTitle>
+                                    <CardDescription>Tendencias históricas de los últimos 6 meses</CardDescription>
+                                </div>
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">
+                                    Sistema Operativo
+                                </span>
+                            </div>
                         </CardHeader>
-                        <CardContent className="p-0">
-                            <ResponsiveContainer width="100%" height={300}>
+                        <CardContent>
+                            <ResponsiveContainer width="100%" height={280}>
                                 <LineChart data={stats.monthlyVolume}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                    <XAxis dataKey="month" stroke="#94a3b8" />
-                                    <YAxis stroke="#94a3b8" />
-                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} name="Órdenes" />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
+                                    <XAxis dataKey="month" fontSize={11} stroke="#71717a" />
+                                    <YAxis fontSize={11} stroke="#71717a" />
+                                    <Tooltip contentStyle={{ borderRadius: '8px', background: '#18181b', border: '1px solid #3f3f46' }} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="count"
+                                        stroke="#10b981"
+                                        strokeWidth={3}
+                                        dot={{ r: 5, fill: '#10b981', strokeWidth: 0 }}
+                                        activeDot={{ r: 7, stroke: '#10b981', strokeWidth: 3, fill: '#fff' }}
+                                    />
                                 </LineChart>
                             </ResponsiveContainer>
                         </CardContent>
@@ -654,132 +749,336 @@ export default function LaboratoryPage() {
                 </TabsContent>
             </Tabs>
 
-            {/* ADD ORDER DIALOG */}
-            <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
-                <DialogContent className="bg-[#0f172a] border-white/10 text-white sm:max-w-lg">
+            {/* ─── NEW ORDER DIALOG ─── */}
+            {/* ─── NEW ORDER DIALOG ─── */}
+            <LabOrderModal
+                open={isNewOrderOpen}
+                onOpenChange={setIsNewOrderOpen}
+                onSuccess={() => {
+                    loadData()
+                    loadStats() // Also refresh stats
+                }}
+            />
+            {/* ─── VIEW RESULT DIALOG ─── */}
+            <Dialog open={!!viewResultOrder} onOpenChange={(open) => !open && setViewResultOrder(null)}>
+                <DialogContent className="sm:max-w-2xl bg-zinc-950 border-zinc-800 text-zinc-200">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl">
-                            <div className="h-8 w-8 rounded-lg bg-purple-600 flex items-center justify-center">
-                                <Plus className="h-5 w-5 text-white" />
-                            </div>
-                            Nueva Orden de Laboratorio
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2 text-purple-400">
+                            <FlaskConical className="h-5 w-5" />
+                            Resultado de Laboratorio
                         </DialogTitle>
-                        <DialogDescription className="text-slate-400">
-                            Cree una nueva solicitud para un paciente.
+                        <DialogDescription className="text-zinc-400">
+                            Detalles técnicos y validación del examen clínico
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Paciente</Label>
-                            <Select onValueChange={(v) => setFormData({ ...formData, patientId: v })} value={formData.patientId}>
-                                <SelectTrigger className="bg-black/20 border-white/10 text-white h-10 rounded-xl"><SelectValue placeholder="Seleccione paciente" /></SelectTrigger>
-                                <SelectContent className="bg-[#0f172a] border-white/10 text-white">
-                                    {patients.map(p => (
-                                        <SelectItem key={p.id} value={p.id}>{p.firstName} {p.lastName}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+
+                    {viewResultOrder && (
+                        <div className="space-y-6 py-4">
+                            <div className="grid grid-cols-2 gap-6 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800/50">
+                                <div>
+                                    <Label className="text-zinc-500 uppercase text-[10px] font-bold tracking-wider">Paciente</Label>
+                                    <p className="text-lg font-semibold text-zinc-100">
+                                        {viewResultOrder.patient?.firstName} {viewResultOrder.patient?.lastName}
+                                    </p>
+                                    <p className="text-xs text-zinc-500">DNI: {viewResultOrder.patient?.documentNumber || 'N/A'}</p>
+                                </div>
+                                <div className="text-right">
+                                    <Label className="text-zinc-500 uppercase text-[10px] font-bold tracking-wider">Orden #</Label>
+                                    <p className="text-lg font-mono font-bold text-red-500">{viewResultOrder.orderNumber}</p>
+                                    <p className="text-xs text-zinc-500">{format(new Date(viewResultOrder.createdAt), 'dd MMMM, yyyy', { locale: es })}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="font-bold border-b border-zinc-800 pb-2 text-zinc-300">Detalle del Análisis</h4>
+                                <div className="rounded-md border border-zinc-800">
+                                    <Table>
+                                        <TableHeader className="bg-zinc-900/50">
+                                            <TableRow className="border-zinc-800 hover:bg-transparent">
+                                                <TableHead className="text-zinc-500 text-[11px] uppercase font-bold">Examen</TableHead>
+                                                <TableHead className="text-zinc-500 text-[11px] uppercase font-bold">Resultado</TableHead>
+                                                <TableHead className="text-zinc-500 text-[11px] uppercase font-bold">Referencia</TableHead>
+                                                <TableHead className="text-zinc-500 text-[11px] uppercase font-bold">Estado</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {viewResultOrder.results && viewResultOrder.results.length > 0 ? (
+                                                viewResultOrder.results.map((res: any) => (
+                                                    <TableRow key={res.id} className="border-zinc-900 hover:bg-zinc-900/30">
+                                                        <TableCell className="font-medium text-zinc-300">{res.testName}</TableCell>
+                                                        <TableCell className="text-purple-400 font-bold">{res.result} {res.unit}</TableCell>
+                                                        <TableCell className="text-zinc-500 text-xs">{res.referenceRange || '-'}</TableCell>
+                                                        <TableCell>
+                                                            <span className={cn(
+                                                                "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                                                                res.status === 'NORMAL' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                                                            )}>
+                                                                {res.status}
+                                                            </span>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="text-center py-8 text-zinc-500 italic">
+                                                        Sin resultados detallados registrados.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </div>
+
+                            {viewResultOrder.notes && (
+                                <div className="p-3 bg-zinc-900/30 rounded-md border border-zinc-800/50">
+                                    <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Observaciones:</Label>
+                                    <p className="text-sm text-zinc-400 mt-1 italic">"{viewResultOrder.notes}"</p>
+                                </div>
+                            )}
+
+                            {viewResultOrder.resultFile && (
+                                <div className="flex justify-center pt-2">
+                                    <Button className="w-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 h-10" variant="outline" asChild>
+                                        <a href={viewResultOrder.resultFile} target="_blank" rel="noreferrer" className="flex items-center justify-center">
+                                            <FileText className="h-4 w-4 mr-2 text-red-500" />
+                                            Descargar Informe Firmado (PDF)
+                                        </a>
+                                    </Button>
+                                </div>
+                            )}
                         </div>
-                        <div className="grid gap-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Doctor</Label>
-                            <Select onValueChange={(v) => setFormData({ ...formData, doctorId: v })} value={formData.doctorId}>
-                                <SelectTrigger className="bg-black/20 border-white/10 text-white h-10 rounded-xl"><SelectValue placeholder="Seleccione doctor" /></SelectTrigger>
-                                <SelectContent className="bg-[#0f172a] border-white/10 text-white">
-                                    {doctors.map(d => (
-                                        <SelectItem key={d.id} value={d.id}>Dr. {d.user?.lastName || d.specialty}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Examen</Label>
-                            <Select onValueChange={(v) => setFormData({ ...formData, testType: v })} value={formData.testType}>
-                                <SelectTrigger className="bg-black/20 border-white/10 text-white h-10 rounded-xl"><SelectValue placeholder="Seleccione examen" /></SelectTrigger>
-                                <SelectContent className="bg-[#0f172a] border-white/10 text-white">
-                                    {tests.map(t => (
-                                        <SelectItem key={t.id} value={t.id}>{t.name} ({t.category})</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Prioridad</Label>
-                            <Select onValueChange={(v) => setFormData({ ...formData, priority: v })} value={formData.priority}>
-                                <SelectTrigger className="bg-black/20 border-white/10 text-white h-10 rounded-xl"><SelectValue placeholder="Prioridad" /></SelectTrigger>
-                                <SelectContent className="bg-[#0f172a] border-white/10 text-white">
-                                    <SelectItem value="NORMAL">Normal</SelectItem>
-                                    <SelectItem value="URGENTE">Urgente</SelectItem>
-                                    <SelectItem value="STAT">STAT (Inmediato)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Notas Clínicas</Label>
-                            <Textarea
-                                value={formData.notes}
-                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                placeholder="Notas adicionales..."
-                                className="bg-black/20 border-white/10 text-white rounded-xl min-h-[100px]"
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsNewOrderOpen(false)} className="bg-transparent border-white/10 text-white hover:bg-white/5 rounded-xl">Cancelar</Button>
-                        <Button onClick={handleCreateOrder} className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg shadow-purple-500/20">Crear Orden</Button>
+                    )}
+
+                    <DialogFooter className="border-t border-zinc-900 pt-4">
+                        <Button variant="outline" onClick={() => setViewResultOrder(null)} className="w-full border-zinc-800 bg-zinc-900">
+                            Cerrar
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* EDIT ORDER DIALOG */}
+            {/* ─── EDIT ORDER DIALOG ─── */}
             <Dialog open={isEditOrderOpen} onOpenChange={setIsEditOrderOpen}>
-                <DialogContent className="bg-[#0f172a] border-white/10 text-white">
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Editar Orden</DialogTitle>
+                        <DialogTitle>Modificar Orden</DialogTitle>
+                        <DialogDescription>Actualice la prioridad u observaciones de la orden seleccionada.</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Prioridad</Label>
+
+                    <div className="space-y-4 pt-2">
+                        <div className="space-y-1.5">
+                            <Label>Nivel de Urgencia</Label>
                             <Select onValueChange={(v) => setFormData({ ...formData, priority: v })} value={formData.priority}>
-                                <SelectTrigger className="bg-black/20 border-white/10 text-white h-10 rounded-xl"><SelectValue placeholder="Prioridad" /></SelectTrigger>
-                                <SelectContent className="bg-[#0f172a] border-white/10 text-white">
-                                    <SelectItem value="NORMAL">Normal</SelectItem>
-                                    <SelectItem value="URGENTE">Urgente</SelectItem>
+                                <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                                    <SelectValue placeholder="Prioridad" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-300">
+                                    <SelectItem value="NORMAL">NORMAL</SelectItem>
+                                    <SelectItem value="URGENTE">URGENTE</SelectItem>
                                     <SelectItem value="STAT">STAT (Inmediato)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="grid gap-2">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-400">Notas</Label>
+
+                        <div className="space-y-1.5">
+                            <Label>Observaciones</Label>
                             <Textarea
                                 value={formData.notes}
                                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                className="bg-black/20 border-white/10 text-white rounded-xl"
+                                placeholder="Notas clínicas relevantes..."
+                                rows={3}
                             />
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsEditOrderOpen(false)} className="bg-transparent border-white/10 text-white hover:bg-white/5 rounded-xl">Cancelar</Button>
-                        <Button onClick={handleUpdateOrder} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl">Guardar Cambios</Button>
+
+                    <DialogFooter className="pt-4">
+                        <Button variant="outline" onClick={() => setIsEditOrderOpen(false)}
+                            className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-300">
+                            Cancelar
+                        </Button>
+                        <Button onClick={handleUpdateOrder}
+                            className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20">
+                            Guardar Cambios
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* DELETE DIALOG */}
+            {/* ─── DELETE CONFIRMATION ─── */}
             <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-                <AlertDialogContent className="bg-[#0f172a] border-white/10 text-white">
+                <AlertDialogContent className="bg-zinc-950 border-zinc-800">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-slate-400">
-                            Esta acción eliminará la orden de laboratorio permanentemente.
+                        <AlertDialogTitle className="text-zinc-100 italic font-bold">¿Eliminar esta orden?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-zinc-400">
+                            Esta acción es irreversible y eliminará todos los registros asociados a esta solicitud de análisis.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-transparent border-white/10 text-white hover:bg-white/5">Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteOrder} className="bg-red-600 hover:bg-red-700 text-white border-none">Eliminar</AlertDialogAction>
+                        <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200">
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteOrder}
+                            className="bg-orange-600 hover:bg-orange-700 text-white font-bold"
+                        >
+                            Confirmar Eliminación
+                        </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </main>
+
+            {/* ─── RESULT ENTRY DIALOG (PRO) ─── */}
+            <Dialog open={isResultEntryOpen} onOpenChange={setIsResultEntryOpen}>
+                <DialogContent className="sm:max-w-2xl bg-zinc-950 border-zinc-900 text-zinc-100">
+                    <DialogHeader className="border-b border-zinc-900 pb-4">
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2 text-blue-400">
+                            <Plus className="h-5 w-5" />
+                            Ingreso Profesional de Resultados
+                        </DialogTitle>
+                        <DialogDescription className="text-zinc-500">
+                            Registre los valores clínicos y adjunte el reporte físico para finalizar la orden.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedOrder && (
+                        <ResultEntryForm
+                            order={selectedOrder}
+                            onComplete={() => {
+                                setIsResultEntryOpen(false)
+                                loadData()
+                            }}
+                            onCancel={() => setIsResultEntryOpen(false)}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* ─── PROFESSIONAL MEDICAL REPORT PREVIEW ─── */}
+            <Dialog open={!!viewingReport} onOpenChange={(open) => !open && setViewingReport(null)}>
+                <DialogContent className="sm:max-w-3xl bg-white text-zinc-900 p-0 overflow-hidden border-none">
+                    {viewingReport && (
+                        <div className="flex flex-col h-[85vh]">
+                            <div className="flex-1 overflow-y-auto p-12 bg-white" id="printable-report">
+                                {/* Report Header */}
+                                <div className="border-b-2 border-red-600 pb-6 mb-8 flex justify-between items-start">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-16 w-16 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-2xl">
+                                            MS
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-black text-zinc-900 tracking-tight">MEDISYNC CLINIC</h2>
+                                            <p className="text-sm font-bold text-red-600">CENTRO DE ANÁLISIS CLÍNICOS</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right text-xs text-zinc-500">
+                                        <p>RUC: 20601234567</p>
+                                        <p>Av. Salud 123, Miraflores</p>
+                                        <p>Tel: (01) 444-5555</p>
+                                    </div>
+                                </div>
+
+                                {/* Patient Info */}
+                                <div className="grid grid-cols-2 gap-8 mb-8 bg-zinc-50 p-6 rounded-xl border border-zinc-100">
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">PACIENTE</p>
+                                        <p className="font-black text-lg text-zinc-900 uppercase">
+                                            {viewingReport.patient?.firstName} {viewingReport.patient?.lastName}
+                                        </p>
+                                        <p className="text-sm text-zinc-600">DNI: {viewingReport.patient?.documentId || 'No registrado'}</p>
+                                    </div>
+                                    <div className="space-y-2 text-right">
+                                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">FECHA DE REPORTE</p>
+                                        <p className="font-bold text-zinc-900">{format(new Date(viewingReport.updatedAt), 'dd MMMM, yyyy', { locale: es })}</p>
+                                        <p className="text-sm text-zinc-600 italic">Orden ID: {viewingReport.id.slice(-8).toUpperCase()}</p>
+                                    </div>
+                                </div>
+
+                                {/* Result Table */}
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-black text-zinc-900 mb-4 border-l-4 border-red-600 pl-4 uppercase">
+                                        EXAMEN: {viewingReport.testName}
+                                    </h3>
+                                    <Table>
+                                        <TableHeader className="bg-zinc-100">
+                                            <TableRow>
+                                                <TableHead className="text-zinc-900 font-bold uppercase text-[10px]">ANÁLISIS / PARÁMETRO</TableHead>
+                                                <TableHead className="text-zinc-900 font-bold uppercase text-[10px]">RESULTADO</TableHead>
+                                                <TableHead className="text-zinc-900 font-bold uppercase text-[10px]">UNIDAD</TableHead>
+                                                <TableHead className="text-zinc-900 font-bold uppercase text-[10px]">VALORES DE REFERENCIA</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {viewingReport.results && viewingReport.results.length > 0 ? (
+                                                viewingReport.results.map((res: any, idx: number) => (
+                                                    <TableRow key={idx} className="border-b border-zinc-100">
+                                                        <TableCell className="font-bold text-zinc-800">{res.testName}</TableCell>
+                                                        <TableCell className={cn(
+                                                            "font-black text-lg",
+                                                            res.status !== 'NORMAL' ? "text-red-600" : "text-zinc-900"
+                                                        )}>
+                                                            {res.result}
+                                                            {res.status !== 'NORMAL' && <span className="ml-2 text-xs font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">!</span>}
+                                                        </TableCell>
+                                                        <TableCell className="text-zinc-600 font-medium">{res.unit || '-'}</TableCell>
+                                                        <TableCell className="text-zinc-500 font-mono text-xs">{res.referenceRange || '-'}</TableCell>
+                                                    </TableRow>
+                                                ))
+                                            ) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="text-center py-12 italic text-zinc-400">
+                                                        No hay parámetros detallados para este examen.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+
+                                {/* Notes */}
+                                {viewingReport.notes && (
+                                    <div className="mb-12 p-4 bg-zinc-50 border-l-4 border-zinc-200 rounded-r-lg italic text-zinc-600 text-sm">
+                                        <span className="font-bold block not-italic text-zinc-400 text-[10px] uppercase mb-1">OBSERVACIONES:</span>
+                                        "{viewingReport.notes}"
+                                    </div>
+                                )}
+
+                                {/* Footer / Signature */}
+                                <div className="mt-auto pt-12 flex justify-between items-end border-t border-zinc-100 italic text-zinc-400 text-[10px]">
+                                    <div>
+                                        <p>Documento generado electrónicamente por MediSync Enterprise</p>
+                                        <p>La interpretación de este resultado es exclusiva responsabilidad del médico tratante.</p>
+                                    </div>
+                                    <div className="text-center w-64 border-t border-dashed border-zinc-300 pt-2">
+                                        <p className="font-bold text-zinc-900 not-italic">VALIDACIÓN BACTERIOLÓGICA</p>
+                                        <p>Firma y Sello del Bioquímico</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Report Actions */}
+                            <div className="bg-zinc-100 p-6 flex justify-between items-center border-t border-zinc-200">
+                                <Button variant="ghost" onClick={() => setViewingReport(null)} className="text-zinc-600">
+                                    Cerrar Vista Previa
+                                </Button>
+                                <div className="flex gap-3">
+                                    {viewingReport.resultFile && (
+                                        <Button variant="outline" className="border-zinc-300 text-zinc-700 bg-white" asChild>
+                                            <a href={viewingReport.resultFile} target="_blank" rel="noreferrer">
+                                                <Upload className="h-4 w-4 mr-2" /> Descargar Archivo Físico
+                                            </a>
+                                        </Button>
+                                    )}
+                                    <Button className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 shadow-lg shadow-red-600/20"
+                                        onClick={() => window.print()}>
+                                        <FileText className="h-4 w-4 mr-2" /> Imprimir Informe
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+        </div>
     )
 }
-

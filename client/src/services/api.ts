@@ -306,11 +306,16 @@ export const laboratoryAPI = {
     getOne: (id: string) => api.get(`/laboratory/orders/${id}`),
     createOrder: (data: any) => api.post('/laboratory/orders', data),
     updateOrder: (id: string, data: any) => api.patch(`/laboratory/orders/${id}`, data),
-    updateStatus: (id: string, status: string, results?: any) =>
-        api.patch(`/laboratory/orders/${id}/status`, { status, results }),
+    updateStatus: (id: string, status: string, data?: any) =>
+        api.patch(`/laboratory/orders/${id}/status`, { status, ...data }),
     deleteOrder: (id: string) => api.delete(`/laboratory/orders/${id}`),
     getTests: () => api.get('/laboratory/tests'),
     getStats: () => api.get('/laboratory/stats'),
+    uploadFile: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/files/upload/laboratory', formData);
+    },
 }
 
 // ============================================
@@ -332,14 +337,14 @@ export const billingAPI = {
 // ============================================
 export const reportsAPI = {
     getDashboardStats: () => api.get('/reports/dashboard'),
-    getAppointmentStats: () => api.get('/reports/appointments'),
-    getPatientStats: () => api.get('/reports/patients'),
-    getFinancialStats: () => api.get('/reports/finance'),
-    getMedicationStats: () => api.get('/reports/medications'),
-    getDoctorStats: () => api.get('/reports/doctors'),
-    getEmergencyStats: () => api.get('/reports/emergencies'),
-    getComparisonStats: () => api.get('/reports/comparison'),
-    getAiPredictions: () => api.get('/reports/ai-predictions'),
+    getAppointmentStats: (params?: any) => api.get('/reports/appointments', { params }),
+    getPatientStats: (params?: any) => api.get('/reports/patients', { params }),
+    getFinancialStats: (params?: any) => api.get('/reports/finance', { params }),
+    getMedicationStats: (params?: any) => api.get('/reports/medications', { params }),
+    getDoctorStats: (params?: any) => api.get('/reports/doctors', { params }),
+    getEmergencyStats: (params?: any) => api.get('/reports/emergencies', { params }),
+    getComparisonStats: (params?: any) => api.get('/reports/comparison', { params }),
+    getAiPredictions: (params?: any) => api.get('/reports/ai-predictions', { params }),
     // Legacy/Unused for now but kept for compatibility if needed
     getPatientReport: (patientId: string) => api.get(`/reports/patient/${patientId}`),
     exportReport: (type: string, params?: any) =>
@@ -398,7 +403,17 @@ export const usersAPI = {
     delete: (id: string) => api.delete(`/users/${id}`),
 }
 
-
+// ============================================
+// SERVICES CATALOG API
+// ============================================
+export const servicesCatalogAPI = {
+    getAll: (params?: any) => api.get('/services-catalog', { params }),
+    getById: (id: string) => api.get(`/services-catalog/${id}`),
+    create: (data: any) => api.post('/services-catalog', data),
+    update: (id: string, data: any) => api.patch(`/services-catalog/${id}`, data),
+    delete: (id: string) => api.delete(`/services-catalog/${id}`),
+    seed: () => api.get('/services-catalog/seed'),
+}
 
 // ============================================
 // SYSTEM API

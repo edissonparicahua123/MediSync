@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { json, urlencoded } from 'express';
+import { join } from 'path';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, {
@@ -24,6 +25,10 @@ async function bootstrap() {
         origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
         credentials: true,
     });
+
+    // Handle static files (for uploads)
+    const express = require('express');
+    app.use('/uploads', express.static(join(process.cwd(), 'public/uploads')));
 
     // Global validation pipe
     app.useGlobalPipes(

@@ -101,6 +101,10 @@ export class PatientsService {
                     take: 10,
                     orderBy: { createdAt: 'desc' },
                 },
+                pharmacyOrders: {
+                    take: 20,
+                    orderBy: { createdAt: 'desc' },
+                }
             },
         });
 
@@ -363,6 +367,11 @@ export class PatientsService {
 
         return (this.prisma as any).patientMedication.findMany({
             where,
+            include: {
+                prescribedBy: {
+                    include: { user: true }
+                }
+            },
             orderBy: { startDate: 'desc' },
         });
     }
@@ -370,19 +379,53 @@ export class PatientsService {
     async addMedication(id: string, data: any) {
         try {
             await this.findOne(id);
+
+            // [SENIOR INTEGRATION] Find medication and doctor to create order
+            // We'll use the first active doctor if not specified for outpatient prescriptions
+            const doctor = await this.prisma.doctor.findFirst({
+                include: { user: true }
+            });
+
+            let medication = null;
+            if (data.medicationId) {
+                medication = await this.prisma.medication.findUnique({
+                    where: { id: data.medicationId }
+                });
+            } else {
+                medication = await this.prisma.medication.findFirst({
+                    where: { name: { contains: data.name, mode: 'insensitive' } }
+                });
+            }
+
+            if (doctor && medication) {
+                const orderCount = await this.prisma.pharmacyOrder.count();
+                const orderNumber = `ORD-RX-${(orderCount + 1).toString().padStart(5, '0')}`;
+
+                await (this.prisma as any).pharmacyOrder.create({
+                    data: {
+                        orderNumber,
+                        medicationId: medication.id,
+                        quantity: 1, // Default for outpatient prescription
+                        doctorId: doctor.id,
+                        patientId: id,
+                        status: 'PENDIENTE'
+                    }
+                });
+                console.log(`[PatientsService] Automatic pharmacy order ${orderNumber} created for patient ${id} linked to med ${medication.id}`);
+            }
+
             // Ensure startDate is a valid Date object
             const payload = {
                 patientId: id,
+                medicationId: medication?.id || data.medicationId || null,
                 name: data.name,
                 dosage: data.dosage,
                 frequency: data.frequency,
-                startDate: new Date(data.startDate),
-                notes: data.instructions || data.notes,
-                isActive: true,
-                prescribedBy: 'Dr. Paricahua' // Default or extracted from context
+                startDate: new Date(data.startDate || new Date()),
+                instructions: data.instructions || data.notes || '',
+                status: 'ACTIVE',
+                prescribedById: doctor?.id || null
             };
-
-            console.log('Adding medication payload:', payload);
 
             return await (this.prisma as any).patientMedication.create({
                 data: payload,

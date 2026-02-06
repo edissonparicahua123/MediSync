@@ -1,22 +1,13 @@
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
+import { useState, useEffect } from 'react'
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
 } from '@/components/ui/dialog'
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form'
+import { Button } from '@/components/ui/button'
 import {
     Select,
     SelectContent,
@@ -24,307 +15,285 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
-import { laboratoryAPI, patientsAPI, doctorsAPI } from '@/services/api'
-import { Loader2 } from 'lucide-react'
-
-import { LabOrder } from '@/types/laboratory'
-
-const labOrderSchema = z.object({
-    patientId: z.string().min(1, 'Paciente es requerido'),
-    doctorId: z.string().optional(),
-    testType: z.string().min(1, 'Tipo de prueba es requerido'),
-    priority: z.string().min(1, 'Prioridad es requerida'),
-    notes: z.string().optional(),
-    status: z.string().default('PENDING'),
-})
-
-type LabOrderFormData = z.infer<typeof labOrderSchema>
+import { laboratoryAPI, doctorsAPI, patientsAPI } from '@/services/api'
+import { Loader2, TestTube2, AlertCircle } from 'lucide-react'
 
 interface LabOrderModalProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    order?: LabOrder | null
-    onSuccess: () => void
     defaultPatientId?: string
+    defaultDoctorId?: string
+    onSuccess?: () => void
 }
 
 export default function LabOrderModal({
     open,
     onOpenChange,
-    order,
-    onSuccess,
     defaultPatientId,
+    defaultDoctorId,
+    onSuccess
 }: LabOrderModalProps) {
     const { toast } = useToast()
+    const [loading, setLoading] = useState(false)
     const [patients, setPatients] = useState<any[]>([])
     const [doctors, setDoctors] = useState<any[]>([])
     const [tests, setTests] = useState<any[]>([])
-    const [loadingResources, setLoadingResources] = useState(false)
 
-    const form = useForm<LabOrderFormData>({
-        resolver: zodResolver(labOrderSchema),
-        defaultValues: {
-            patientId: '',
-            doctorId: '',
-            testType: '',
-            priority: 'NORMAL',
-            notes: '',
-            status: 'PENDING',
-        },
+    // Form Data
+    const [formData, setFormData] = useState({
+        patientId: defaultPatientId || '',
+        doctorId: defaultDoctorId || '',
+        testType: '',
+        priority: 'NORMAL',
+        notes: ''
     })
 
+    // Load initial data
     useEffect(() => {
         if (open) {
-            fetchResources()
-            if (order) {
-                form.reset({
-                    patientId: order.patientId,
-                    doctorId: order.doctorId || '',
-                    testType: order.testType || '',
-                    priority: order.priority || 'NORMAL',
-                    notes: order.notes || '',
-                    status: order.status || 'PENDING',
-                })
-            } else {
-                form.reset({
-                    patientId: defaultPatientId || '',
-                    doctorId: '',
-                    testType: '',
-                    priority: 'NORMAL',
-                    notes: '',
-                    status: 'PENDING',
-                })
-            }
-        }
-    }, [open, order, form, defaultPatientId])
+            const loadData = async () => {
+                try {
+                    const [patientsRes, doctorsRes, testsRes] = await Promise.all([
+                        patientsAPI.getAll(),
+                        doctorsAPI.getAll(),
+                        laboratoryAPI.getTests(),
+                    ])
 
-    const fetchResources = async () => {
-        try {
-            setLoadingResources(true)
-            const [patientsRes, doctorsRes, testsRes] = await Promise.all([
-                patientsAPI.getAll(),
-                doctorsAPI.getAll(),
-                laboratoryAPI.getTests()
-            ])
-            setPatients(patientsRes.data.data || [])
-            setDoctors(doctorsRes.data.data || [])
-            setTests(testsRes.data || [])
-        } catch (error) {
-            console.error('Failed to load resources', error)
+                    // Safely extract data handling potential { data: [...] } structure or direct array
+                    const patientsList = Array.isArray(patientsRes.data) ? patientsRes.data : (patientsRes.data?.data || [])
+                    const doctorsList = Array.isArray(doctorsRes.data) ? doctorsRes.data : (doctorsRes.data?.data || [])
+                    const testsList = Array.isArray(testsRes.data) ? testsRes.data : (testsRes.data?.data || [])
+
+                    setPatients(patientsList)
+                    setDoctors(doctorsList)
+                    setTests(testsList)
+
+                    // Update local state if props change
+                    setFormData(prev => ({
+                        ...prev,
+                        patientId: defaultPatientId || prev.patientId,
+                        doctorId: defaultDoctorId || prev.doctorId
+                    }))
+                } catch (error) {
+                    console.error("Error loading modal data", error)
+                    toast({
+                        title: "Error",
+                        description: "No se pudieron cargar los datos necesarios.",
+                        variant: "destructive"
+                    })
+                    // Ensure empty arrays on error to prevent map errors
+                    setPatients([])
+                    setDoctors([])
+                    setTests([])
+                }
+            }
+            loadData()
+        }
+    }, [open, defaultPatientId, defaultDoctorId])
+
+    // Update form when defaults change
+    useEffect(() => {
+        setFormData(prev => ({
+            ...prev,
+            patientId: defaultPatientId || prev.patientId,
+            doctorId: defaultDoctorId || prev.doctorId
+        }))
+    }, [defaultPatientId, defaultDoctorId])
+
+    const handleSubmit = async () => {
+        // Validation
+        if (!formData.patientId || !formData.doctorId || !formData.testType) {
             toast({
-                title: 'Error',
-                description: 'No se pudieron cargar los datos necesarios',
-                variant: 'destructive',
+                title: "Campos Incompletos",
+                description: "Por favor seleccione paciente, médico y tipo de examen.",
+                variant: "destructive"
             })
-        } finally {
-            setLoadingResources(false)
+            return
         }
-    }
 
-    const onSubmit = async (data: LabOrderFormData) => {
         try {
-            if (order) {
-                await laboratoryAPI.updateOrder(order.id, data)
-                toast({
-                    title: 'Éxito',
-                    description: 'Orden de laboratorio actualizada correctamente',
-                })
-            } else {
-                await laboratoryAPI.createOrder(data)
-                toast({
-                    title: 'Éxito',
-                    description: 'Orden de laboratorio creada correctamente',
-                })
-            }
-            onSuccess()
+            setLoading(true)
+            await laboratoryAPI.createOrder({
+                ...formData,
+                status: 'PENDING',
+                orderDate: new Date().toISOString()
+            })
+
+            toast({
+                title: "Orden Creada",
+                description: "La orden de laboratorio ha sido registrada exitosamente.",
+                className: "bg-green-600 text-white border-none"
+            })
+
+            if (onSuccess) onSuccess()
             onOpenChange(false)
+
+            // Reset form (keeping defaults if present is tricky, better to just reset specific fields or let next open handle it)
+            setFormData({
+                patientId: defaultPatientId || '',
+                doctorId: defaultDoctorId || '',
+                testType: '',
+                priority: 'NORMAL',
+                notes: ''
+            })
         } catch (error: any) {
             toast({
-                title: 'Error',
-                description: error.response?.data?.message || 'Algo salió mal',
-                variant: 'destructive',
+                title: "Error",
+                description: error.response?.data?.message || "No se pudo crear la orden.",
+                variant: "destructive"
             })
+        } finally {
+            setLoading(false)
         }
     }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-lg bg-zinc-950 border-zinc-800 text-zinc-100">
                 <DialogHeader>
-                    <DialogTitle>{order ? 'Editar Orden de Laboratorio' : 'Nueva Orden de Laboratorio'}</DialogTitle>
-                    <DialogDescription>
-                        {order
-                            ? 'Actualizar detalles de la orden.'
-                            : 'Crear una nueva orden de prueba de laboratorio.'}
+                    <DialogTitle className="flex items-center gap-2 text-xl">
+                        <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
+                            <TestTube2 className="h-5 w-5 text-red-500" />
+                        </div>
+                        Nueva Orden de Análisis
+                    </DialogTitle>
+                    <DialogDescription className="text-zinc-400">
+                        Complete los campos para registrar una nueva solicitud de laboratorio.
                     </DialogDescription>
                 </DialogHeader>
 
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                            <FormField
-                                control={form.control}
-                                name="patientId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Paciente</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seleccionar paciente" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {patients.map((patient) => (
-                                                    <SelectItem key={patient.id} value={patient.id}>
-                                                        {patient.firstName} {patient.lastName}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="doctorId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Médico Solicitante</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seleccionar médico (opcional)" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {doctors.map((doc) => (
-                                                    <SelectItem key={doc.id} value={doc.id}>
-                                                        Dr. {doc.user?.firstName} {doc.user?.lastName}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="testType"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Tipo de Prueba</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seleccionar prueba" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {tests.map((test) => (
-                                                    <SelectItem key={test.id} value={test.name}>
-                                                        {test.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="priority"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Prioridad</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seleccionar prioridad" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="NORMAL">Normal</SelectItem>
-                                                <SelectItem value="URGENT">Urgente</SelectItem>
-                                                <SelectItem value="EMERGENCY">Emergencia</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="status"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Estado</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seleccionar estado" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="PENDING">Pendiente</SelectItem>
-                                                <SelectItem value="IN_PROGRESS">En Progreso</SelectItem>
-                                                <SelectItem value="COMPLETED">Completado</SelectItem>
-                                                <SelectItem value="CANCELLED">Cancelado</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="notes"
-                                render={({ field }) => (
-                                    <FormItem className="md:col-span-2">
-                                        <FormLabel>Notas / Instrucciones</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Notas clínicas o instrucciones específicas..."
-                                                className="resize-none"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <div className="flex justify-end gap-3">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
+                <div className="space-y-5 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Patient Selection - Disabled if default provided */}
+                        <div className="space-y-2">
+                            <Label className="text-zinc-300">Paciente</Label>
+                            <Select
+                                value={formData.patientId}
+                                onValueChange={(v) => setFormData({ ...formData, patientId: v })}
+                                disabled={!!defaultPatientId}
                             >
-                                Cancelar
-                            </Button>
-                            <Button type="submit" disabled={form.formState.isSubmitting || loadingResources}>
-                                {form.formState.isSubmitting && (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                )}
-                                {order ? 'Guardar Cambios' : 'Crear Orden'}
-                            </Button>
+                                <SelectTrigger className="bg-zinc-900 border-zinc-800 focus:ring-red-500/20 text-zinc-100">
+                                    <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                                    {patients.map(p => (
+                                        <SelectItem key={p.id} value={p.id} className="focus:bg-zinc-800 focus:text-zinc-100">
+                                            {p.firstName} {p.lastName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    </form>
-                </Form>
+
+                        {/* Doctor Selection */}
+                        <div className="space-y-2">
+                            <Label className="text-zinc-300">Médico Solicitante</Label>
+                            <Select
+                                value={formData.doctorId}
+                                onValueChange={(v) => setFormData({ ...formData, doctorId: v })}
+                            >
+                                <SelectTrigger className="bg-zinc-900 border-zinc-800 focus:ring-red-500/20 text-zinc-100">
+                                    <SelectValue placeholder="Seleccionar..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                                    {doctors.map(d => (
+                                        <SelectItem key={d.id} value={d.id} className="focus:bg-zinc-800 focus:text-zinc-100">
+                                            Dr. {d.user?.lastName || d.specialty}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Test Type Selection */}
+                    <div className="space-y-2">
+                        <Label className="text-zinc-300">Tipo de Examen</Label>
+                        <Select
+                            value={formData.testType}
+                            onValueChange={(v) => setFormData({ ...formData, testType: v })}
+                        >
+                            <SelectTrigger className="bg-zinc-900 border-zinc-800 focus:ring-red-500/20 text-zinc-100">
+                                <SelectValue placeholder="Seleccionar análisis..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100 h-64">
+                                {tests.map(t => (
+                                    <SelectItem key={t.id} value={t.id} className="focus:bg-zinc-800 focus:text-zinc-100">
+                                        <span className="font-medium text-zinc-100">{t.name}</span>
+                                        <span className="ml-2 text-xs text-zinc-500">[{t.category}]</span>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Priority Selection */}
+                    <div className="space-y-2">
+                        <Label className="text-zinc-300">Nivel de Prioridad</Label>
+                        <Select
+                            value={formData.priority}
+                            onValueChange={(v) => setFormData({ ...formData, priority: v })}
+                        >
+                            <SelectTrigger className="bg-zinc-900 border-zinc-800 focus:ring-red-500/20 text-zinc-100">
+                                <SelectValue placeholder="Prioridad" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                                <SelectItem value="NORMAL" className="focus:bg-zinc-800 text-emerald-500 font-medium">
+                                    NORMAL
+                                </SelectItem>
+                                <SelectItem value="URGENTE" className="focus:bg-zinc-800 text-orange-500 font-medium">
+                                    URGENTE
+                                </SelectItem>
+                                <SelectItem value="STAT" className="focus:bg-zinc-800 text-red-500 font-bold">
+                                    STAT (Inmediato)
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Notes */}
+                    <div className="space-y-2">
+                        <Label className="text-zinc-300">Observaciones / Indicaciones</Label>
+                        <Textarea
+                            className="bg-zinc-900 border-zinc-800 focus:border-red-500/50 text-zinc-100 resize-none"
+                            value={formData.notes}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            placeholder="Notas clínicas relevantes, indicaciones especiales..."
+                            rows={3}
+                        />
+                    </div>
+                </div>
+
+                <DialogFooter className="pt-4 border-t border-zinc-900">
+                    <Button
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                        className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-zinc-300"
+                        disabled={loading}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleSubmit}
+                        className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20 hover:shadow-red-900/40 transition-all font-medium"
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creando...
+                            </>
+                        ) : (
+                            <>
+                                <TestTube2 className="mr-2 h-4 w-4" />
+                                Crear Orden
+                            </>
+                        )}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     )

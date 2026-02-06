@@ -167,7 +167,7 @@ export default function ReferralModal({
                         </DialogTitle>
                         <div className="mt-2 flex items-center gap-3 p-2 rounded-lg bg-zinc-800/30 border border-zinc-700/30">
                             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-                                {doctorName.split(' ').pop()?.charAt(0) || 'D'}
+                                {doctorName?.split(' ').pop()?.charAt(0) || 'D'}
                             </div>
                             <div>
                                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Médico que Refiere</p>

@@ -30,6 +30,8 @@ export class PharmacyService {
                     laboratory: med.manufacturer || 'Generico',
                     currentStock: totalStock,
                     minStock: mainBatch.minStockLevel || 10,
+                    price: Number(mainBatch.sellingPrice || 0), // [NEW] Return real price
+                    costPrice: Number(mainBatch.unitPrice || 0), // [NEW] Return cost price
                     batch: mainBatch.batchNumber || 'N/A',
                     expirationDate: mainBatch.expirationDate || new Date(),
                     description: med.description
@@ -52,12 +54,13 @@ export class PharmacyService {
 
             return orders.map((order: any) => ({
                 id: order.id,
-                medication: order.medication?.name || 'Unknown',
+                medicationName: order.medication?.name || 'Medicamento',
                 quantity: order.quantity,
-                doctor: order.doctor?.user?.lastName ? `Dr. ${order.doctor.user.lastName}` : 'Dr. Unknown',
-                patient: order.patient ? `${order.patient.firstName} ${order.patient.lastName}` : 'Unknown Patient',
-                status: order.status, // PENDING, APPROVED, REJECTED
+                requesterName: order.doctor?.user ? `Dr. ${order.doctor.user.lastName}` : 'Dr. Externo',
+                patientName: order.patient ? `${order.patient.firstName} ${order.patient.lastName}` : 'Paciente Externo',
+                status: order.status, // PENDIENTE, APROBADO, RECHAZADO
                 requestedAt: order.requestedAt,
+                createdAt: order.createdAt,
                 approvedAt: order.approvedAt,
                 approvedBy: order.approvedBy,
                 rejectedAt: order.rejectedAt,
@@ -79,14 +82,17 @@ export class PharmacyService {
                 orderBy: { createdAt: 'desc' }
             });
 
-            return movements.map(mov => ({
+            return movements.map((mov: any) => ({
                 id: mov.id,
+                createdAt: mov.createdAt,
                 date: mov.createdAt,
-                medication: mov.medication.name,
-                type: mov.movementType, // IN, OUT
+                medicationName: mov.medication.name,
+                type: mov.movementType,
                 quantity: mov.quantity,
                 batch: mov.referenceNumber || 'N/A',
-                responsible: mov.performedBy || 'System',
+                resultingStock: mov.resultingStock,
+                responsible: mov.performedBy || 'Sistema',
+                reason: mov.reason || 'Sin motivo',
                 notes: mov.notes
             }));
         } catch (e) {
@@ -121,17 +127,35 @@ export class PharmacyService {
 
             // 2. Create Initial Stock
             if (stock > 0 || minStock) {
-                await tx.pharmacyStock.create({
+                await (tx as any).pharmacyStock.create({
                     data: {
                         medicationId: med.id,
                         quantity: Number(stock) || 0,
                         minStockLevel: Number(minStock) || 10,
                         batchNumber: batch || `INIT-${Date.now()}`,
-                        expirationDate: expiry ? new Date(expiry) : undefined,
-                        unitPrice: 0,
-                        sellingPrice: 0
+                        expirationDate: (expiry && expiry !== '') ? new Date(expiry) : undefined,
+                        unitPrice: Number(data.costPrice) || 0,
+                        sellingPrice: Number(data.price) || 0 // [NEW] Save dynamic price
                     }
                 });
+
+                // [NEW] Log initial stock to Kardex
+                const initialStockValue = Number(stock) || 0;
+                if (initialStockValue > 0) {
+                    await (tx as any).pharmacyMovement.create({
+                        data: {
+                            medicationId: med.id,
+                            quantity: initialStockValue,
+                            movementType: 'IN',
+                            reason: 'INGRESO_INICIAL',
+                            referenceNumber: batch || `INIT-${Date.now()}`,
+                            resultingStock: initialStockValue,
+                            performedBy: 'ADMIN',
+                            unitPrice: Number(data.costPrice) || 0, // [NEW] Save cost to Movement
+                            notes: `Ingreso inicial de stock: ${medData.name}`
+                        }
+                    });
+                }
             }
 
             return med;
@@ -139,10 +163,102 @@ export class PharmacyService {
     }
 
     async updateMedication(id: string, data: any) {
-        return this.prisma.medication.update({
-            where: { id },
-            data,
-        });
+        const { stock, minStock, batch, expiry, name, manufacturer, category } = data;
+
+        try {
+            return await this.prisma.$transaction(async (tx) => {
+                // 1. Update Medication details
+                const med = await tx.medication.update({
+                    where: { id },
+                    data: {
+                        name,
+                        manufacturer,
+                        category: category || 'Medicamento'
+                    }
+                });
+
+                // 2. Update Stock details
+                if (stock !== undefined) {
+                    const existingStock = await (tx as any).pharmacyStock.findFirst({
+                        where: { medicationId: id }
+                    });
+
+                    const newStockValue = Number(stock) || 0;
+
+                    if (existingStock) {
+                        const diff = newStockValue - existingStock.quantity;
+                        if (diff !== 0) {
+                            // Calculate final total stock for Kardex
+                            const allStock = await (tx as any).pharmacyStock.findMany({
+                                where: { medicationId: id }
+                            });
+                            const currentTotal = allStock.reduce((sum: number, s: any) => sum + Number(s.quantity), 0);
+                            const totalStockAfter = currentTotal + diff;
+
+                            await (tx as any).pharmacyMovement.create({
+                                data: {
+                                    medicationId: id,
+                                    quantity: Math.abs(diff),
+                                    movementType: diff > 0 ? 'IN' : 'OUT',
+                                    reason: 'AJUSTE_INVENTARIO',
+                                    referenceNumber: batch || existingStock.batchNumber,
+                                    resultingStock: totalStockAfter,
+                                    performedBy: 'ADMIN',
+                                    unitPrice: diff > 0 ? (data.costPrice !== undefined ? Number(data.costPrice) : existingStock.unitPrice) : 0, // [NEW] Save cost to Movement
+                                    notes: `Ajuste manual de stock de ${existingStock.quantity} a ${newStockValue}`
+                                }
+                            });
+                        }
+
+                        await (tx as any).pharmacyStock.update({
+                            where: { id: existingStock.id },
+                            data: {
+                                quantity: newStockValue,
+                                minStockLevel: Number(minStock) || existingStock.minStockLevel,
+                                batchNumber: batch || existingStock.batchNumber,
+                                expirationDate: (expiry && expiry !== '') ? new Date(expiry) : existingStock.expirationDate,
+                                sellingPrice: data.price !== undefined ? Number(data.price) : existingStock.sellingPrice, // [FIXED]
+                                unitPrice: data.costPrice !== undefined ? Number(data.costPrice) : existingStock.unitPrice // [FIXED]
+                            }
+                        });
+                    } else {
+                        // Create stock if it didn't exist
+                        await (tx as any).pharmacyStock.create({
+                            data: {
+                                medicationId: id,
+                                quantity: newStockValue,
+                                minStockLevel: Number(minStock) || 10,
+                                batchNumber: batch || `UPDATE-${Date.now()}`,
+                                expirationDate: (expiry && expiry !== '') ? new Date(expiry) : undefined,
+                                unitPrice: Number(data.costPrice) || 0,
+                                sellingPrice: Number(data.price) || 0
+                            }
+                        });
+
+                        if (newStockValue > 0) {
+                            await (tx as any).pharmacyMovement.create({
+                                data: {
+                                    medicationId: id,
+                                    quantity: newStockValue,
+                                    movementType: 'IN',
+                                    reason: 'INGRESO_POSTERIOR',
+                                    referenceNumber: batch || `UPDATE-${Date.now()}`,
+                                    resultingStock: newStockValue,
+                                    performedBy: 'ADMIN',
+                                    unitPrice: Number(data.costPrice) || 0, // [NEW] Save cost to Movement
+                                    notes: `Primer registro de stock para medicamento existente`
+                                }
+                            });
+                        }
+                    }
+                }
+
+                return med;
+            });
+        } catch (error) {
+            console.error('CRITICAL ERROR in updateMedication:', error);
+            throw error;
+        }
     }
 
     async deleteMedication(id: string) {
@@ -184,13 +300,68 @@ export class PharmacyService {
     }
 
     async approveOrder(id: string, userId: string) {
-        return (this.prisma as any).pharmacyOrder.update({
-            where: { id },
-            data: {
-                status: 'APPROVED',
-                approvedAt: new Date(),
-                approvedBy: 'Farmacéutico'
+        return this.prisma.$transaction(async (tx) => {
+            // 1. Get the order details
+            const order = await (tx as any).pharmacyOrder.findUnique({
+                where: { id },
+                include: { medication: true }
+            });
+
+            if (!order) throw new Error('Pedido no encontrado');
+            if (order.status === 'APROBADO') return order; // Already approved
+
+            // 2. Find available stock for this medication
+            // We use FIFO (expirationDate asc) to deduct from the nearest expiry batch
+            const stock = await tx.pharmacyStock.findFirst({
+                where: {
+                    medicationId: order.medicationId,
+                    quantity: { gt: 0 }
+                },
+                orderBy: { expirationDate: 'asc' }
+            });
+
+            if (!stock) throw new Error('No hay stock disponible para este medicamento');
+            if (stock.quantity < order.quantity) {
+                // [SENIOR] Partial deduction logic could be implemented here, 
+                // but for now we follow the simple rule of sufficient stock in the batch.
+                throw new Error(`Stock insuficiente en el lote disponible (${stock.quantity} < ${order.quantity})`);
             }
+
+            // 3. Deduct stock
+            await tx.pharmacyStock.update({
+                where: { id: stock.id },
+                data: { quantity: { decrement: order.quantity } }
+            });
+
+            // 3b. Calculate final total stock for Kardex
+            const allStock = await (tx as any).pharmacyStock.findMany({
+                where: { medicationId: order.medicationId }
+            });
+            const totalStockAfter = allStock.reduce((sum: number, s: any) => sum + Number(s.quantity), 0);
+
+            // 4. Record movement in Kardex (Movement History)
+            await (tx as any).pharmacyMovement.create({
+                data: {
+                    medicationId: order.medicationId,
+                    quantity: Number(order.quantity),
+                    movementType: 'OUT',
+                    referenceNumber: order.orderNumber,
+                    reason: 'DESPACHO_PEDIDO',
+                    resultingStock: totalStockAfter, // [NEW] Precise tracking
+                    notes: `Despacho automático de pedido ${order.orderNumber}`,
+                    performedBy: 'Farmacia'
+                }
+            });
+
+            // 5. Update order status
+            return (tx as any).pharmacyOrder.update({
+                where: { id },
+                data: {
+                    status: 'APROBADO',
+                    approvedAt: new Date(),
+                    approvedBy: 'Farmacéutico'
+                }
+            });
         });
     }
 
@@ -203,6 +374,68 @@ export class PharmacyService {
                 rejectedBy: 'Farmacéutico',
                 rejectionReason: reason
             }
+        });
+    }
+
+    /**
+     * Reduce stock from medications in a paid invoice
+     * Called by BillingService when invoice status changes to PAID
+     */
+    async reduceStockFromInvoice(invoiceId: string, items: any[]) {
+        return this.prisma.$transaction(async (tx) => {
+            for (const item of items) {
+                // Check if this item is a medication by name matching
+                const medication = await tx.medication.findFirst({
+                    where: {
+                        name: { contains: item.description },
+                        isActive: true
+                    }
+                });
+
+                if (!medication) continue; // Skip non-medication items
+
+                // Find available stock (FIFO - nearest expiry first)
+                const stock = await tx.pharmacyStock.findFirst({
+                    where: {
+                        medicationId: medication.id,
+                        quantity: { gt: 0 }
+                    },
+                    orderBy: { expirationDate: 'asc' }
+                });
+
+                if (!stock || stock.quantity < item.quantity) {
+                    console.warn(`⚠️ Stock insuficiente para ${medication.name} en factura ${invoiceId}`);
+                    continue; // Don't fail the entire transaction, just skip
+                }
+
+                // Reduce stock
+                await tx.pharmacyStock.update({
+                    where: { id: stock.id },
+                    data: { quantity: { decrement: item.quantity } }
+                });
+
+                // Calculate total stock after reduction
+                const allStock = await (tx as any).pharmacyStock.findMany({
+                    where: { medicationId: medication.id }
+                });
+                const totalStockAfter = allStock.reduce((sum: number, s: any) => sum + Number(s.quantity), 0);
+
+                // Log to Kardex
+                await (tx as any).pharmacyMovement.create({
+                    data: {
+                        medicationId: medication.id,
+                        quantity: Number(item.quantity),
+                        movementType: 'OUT',
+                        referenceNumber: invoiceId,
+                        reason: 'VENTA_FACTURA',
+                        resultingStock: totalStockAfter,
+                        notes: `Venta por factura ${invoiceId}: ${item.description}`,
+                        performedBy: 'Sistema Facturación'
+                    }
+                });
+            }
+
+            return { success: true, message: 'Stock reducido correctamente' };
         });
     }
 }

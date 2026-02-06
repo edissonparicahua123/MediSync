@@ -53,9 +53,39 @@ export default function ReportsPage() {
         loadReports()
     }, [dateRange])
 
+
+    const getDateRangeParams = (range: string) => {
+        const now = new Date()
+        let startDate = new Date()
+        let endDate = new Date(now)
+
+        switch (range) {
+            case 'week':
+                startDate.setDate(now.getDate() - 7)
+                break
+            case 'month':
+                startDate.setMonth(now.getMonth() - 1)
+                break
+            case 'quarter':
+                startDate.setMonth(now.getMonth() - 3)
+                break
+            case 'year':
+                startDate.setFullYear(now.getFullYear() - 1)
+                break
+            default:
+                startDate.setFullYear(now.getFullYear() - 1)
+        }
+
+        return {
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString()
+        }
+    }
+
     const loadReports = async () => {
         try {
             setLoading(true)
+            const params = getDateRangeParams(dateRange)
 
             const [
                 appointmentsRes,
@@ -67,14 +97,14 @@ export default function ReportsPage() {
                 comparisonRes,
                 aiPredictionsRes
             ] = await Promise.all([
-                reportsAPI.getAppointmentStats(),
-                reportsAPI.getPatientStats(),
-                reportsAPI.getFinancialStats(),
-                reportsAPI.getMedicationStats(),
-                reportsAPI.getDoctorStats(),
-                reportsAPI.getEmergencyStats(),
-                reportsAPI.getComparisonStats(),
-                reportsAPI.getAiPredictions()
+                reportsAPI.getAppointmentStats(params),
+                reportsAPI.getPatientStats(params),
+                reportsAPI.getFinancialStats(params),
+                reportsAPI.getMedicationStats(params), // Medications usually stock based, but passing params in case
+                reportsAPI.getDoctorStats(params),
+                reportsAPI.getEmergencyStats(params),
+                reportsAPI.getComparisonStats(params),
+                reportsAPI.getAiPredictions(params)
             ])
 
             setReportsData({
@@ -100,130 +130,141 @@ export default function ReportsPage() {
         }
     }
 
-    // Exportar a PDF
-    const exportToPDF = (reportType: string) => {
-        const doc = new jsPDF()
+    // Exportar a PDF (Ahora usa backend para todo)
+    const exportToPDF = async (reportType: string) => {
+        try {
+            const params = getDateRangeParams(dateRange)
+            // Utilizar el endpoint de exportación del backend si devuelve buffer PDF,
+            // pero como el backend devuelve CSV/Excel, mantenemos generación PDF frontend
+            // con los datos YA FILTRADOS que tenemos en state.
+            // Si el cliente quiere PDF real del backend, habría que implementarlo allá.
 
-        // Header
-        doc.setFontSize(20)
-        doc.text('EdiCarex - Reporte Médico', 14, 20)
-        doc.setFontSize(12)
-        doc.text(`Tipo de Reporte: ${getReportTitle(reportType)}`, 14, 30)
-        doc.text(`Generado: ${format(new Date(), 'PPpp', { locale: es })}`, 14, 37)
+            // Reutilizamos la lógica existente frontend pero con los datos ya filtrados en reportsData
+            const doc = new jsPDF()
+            doc.setFontSize(20)
+            doc.text('EdiCarex - Reporte Médico', 14, 20)
+            doc.setFontSize(12)
+            doc.text(`Tipo de Reporte: ${getReportTitle(reportType)}`, 14, 30)
+            doc.text(`Rango: ${dateRange}`, 14, 37)
+            doc.text(`Generado: ${format(new Date(), 'PPpp', { locale: es })}`, 14, 44)
 
-        let tableData: any[] = []
-        let columns: any[] = []
+            let tableData: any[] = []
+            let columns: any[] = []
 
-        // Preparar datos según el tipo de reporte
-        switch (reportType) {
-            case 'appointments':
-                columns = ['Mes', 'Total', 'Completadas', 'Canceladas']
-                tableData = reportsData.appointments.map((item: any) => [
-                    item.month,
-                    item.total,
-                    item.completed,
-                    item.cancelled,
-                ])
-                break
-            case 'newPatients':
-                columns = ['Mes', 'Nuevos Pacientes']
-                tableData = reportsData.newPatients.map((item: any) => [
-                    item.month,
-                    item.count,
-                ])
-                break
-            case 'emergencies':
-                columns = ['Tipo', 'Cantidad', 'Tiempo Prom. (min)']
-                tableData = reportsData.emergencies.map((item: any) => [
-                    item.type,
-                    item.count,
-                    item.avgTime,
-                ])
-                break
-            case 'medications':
-                columns = ['Medicamento', 'Cantidad', 'Costo ($)']
-                tableData = reportsData.medications.map((item: any) => [
-                    item.name,
-                    item.quantity,
-                    item.cost,
-                ])
-                break
-            case 'doctors':
-                columns = ['Doctor', 'Pacientes', 'Satisfacción', 'Ingresos ($)']
-                tableData = reportsData.doctors.map((item: any) => [
-                    item.name,
-                    item.patients,
-                    item.satisfaction,
-                    item.revenue,
-                ])
-                break
+            switch (reportType) {
+                case 'appointments':
+                    columns = ['Mes', 'Total', 'Completadas', 'Canceladas']
+                    tableData = reportsData.appointments.map((item: any) => [
+                        item.month, item.total, item.completed, item.cancelled
+                    ])
+                    break
+                case 'newPatients':
+                    columns = ['Mes', 'Nuevos Pacientes']
+                    tableData = reportsData.newPatients.map((item: any) => [
+                        item.month, item.count
+                    ])
+                    break
+                case 'emergencies':
+                    columns = ['Tipo', 'Cantidad', 'Tiempo Prom. (min)']
+                    tableData = reportsData.emergencies.map((item: any) => [
+                        item.type, item.count, item.avgTime
+                    ])
+                    break
+                case 'medications':
+                    columns = ['Medicamento', 'Cantidad', 'Costo ($)']
+                    tableData = reportsData.medications.map((item: any) => [
+                        item.name, item.quantity, item.cost
+                    ])
+                    break
+                case 'doctors':
+                    columns = ['Doctor', 'Pacientes', 'Satisfacción', 'Ingresos ($)']
+                    tableData = reportsData.doctors.map((item: any) => [
+                        item.name, item.patients, item.satisfaction, item.revenue
+                    ])
+                    break
+                case 'economic':
+                    columns = ['Mes', 'Ingresos', 'Gastos']
+                    tableData = reportsData.economic.monthlyBreakdown?.map((item: any) => [
+                        item.month, item.revenue, item.expenses
+                    ]) || []
+                    break
+            }
+
+            autoTable(doc, {
+                head: [columns],
+                body: tableData,
+                startY: 55,
+            })
+
+            doc.save(`${reportType}_reporte_${format(new Date(), 'yyyy-MM-dd')}.pdf`)
+            toast({ title: 'PDF Exportado', description: 'Reporte generado exitosamente' })
+
+        } catch (error) {
+            console.error(error)
+            toast({
+                title: 'Error',
+                description: 'Error al generar PDF',
+                variant: 'destructive',
+            })
         }
-
-        autoTable(doc, {
-            head: [columns],
-            body: tableData,
-            startY: 45,
-        })
-
-        doc.save(`${reportType}_reporte_${format(new Date(), 'yyyy-MM-dd')}.pdf`)
-
-        toast({
-            title: 'PDF Exportado',
-            description: 'El reporte ha sido exportado a PDF exitosamente',
-        })
     }
 
-    // Exportar a Excel
-    const exportToExcel = (reportType: string) => {
-        let data: any[] = []
+    // Exportar a Excel (Usando Backend para data real o Frontend como fallback)
+    const exportToExcel = async (reportType: string) => {
+        try {
+            const params = getDateRangeParams(dateRange)
+            // Intentar usar backend export primero para formatos complejos (CSV/Excel)
+            const response = await reportsAPI.exportReport(reportType, params)
 
-        // Preparar datos según el tipo de reporte
-        switch (reportType) {
-            case 'appointments':
-                data = reportsData.appointments
-                break
-            case 'newPatients':
-                data = reportsData.newPatients
-                break
-            case 'emergencies':
-                data = reportsData.emergencies
-                break
-            case 'medications':
-                data = reportsData.medications
-                break
-            case 'economic':
-                data = reportsData.economic.monthlyBreakdown
-                break
-            case 'doctors':
-                data = reportsData.doctors
-                break
-            case 'comparison':
-                data = reportsData.comparison
-                break
-            case 'aiPredictions':
-                data = reportsData.aiPredictions
-                break
+            // Crear Blob y descargar
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const contentDisposition = response.headers['content-disposition'];
+            let fileName = `${reportType}_reporte.csv`;
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                if (fileNameMatch.length === 2) fileName = fileNameMatch[1];
+            }
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+
+            toast({ title: 'Exportación Exitosa', description: 'El archivo se ha descargado correctamente' })
+
+        } catch (error) {
+            console.warn("Backend export failed or not implemented for this type, falling back to frontend export", error)
+
+            // Fallback to Frontend Export if Backend fails (para tipos no implementados en backend aun)
+            let data: any[] = []
+            switch (reportType) {
+                case 'appointments': data = reportsData.appointments; break;
+                case 'newPatients': data = reportsData.newPatients; break;
+                case 'emergencies': data = reportsData.emergencies; break;
+                case 'medications': data = reportsData.medications; break;
+                case 'economic': data = reportsData.economic.monthlyBreakdown || []; break;
+                case 'doctors': data = reportsData.doctors; break;
+                case 'comparison': data = reportsData.comparison; break;
+                case 'aiPredictions': data = reportsData.aiPredictions; break;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(data)
+            const wb = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(wb, ws, reportType)
+            XLSX.writeFile(wb, `${reportType}_reporte_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
+            toast({ title: 'Excel Exportado (Local)', description: 'Reporte generado localmente' })
         }
-
-        const ws = XLSX.utils.json_to_sheet(data)
-        const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, reportType)
-        XLSX.writeFile(wb, `${reportType}_reporte_${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
-
-        toast({
-            title: 'Excel Exportado',
-            description: 'El reporte ha sido exportado a Excel exitosamente',
-        })
     }
 
-    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+    const COLORS = ['#dc2626', '#f97316', '#facc15', '#22c55e', '#3b82f6']
 
     const getReportTitle = (type: string) => {
         const titles: Record<string, string> = {
             appointments: 'Citas por Mes',
             newPatients: 'Nuevos Pacientes',
             emergencies: 'Casos de Emergencia',
-            medications: 'Medicamentos Consumidos',
+            medications: 'Inventario Valorizado', // Changed to reflect source (Stock)
             economic: 'Resumen Económico',
             doctors: 'Rendimiento de Doctores',
             comparison: 'Comparación Mensual',
@@ -423,53 +464,141 @@ export default function ReportsPage() {
                     )}
 
                     {/* 3. Emergencies Report */}
+                    {/* 3. Emergencies Report */}
                     {activeReport === 'emergencies' && (
-                        <div className="grid grid-cols-2 gap-4">
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={reportsData.emergencies}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ type, percent }) => `${type}: ${(percent * 100).toFixed(0)}%`}
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="count"
-                                    >
-                                        {reportsData.emergencies.map((entry: any, index: number) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={reportsData.emergencies}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="type" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend payload={[{ value: 'Tiempo Prom. (min)', type: 'square', color: '#f59e0b' }]} />
-                                    <Bar dataKey="avgTime" fill="#f59e0b" name="Tiempo Prom. (min)" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                            {/* Donut Chart */}
+                            <div className="bg-zinc-950/50 rounded-xl p-4 border border-zinc-800">
+                                <h3 className="text-sm font-medium text-zinc-400 mb-6 text-center">Distribución por Severidad</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie
+                                            data={reportsData.emergencies}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={90}
+                                            paddingAngle={2}
+                                            dataKey="count"
+                                            stroke="none"
+                                        >
+                                            {reportsData.emergencies.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#fff' }}
+                                            itemStyle={{ color: '#fff' }}
+                                            formatter={(value: any, name: any, props: any) => [`${value} Pacientes`, props.payload.type]}
+                                        />
+                                        <Legend
+                                            verticalAlign="bottom"
+                                            height={36}
+                                            iconType="circle"
+                                            formatter={(value, entry: any) => <span className="text-zinc-400 text-xs ml-1">{entry.payload.type}</span>}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* Styled Bar Chart */}
+                            <div className="bg-zinc-950/50 rounded-xl p-4 border border-zinc-800">
+                                <h3 className="text-sm font-medium text-zinc-400 mb-6 text-center">Tiempos de Atención Promedio</h3>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={reportsData.emergencies} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
+                                        <XAxis
+                                            dataKey="type"
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                                            interval={0}
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={60}
+                                        />
+                                        <YAxis
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tick={{ fill: '#a1a1aa', fontSize: 12 }}
+                                            tickFormatter={(value) => `${(value / 60).toFixed(0)}h`}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'transparent' }}
+                                            contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#fff' }}
+                                            formatter={(value: any) => {
+                                                const hours = Math.floor(value / 60);
+                                                const mins = value % 60;
+                                                return [`${hours}h ${mins}m`, 'Tiempo Promedio'];
+                                            }}
+                                        />
+                                        <Bar
+                                            dataKey="avgTime"
+                                            fill="#f59e0b"
+                                            radius={[4, 4, 0, 0]}
+                                            barSize={32}
+                                            className="fill-orange-500"
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
                     )}
 
                     {/* 4. Medications Report */}
+                    {/* 4. Medications Report */}
                     {activeReport === 'medications' && (
-                        <ResponsiveContainer width="100%" height={400}>
-                            <BarChart data={reportsData.medications}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend payload={[{ value: 'Cantidad', type: 'square', color: '#8b5cf6' }, { value: 'Costo ($)', type: 'square', color: '#10b981' }]} />
-                                <Bar dataKey="quantity" fill="#8b5cf6" name="Cantidad" />
-                                <Bar dataKey="cost" fill="#10b981" name="Costo ($)" />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <div className="bg-zinc-950/50 rounded-xl p-6 border border-zinc-800">
+                            <div className="mb-6">
+                                <h3 className="text-lg font-medium text-zinc-200">Inventario de Alto Valor</h3>
+                                <p className="text-sm text-zinc-400">Top 5 medicamentos con mayor valoración económica en stock</p>
+                            </div>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <BarChart data={reportsData.medications} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
+                                    <XAxis
+                                        dataKey="name"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: '#a1a1aa', fontSize: 12 }}
+                                        interval={0}
+                                    />
+                                    <YAxis
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: '#a1a1aa', fontSize: 12 }}
+                                        tickFormatter={(value) => `S/.${value}`}
+                                    />
+                                    <Tooltip
+                                        cursor={{ fill: 'transparent' }}
+                                        contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#fff' }}
+                                        formatter={(value: any, name: string) => {
+                                            if (name === 'Valor (S/.)') return [`S/.${value.toLocaleString()}`, 'Valor Total'];
+                                            return [`${value} unid.`, 'Stock Disponible'];
+                                        }}
+                                    />
+                                    <Legend
+                                        wrapperStyle={{ paddingTop: '20px' }}
+                                        formatter={(value) => <span className="text-zinc-400 text-sm font-medium ml-1">{value}</span>}
+                                    />
+                                    <Bar
+                                        dataKey="quantity"
+                                        fill="#8b5cf6"
+                                        name="Cantidad"
+                                        stackId="a"
+                                        radius={[0, 0, 4, 4]} // Bottom rounded if stacked, but here distinct
+                                        barSize={40}
+                                    />
+                                    <Bar
+                                        dataKey="cost"
+                                        fill="#10b981"
+                                        name="Valor (S/.)"
+                                        radius={[4, 4, 0, 0]}
+                                        barSize={40}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     )}
 
                     {/* 5. Economic Report */}

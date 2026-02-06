@@ -18,7 +18,7 @@ import {
     XCircle,
     AlertCircle,
 } from 'lucide-react'
-import { analyticsAPI, appointmentsAPI, patientsAPI, doctorsAPI, usersAPI } from '@/services/api'
+import { analyticsAPI, appointmentsAPI, patientsAPI, doctorsAPI, usersAPI, billingAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import {
     LineChart,
@@ -62,6 +62,7 @@ export default function DashboardPage() {
         bedOccupancy: 0,
         avgWaitTime: 0,
         emergencyCases: 0,
+        dailyIncome: 0,  // NEW: Daily income from paid invoices
     })
 
     // Gráficos
@@ -109,11 +110,13 @@ export default function DashboardPage() {
                 appointmentsRes,
                 patientsRes,
                 doctorsRes,
+                billingStatsRes,
             ] = await Promise.all([
                 analyticsAPI.getDashboard().catch(() => ({ data: {} })),
                 appointmentsAPI.getAll().catch(() => ({ data: { data: [] } })),
                 patientsAPI.getAll().catch(() => ({ data: { data: [] } })),
                 doctorsAPI.getAll().catch(() => ({ data: { data: [] } })),
+                billingAPI.getStats().catch(() => ({ data: { totalRevenue: 0 } })),
             ])
 
             const dashboard = dashboardRes.data || {}
@@ -150,6 +153,8 @@ export default function DashboardPage() {
             const avgWaitTime = Math.floor(Math.random() * 20) + 15 // 15-35 min
             const emergencyCases = Math.floor(Math.random() * 5) + 2 // 2-7 casos
 
+            const billingStats = billingStatsRes.data || { totalRevenue: 0 }
+
             setKpis({
                 patientsToday: todayPatients.length,
                 activeAppointments: activeAppointments.length,
@@ -157,6 +162,7 @@ export default function DashboardPage() {
                 bedOccupancy,
                 avgWaitTime,
                 emergencyCases,
+                dailyIncome: billingStats.totalRevenue || 0,
             })
 
             // ========== GRÁFICO 1: Citas por hora ==========
@@ -430,6 +436,22 @@ export default function DashboardPage() {
                             ) : (
                                 <><CheckCircle2 className="h-3 w-3 text-green-500" /> Normal</>
                             )}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="overflow-hidden border-none shadow-xl transition-all hover:scale-[1.02]">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-semibold text-muted-foreground tracking-tight">Ingresos del Día</CardTitle>
+                        <div className="p-2 bg-emerald-500/10 rounded-lg">
+                            <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">S/ {Number(kpis.dailyIncome || 0).toFixed(2)}</div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Activity className="h-3 w-3 text-emerald-500" /> Actualizado en tiempo real
                         </p>
                     </CardContent>
                 </Card>

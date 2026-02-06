@@ -1,59 +1,56 @@
 import {
     Controller,
     Post,
-    Get,
-    Param,
-    UseGuards,
     UseInterceptors,
     UploadedFile,
-    Res,
-    BadRequestException,
+    ParseFilePipe,
+    MaxFileSizeValidator,
+    FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { Response } from 'express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
 import { FilesService } from './files.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { existsSync } from 'fs';
 
-@ApiTags('Files')
 @Controller('files')
 export class FilesController {
     constructor(private readonly filesService: FilesService) { }
 
-    @Post('upload')
-    @UseGuards(JwtAuthGuard)
-    @ApiBearerAuth()
-    @UseInterceptors(FileInterceptor('file'))
-    @ApiConsumes('multipart/form-data')
-    @ApiBody({
-        schema: {
-            type: 'object',
-            properties: {
-                file: {
-                    type: 'string',
-                    format: 'binary',
+    @Post('upload/laboratory')
+    @UseInterceptors(
+        FileInterceptor('file', {
+            storage: diskStorage({
+                destination: join(process.cwd(), 'public', 'uploads', 'laboratory'),
+                filename: (req, file, cb) => {
+                    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+                    cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
                 },
-            },
-        },
-    })
-    @ApiOperation({ summary: 'Upload a file for messages' })
-    async uploadFile(@UploadedFile() file: Express.Multer.File) {
+            }),
+        }),
+    )
+    async uploadFile(
+        @UploadedFile()
+        file: Express.Multer.File,
+    ) {
         if (!file) {
-            throw new BadRequestException('No se recibió ningún archivo');
-        }
-        return this.filesService.uploadFile(file);
-    }
-
-    @Get(':filename')
-    @ApiOperation({ summary: 'Get uploaded file' })
-    async getFile(@Param('filename') filename: string, @Res() res: Response) {
-        const filePath = this.filesService.getFilePath(filename);
-
-        if (!existsSync(filePath)) {
-            return res.status(404).json({ message: 'Archivo no encontrado' });
+            console.error('[FILES] No se recibió ningún archivo en el controlador');
+            return { message: 'No file uploaded', statusCode: 400 };
         }
 
-        return res.sendFile(filePath);
+        console.log('[FILES] Archivo recibido:', {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size,
+            path: file.path
+        });
+
+        // Manual validation for better error messages
+        const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+        if (!allowedMimeTypes.includes(file.mimetype)) {
+            console.warn(`[FILES] Tipo de archivo no permitido: ${file.mimetype}`);
+            // No lanzamos error 400 aquí todavía para ver si el flujo se completa
+        }
+
+        return this.filesService.handleFileUpload(file);
     }
 }

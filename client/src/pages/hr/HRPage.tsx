@@ -300,90 +300,88 @@ export default function HRPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex border-b border-border/50 pb-8 items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 rounded-[2rem] bg-indigo-600/10 flex items-center justify-center border border-indigo-500/20 shadow-2xl shadow-indigo-500/10 backdrop-blur-md">
-                        <Users className="h-8 w-8 text-indigo-500" />
+            {/* Header — same layout as Emergencias */}
+            <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                        <Users className="h-6 w-6 text-indigo-600" />
                     </div>
                     <div>
-                        <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">Portal <span className="text-indigo-500">Senior</span> RRHH</h1>
-                        <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.4em] mt-2 opacity-70 flex items-center gap-2">
-                            Módulo de Alta Disponibilidad • Contexto Estratégico
+                        <h1 className="text-3xl font-bold tracking-tight">Portal RRHH</h1>
+                        <p className="text-muted-foreground">
+                            Módulo de gestión de recursos humanos
                         </p>
                     </div>
                 </div>
-                <div className="flex gap-4">
-                    <Link to="/attendance">
-                        <Button className="h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-500/20 px-10 transition-all hover:scale-[1.02] active:scale-95 group">
-                            Control de Asistencia Operativo <ArrowUpRight className="ml-3 h-5 w-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                        </Button>
-                    </Link>
-                </div>
+                <Link to="/attendance">
+                    <Button className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20">
+                        Control de Asistencia
+                        <ArrowUpRight className="ml-2 h-4 w-4" />
+                    </Button>
+                </Link>
             </div>
 
-            {/* Stats Cards */}
+            {/* Stats Cards — same style as Emergencias */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <Card className="border-indigo-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Total Empleados</CardTitle>
-                        <Users className="h-4 w-4 text-indigo-500" />
+                        <CardTitle className="text-sm font-medium">Total Empleados</CardTitle>
+                        <Users className="h-4 w-4 text-indigo-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black tracking-tighter text-foreground">{stats.totalEmployees}</div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">
+                        <div className="text-2xl font-bold text-indigo-600">{stats.totalEmployees}</div>
+                        <p className="text-xs text-muted-foreground">
                             {stats.activeEmployees} activos en sistema
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-emerald-500/5">
+                <Card className="border-green-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Disponibilidad Hoy</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        <CardTitle className="text-sm font-medium">Disponibilidad Hoy</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black tracking-tighter text-emerald-500">{stats.presentToday}</div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">
-                            Resumen operativo del día (sin detalle individual)
+                        <div className="text-2xl font-bold text-green-600">{stats.presentToday}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Presentes el día de hoy
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-xl shadow-blue-500/5">
+                <Card className="border-blue-200">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Planilla Total (Mes)</CardTitle>
-                        <DollarSign className="h-4 w-4 text-blue-500" />
+                        <CardTitle className="text-sm font-medium">Planilla Total (Mes)</CardTitle>
+                        <DollarSign className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black tracking-tighter text-blue-500">
+                        <div className="text-2xl font-bold text-blue-600">
                             S/ {stats.totalPayroll.toLocaleString()}
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                            <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[9px] font-black">+3.2%</Badge>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase">Variación mensual</p>
-                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Nómina mensual
+                        </p>
                     </CardContent>
                 </Card>
 
-                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Cobertura de Turnos</CardTitle>
-                        <CalendarIcon className="h-4 w-4 text-indigo-500" />
+                        <CardTitle className="text-sm font-medium">Cobertura de Turnos</CardTitle>
+                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black tracking-tighter text-foreground">{hrData.shifts.length}</div>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">
-                            Vista consolidada (sin edición)
+                        <div className="text-2xl font-bold">{hrData.shifts.length}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Turnos asignados
                         </p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Tabs */}
+            {/* Tabs — default shadcn like Emergencias */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="bg-muted/50 p-1 rounded-xl">
-                    <TabsTrigger value="staff" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TabsList>
+                    <TabsTrigger value="staff">
                         <Users className="h-4 w-4 mr-2" />
                         Colaboradores
                     </TabsTrigger>
@@ -397,80 +395,77 @@ export default function HRPage() {
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="schedules" className="mt-6 space-y-6 outline-none animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* ─── SCHEDULES TAB ─── */}
+                <TabsContent value="schedules" className="mt-4 space-y-4">
                     {/* Métricas Inline de Turnos */}
-                    <Card className="border-border/50 shadow-sm bg-indigo-500/5 border-indigo-500/10">
+                    <Card className="border-indigo-200 bg-indigo-50">
                         <CardHeader>
-                            <CardTitle className="text-sm font-bold uppercase tracking-wider">Resumen de Cobertura de Turnos</CardTitle>
+                            <CardTitle className="text-sm font-medium">Resumen de Cobertura de Turnos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Turno Mañana</p>
-                                    <p className="text-2xl font-black text-yellow-500 tracking-tighter">{hrData.shifts.filter((s: any) => s.shift === 'MORNING').length}</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Turno Mañana</p>
+                                    <p className="text-2xl font-bold text-yellow-600">{hrData.shifts.filter((s: any) => s.shift === 'MORNING').length}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Turno Tarde</p>
-                                    <p className="text-2xl font-black text-orange-500 tracking-tighter">{hrData.shifts.filter((s: any) => s.shift === 'AFTERNOON').length}</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Turno Tarde</p>
+                                    <p className="text-2xl font-bold text-orange-600">{hrData.shifts.filter((s: any) => s.shift === 'AFTERNOON').length}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Turno Noche</p>
-                                    <p className="text-2xl font-black text-indigo-500 tracking-tighter">{hrData.shifts.filter((s: any) => s.shift === 'NIGHT').length}</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Turno Noche</p>
+                                    <p className="text-2xl font-bold text-indigo-600">{hrData.shifts.filter((s: any) => s.shift === 'NIGHT').length}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Total Activos</p>
-                                    <p className="text-2xl font-black text-primary tracking-tighter">{hrData.shifts.length}</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Total Activos</p>
+                                    <p className="text-2xl font-bold">{hrData.shifts.length}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Tabla de Turnos Asignados */}
-                    <Card className="border-border shadow-xl overflow-hidden bg-card/30 backdrop-blur-xl">
-                        <CardHeader className="bg-muted/10 border-b border-border p-6">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                                        <CalendarIcon className="h-5 w-5 text-indigo-500" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-lg font-black uppercase tracking-tight">Horarios del Personal</CardTitle>
-                                        <CardDescription className="text-[10px] uppercase tracking-widest">Turnos asignados desde el backend</CardDescription>
-                                    </div>
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center gap-3">
+                                <CalendarIcon className="h-5 w-5 text-indigo-600" />
+                                <div>
+                                    <CardTitle>Horarios del Personal</CardTitle>
+                                    <CardDescription>Turnos asignados desde el backend</CardDescription>
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-0">
+                        <CardContent>
                             <Table>
-                                <TableHeader className="bg-muted/5">
-                                    <TableRow className="border-border">
-                                        <TableHead className="px-6 py-4 text-[10px] font-black uppercase">Colaborador</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Día</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Turno</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Hora Inicio</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Hora Fin</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase text-center">Acciones</TableHead>
+                                <TableHeader>
+                                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Colaborador</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Día</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Turno</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Hora Inicio</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Hora Fin</TableHead>
+                                        <TableHead className="text-center text-zinc-500 uppercase text-xs font-bold">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {hrData.shifts.map((shift: any) => {
                                         const employee = hrData.employees.find((e: any) => e.id === shift.employeeId || e.name === shift.employeeName);
                                         return (
-                                            <TableRow key={shift.id} className="hover:bg-muted/5 border-border">
-                                                <TableCell className="px-6 py-4">
+                                            <TableRow key={shift.id}>
+                                                <TableCell>
                                                     <div className="flex items-center gap-3">
-                                                        <Avatar className="h-9 w-9 rounded-lg border border-border">
+                                                        <Avatar className="h-8 w-8">
                                                             <AvatarImage src={shift.employeePhoto || employee?.photo} />
-                                                            <AvatarFallback className="bg-indigo-500/10 text-indigo-500 font-bold text-xs">
+                                                            <AvatarFallback className="bg-indigo-100 text-indigo-600 text-xs font-semibold">
                                                                 {shift.employeeName?.charAt(0) || '?'}
                                                             </AvatarFallback>
                                                         </Avatar>
-                                                        <span className="text-sm font-bold">{shift.employeeName}</span>
+                                                        <span className="text-sm font-medium">{shift.employeeName}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="font-medium">{shift.day}</TableCell>
                                                 <TableCell>
-                                                    <Badge className={`text-[9px] font-black uppercase ${getShiftColor(shift.shift)}`}>
+                                                    <Badge className={`text-xs font-semibold ${getShiftColor(shift.shift)}`}>
                                                         {shift.shift === 'MORNING' ? 'Mañana' : shift.shift === 'AFTERNOON' ? 'Tarde' : 'Noche'}
                                                     </Badge>
                                                 </TableCell>
@@ -482,7 +477,6 @@ export default function HRPage() {
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleViewDetails(employee)}
-                                                            className="h-8 w-8 p-0 hover:bg-indigo-500/10"
                                                         >
                                                             <Eye className="h-4 w-4 text-indigo-500" />
                                                         </Button>
@@ -493,11 +487,8 @@ export default function HRPage() {
                                     })}
                                     {hrData.shifts.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="h-40 text-center">
-                                                <div className="flex flex-col items-center gap-3 opacity-40">
-                                                    <CalendarIcon className="h-10 w-10" />
-                                                    <p className="text-xs font-bold uppercase">No hay turnos registrados</p>
-                                                </div>
+                                            <TableCell colSpan={6} className="h-24 text-center text-zinc-500">
+                                                No hay turnos registrados
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -508,72 +499,67 @@ export default function HRPage() {
                 </TabsContent>
 
 
-                {/* Tab "Colaboradores" - Executive Directory */}
-                <TabsContent value="staff" className="mt-6 space-y-6 outline-none">
-                    <Card className="border-border/50 shadow-sm bg-indigo-500/5 border-indigo-500/10">
+                {/* ─── STAFF TAB ─── */}
+                <TabsContent value="staff" className="mt-4 space-y-4">
+                    <Card className="border-indigo-200 bg-indigo-50">
                         <CardHeader>
-                            <CardTitle className="text-sm font-bold uppercase tracking-wider">Métricas de Retención y Cultura</CardTitle>
+                            <CardTitle className="text-sm font-medium">Métricas de Retención y Cultura</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Rotación Mensual</p>
-                                    <p className="text-2xl font-black text-primary tracking-tighter">2.4%</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Rotación Mensual</p>
+                                    <p className="text-2xl font-bold">2.4%</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Antigüedad (Prom)</p>
-                                    <p className="text-2xl font-black text-primary tracking-tighter">3.2a</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Antigüedad (Prom)</p>
+                                    <p className="text-2xl font-bold">3.2a</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Satisfacción</p>
-                                    <p className="text-2xl font-black text-primary tracking-tighter">4.8/5</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Satisfacción</p>
+                                    <p className="text-2xl font-bold">4.8/5</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Diversidad</p>
-                                    <p className="text-2xl font-black text-primary tracking-tighter">45/55</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Diversidad</p>
+                                    <p className="text-2xl font-bold">45/55</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* NUEVO: Directorio Ejecutivo de Colaboradores (Vista Técnica Gerencial) */}
-                    <Card className="border-border shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl border-t-4 border-t-indigo-500">
-                        <CardHeader className="bg-muted/10 border-b border-border p-8">
-                            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                    {/* Directorio de Colaboradores */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                 <div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                                            <Users className="h-5 w-5 text-indigo-500" />
-                                        </div>
-                                        <CardTitle className="text-2xl font-black tracking-tighter uppercase italic">Directorio <span className="text-indigo-500">Ejecutivo</span></CardTitle>
-                                    </div>
-                                    <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] mt-2 opacity-50">Mapa humano y administrativo de la institución</CardDescription>
+                                    <CardTitle>Directorio Ejecutivo</CardTitle>
+                                    <CardDescription>Mapa humano y administrativo de la institución</CardDescription>
                                 </div>
-                                <div className="flex items-center gap-3 w-full md:w-auto">
-                                    <div className="relative flex-1 md:w-80">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <div className="flex items-center gap-2 w-full md:w-auto">
+                                    <div className="relative flex-1 md:w-64">
+                                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
                                         <Input
-                                            placeholder="FILTRAR POR NOMBRE, DNI O CARGO..."
-                                            className="pl-12 h-12 bg-background/50 border-border text-[10px] font-black uppercase rounded-xl focus:ring-indigo-500/20"
+                                            placeholder="Buscar por nombre, DNI o cargo..."
+                                            className="pl-9 bg-zinc-900 border-zinc-800"
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                         />
                                     </div>
-                                    <Button variant="outline" className="h-12 border-border bg-background/50 rounded-xl px-6 group hover:bg-indigo-500/10 hover:text-indigo-500 transition-all font-bold">
-                                        <Filter className="h-4 w-4 mr-2" /> Filtros Avanzados
+                                    <Button variant="outline" size="sm">
+                                        <Filter className="h-4 w-4 mr-2" /> Filtros
                                     </Button>
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-0">
+                        <CardContent>
                             <Table>
-                                <TableHeader className="bg-muted/5 text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                                    <TableRow className="hover:bg-transparent border-border">
-                                        <TableHead className="px-8 py-6">Colaborador / Unidad</TableHead>
-                                        <TableHead>DNI / Documento</TableHead>
-                                        <TableHead>Nivel Contractual</TableHead>
-                                        <TableHead>Estado Laboral</TableHead>
-                                        <TableHead className="text-right px-8">Acciones</TableHead>
+                                <TableHeader>
+                                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Colaborador / Unidad</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">DNI / Documento</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Nivel Contractual</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Estado Laboral</TableHead>
+                                        <TableHead className="text-right text-zinc-500 uppercase text-xs font-bold">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -584,57 +570,51 @@ export default function HRPage() {
                                             emp.role.toLowerCase().includes(searchTerm.toLowerCase())
                                         )
                                         .map((emp: any) => (
-                                            <TableRow key={emp.id} className="hover:bg-indigo-500/5 transition-all border-border text-foreground group">
-                                                <TableCell className="px-8 py-5">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="relative">
-                                                            <Avatar className="h-11 w-11 rounded-xl border-2 border-background shadow-lg transition-transform group-hover:scale-105">
-                                                                <AvatarImage src={emp.photo} className="object-cover" />
-                                                                <AvatarFallback className="font-black bg-indigo-500/10 text-indigo-500 uppercase">{emp.name.charAt(0)}</AvatarFallback>
-                                                            </Avatar>
-                                                            <div className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background ${emp.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                                                        </div>
+                                            <TableRow key={emp.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="h-10 w-10">
+                                                            <AvatarImage src={emp.photo} className="object-cover" />
+                                                            <AvatarFallback className="bg-indigo-100 text-indigo-600 font-semibold">{emp.name.charAt(0)}</AvatarFallback>
+                                                        </Avatar>
                                                         <div>
-                                                            <p className="text-sm font-black uppercase tracking-tight leading-none">{emp.name}</p>
-                                                            <p className="text-[9px] font-bold text-indigo-500/70 mt-1.5 uppercase tracking-widest">{emp.role} • {emp.area}</p>
+                                                            <p className="text-sm font-medium">{emp.name}</p>
+                                                            <p className="text-xs text-muted-foreground">{emp.role} • {emp.area}</p>
                                                         </div>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <CreditCard className="h-3.5 w-3.5 text-muted-foreground opacity-40" />
-                                                        <span className="text-xs font-mono font-bold tracking-tighter text-muted-foreground">{emp.documentId || '---'}</span>
+                                                        <CreditCard className="h-3 w-3 text-muted-foreground" />
+                                                        <span className="text-xs font-mono">{emp.documentId || '---'}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline" className="text-[8px] font-black bg-indigo-500/5 border-indigo-500/20 text-indigo-400 uppercase tracking-widest px-3 py-1 rounded-lg">
+                                                    <Badge variant="outline" className="text-xs bg-indigo-50 border-indigo-200 text-indigo-700">
                                                         {emp.contract}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge className={`text-[8px] font-black uppercase tracking-widest border-none ${emp.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-500'}`}>
-                                                        {emp.status === 'ACTIVE' ? 'EN FUNCIONES' : 'LICENCIA/INACTIVO'}
+                                                    <Badge className={`text-xs font-semibold ${emp.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                        {emp.status === 'ACTIVE' ? 'En Funciones' : 'Licencia/Inactivo'}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell className="text-right px-8">
+                                                <TableCell className="text-right">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="h-10 px-6 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 hover:text-white rounded-xl transition-all shadow-indigo-500/20 hover:shadow-lg"
                                                         onClick={() => handleViewDetails(emp)}
                                                     >
-                                                        Explorar Perfil <Eye className="ml-3 h-4 w-4" />
+                                                        Ver Perfil
+                                                        <Eye className="ml-2 h-4 w-4" />
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
                                     {hrData.employees.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="h-60 text-center">
-                                                <div className="flex flex-col items-center justify-center gap-4 opacity-30">
-                                                    <Users className="h-12 w-12" />
-                                                    <p className="text-xs font-black uppercase tracking-[0.3em]">Base de datos vacía</p>
-                                                </div>
+                                            <TableCell colSpan={5} className="h-24 text-center text-zinc-500">
+                                                No se encontraron empleados
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -644,85 +624,81 @@ export default function HRPage() {
                     </Card>
                 </TabsContent>
 
-                {/* Tab "Nómina" - Payroll Records */}
-                <TabsContent value="payroll" className="mt-6 space-y-6 outline-none animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* ─── PAYROLL TAB ─── */}
+                <TabsContent value="payroll" className="mt-4 space-y-4">
                     {/* Métricas Inline de Nómina */}
-                    <Card className="border-border/50 shadow-sm bg-emerald-500/5 border-emerald-500/10">
+                    <Card className="border-green-200 bg-green-50">
                         <CardHeader>
-                            <CardTitle className="text-sm font-bold uppercase tracking-wider">Resumen de Planilla</CardTitle>
+                            <CardTitle className="text-sm font-medium">Resumen de Planilla</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Total Planilla</p>
-                                    <p className="text-2xl font-black text-emerald-500 tracking-tighter">S/ {hrData.payroll.reduce((acc: number, p: any) => acc + (Number(p.netSalary) || 0), 0).toLocaleString()}</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Total Planilla</p>
+                                    <p className="text-2xl font-bold text-green-600">S/ {hrData.payroll.reduce((acc: number, p: any) => acc + (Number(p.netSalary) || 0), 0).toLocaleString()}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Boletas</p>
-                                    <p className="text-2xl font-black text-blue-500 tracking-tighter">{hrData.payroll.length}</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Boletas</p>
+                                    <p className="text-2xl font-bold text-blue-600">{hrData.payroll.length}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Pendientes</p>
-                                    <p className="text-2xl font-black text-orange-500 tracking-tighter">{hrData.payroll.filter((p: any) => p.status === 'PENDING').length}</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Pendientes</p>
+                                    <p className="text-2xl font-bold text-orange-600">{hrData.payroll.filter((p: any) => p.status === 'PENDING').length}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Pagados</p>
-                                    <p className="text-2xl font-black text-primary tracking-tighter">{hrData.payroll.filter((p: any) => p.status === 'PAID').length}</p>
+                                    <p className="text-xs text-muted-foreground mb-1">Pagados</p>
+                                    <p className="text-2xl font-bold">{hrData.payroll.filter((p: any) => p.status === 'PAID').length}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Tabla de Nómina */}
-                    <Card className="border-border shadow-xl overflow-hidden bg-card/30 backdrop-blur-xl">
-                        <CardHeader className="bg-muted/10 border-b border-border p-6">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                                        <DollarSign className="h-5 w-5 text-emerald-500" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-lg font-black uppercase tracking-tight">Registros de Nómina</CardTitle>
-                                        <CardDescription className="text-[10px] uppercase tracking-widest">Historial de pagos desde el backend</CardDescription>
-                                    </div>
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center gap-3">
+                                <DollarSign className="h-5 w-5 text-green-600" />
+                                <div>
+                                    <CardTitle>Registros de Nómina</CardTitle>
+                                    <CardDescription>Historial de pagos desde el backend</CardDescription>
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-0">
+                        <CardContent>
                             <Table>
-                                <TableHeader className="bg-muted/5">
-                                    <TableRow className="border-border">
-                                        <TableHead className="px-6 py-4 text-[10px] font-black uppercase">Colaborador</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Período</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Salario Base</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Bonificaciones</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Deducciones</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Neto</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase">Estado</TableHead>
-                                        <TableHead className="text-[10px] font-black uppercase text-center">Boleta</TableHead>
+                                <TableHeader>
+                                    <TableRow className="border-zinc-800 hover:bg-transparent">
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Colaborador</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Período</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Salario Base</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Bonificaciones</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Deducciones</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Neto</TableHead>
+                                        <TableHead className="text-zinc-500 uppercase text-xs font-bold">Estado</TableHead>
+                                        <TableHead className="text-center text-zinc-500 uppercase text-xs font-bold">Boleta</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {hrData.payroll.map((record: any) => (
-                                        <TableRow key={record.id} className="hover:bg-muted/5 border-border">
-                                            <TableCell className="px-6 py-4">
+                                        <TableRow key={record.id}>
+                                            <TableCell>
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar className="h-9 w-9 rounded-lg border border-border">
+                                                    <Avatar className="h-8 w-8">
                                                         <AvatarImage src={record.employeePhoto} />
-                                                        <AvatarFallback className="bg-emerald-500/10 text-emerald-500 font-bold text-xs">
+                                                        <AvatarFallback className="bg-green-100 text-green-600 text-xs font-semibold">
                                                             {record.employeeName?.charAt(0) || '?'}
                                                         </AvatarFallback>
                                                     </Avatar>
-                                                    <span className="text-sm font-bold">{record.employeeName}</span>
+                                                    <span className="text-sm font-medium">{record.employeeName}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-medium">{typeof record.period === 'string' ? record.period : format(new Date(record.period || record.createdAt || Date.now()), 'MMM yyyy', { locale: es })}</TableCell>
                                             <TableCell className="font-mono text-sm">S/ {Number(record.baseSalary || 0).toLocaleString()}</TableCell>
-                                            <TableCell className="font-mono text-sm text-emerald-500">+S/ {Number(record.bonuses || 0).toLocaleString()}</TableCell>
-                                            <TableCell className="font-mono text-sm text-red-500">-S/ {Number(record.deductions || 0).toLocaleString()}</TableCell>
-                                            <TableCell className="font-mono text-sm font-bold">S/ {Number(record.netSalary || 0).toLocaleString()}</TableCell>
+                                            <TableCell className="font-mono text-sm text-green-600">+S/ {Number(record.bonuses || 0).toLocaleString()}</TableCell>
+                                            <TableCell className="font-mono text-sm text-red-600">-S/ {Number(record.deductions || 0).toLocaleString()}</TableCell>
+                                            <TableCell className="font-mono text-sm font-semibold">S/ {Number(record.netSalary || 0).toLocaleString()}</TableCell>
                                             <TableCell>
-                                                <Badge className={`text-[9px] font-black uppercase ${record.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-600' : record.status === 'PENDING' ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                <Badge className={`text-xs font-semibold ${record.status === 'PAID' ? 'bg-green-100 text-green-700' : record.status === 'PENDING' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
                                                     {record.status === 'PAID' ? 'Pagado' : record.status === 'PENDING' ? 'Pendiente' : 'Procesando'}
                                                 </Badge>
                                             </TableCell>
@@ -731,7 +707,6 @@ export default function HRPage() {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleViewPaystub(record)}
-                                                    className="h-8 w-8 p-0 hover:bg-indigo-500/10"
                                                 >
                                                     <Eye className="h-4 w-4 text-indigo-500" />
                                                 </Button>
@@ -740,11 +715,8 @@ export default function HRPage() {
                                     ))}
                                     {hrData.payroll.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="h-40 text-center">
-                                                <div className="flex flex-col items-center gap-3 opacity-40">
-                                                    <DollarSign className="h-10 w-10" />
-                                                    <p className="text-xs font-bold uppercase">No hay registros de nómina</p>
-                                                </div>
+                                            <TableCell colSpan={8} className="h-24 text-center text-zinc-500">
+                                                No hay registros de nómina
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -755,217 +727,137 @@ export default function HRPage() {
                 </TabsContent>
             </Tabs>
 
-            {/* Visor de Detalles "Senior Profile Viewer" (Executive Read-Only) */}
+            {/* ─── EMPLOYEE DETAILS MODAL ─── */}
             <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-                <DialogContent className="sm:max-w-[950px] p-0 overflow-hidden bg-[#0c0c0e] border-white/10 shadow-3xl rounded-[2.5rem] text-white">
-                    <div className="grid grid-cols-1 md:grid-cols-12 max-h-[90vh]">
-                        {/* Sidebar Estratégico */}
-                        <div className="md:col-span-4 bg-white/5 p-10 flex flex-col items-center border-r border-white/5 relative bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.1),transparent)]">
-                            <div className="relative mb-8 pt-6">
-                                <div className="h-44 w-44 rounded-[3rem] overflow-hidden border-4 border-indigo-500/30 shadow-2xl relative p-1 bg-gradient-to-tr from-indigo-500/20 to-transparent">
-                                    <div className="h-full w-full rounded-[2.8rem] overflow-hidden bg-zinc-900 border border-white/10">
-                                        <Avatar className="h-full w-full rounded-none">
-                                            <AvatarImage src={selectedEmployee?.photo} className="object-cover" />
-                                            <AvatarFallback className="text-5xl font-black bg-indigo-500 text-white">
-                                                {selectedEmployee?.name?.charAt(0)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    </div>
-                                </div>
-                                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                                    <Badge className="bg-emerald-500 text-white font-black px-4 py-1.5 rounded-full border-4 border-[#0c0c0e] text-[9px] uppercase tracking-widest shadow-xl">
-                                        VERIFICADO
+                <DialogContent className="sm:max-w-[700px]">
+                    <DialogHeader>
+                        <DialogTitle>Perfil del Empleado</DialogTitle>
+                        <DialogDescription>Información detallada del colaborador</DialogDescription>
+                    </DialogHeader>
+
+                    {selectedEmployee && (
+                        <div className="space-y-6 pt-4">
+                            {/* Header with photo */}
+                            <div className="flex items-center gap-4 pb-4 border-b">
+                                <Avatar className="h-20 w-20">
+                                    <AvatarImage src={selectedEmployee.photo} className="object-cover" />
+                                    <AvatarFallback className="text-2xl bg-indigo-500 text-white">
+                                        {selectedEmployee.name?.charAt(0)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h3 className="text-xl font-bold">{selectedEmployee.name}</h3>
+                                    <p className="text-sm text-muted-foreground">{selectedEmployee.role} • {selectedEmployee.area}</p>
+                                    <Badge className={`mt-1 text-xs ${selectedEmployee.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                        {selectedEmployee.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                                     </Badge>
                                 </div>
                             </div>
 
-                            <div className="text-center space-y-2 mb-10">
-                                <h2 className="text-3xl font-black tracking-tighter uppercase italic text-white leading-tight">
-                                    {selectedEmployee?.name?.split(' ')[0]} <span className="text-indigo-500">{selectedEmployee?.name?.split(' ')[1]}</span>
-                                </h2>
-                                <div className="flex items-center justify-center gap-2">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 font-mono">
-                                        ID-OPS #88{selectedEmployee?.documentId?.slice(-4)}
-                                    </p>
+                            {/* Info Grid */}
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground">DNI</Label>
+                                        <p className="text-sm font-semibold">{selectedEmployee.documentId || '---'}</p>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground">Email</Label>
+                                        <p className="text-sm font-semibold">{selectedEmployee.email || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground">Teléfono</Label>
+                                        <p className="text-sm font-semibold">{selectedEmployee.phone || '---'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground">Fecha Ingreso</Label>
+                                        <p className="text-sm font-semibold">
+                                            {selectedEmployee.hireDate ? format(new Date(selectedEmployee.hireDate), 'dd MMM yyyy', { locale: es }) : '---'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground">Tipo de Contrato</Label>
+                                        <p className="text-sm font-semibold">{selectedEmployee.contract}</p>
+                                    </div>
+                                    <div>
+                                        <Label className="text-xs text-muted-foreground">Salario Base</Label>
+                                        <p className="text-sm font-semibold">S/ {selectedEmployee.baseSalary ? Number(selectedEmployee.baseSalary).toLocaleString() : '0'}</p>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Acciones Rápidas Unificadas */}
-                            <div className="w-full space-y-3">
+                            {/* Actions */}
+                            <div className="flex gap-2 pt-4">
                                 <Button
-                                    onClick={() => { setIsDetailsModalOpen(false); navigate(`/attendance?search=${selectedEmployee?.name}`); }}
-                                    className="w-full h-14 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 group"
+                                    onClick={() => { setIsDetailsModalOpen(false); navigate(`/attendance?search=${selectedEmployee.name}`); }}
+                                    className="flex-1"
                                 >
-                                    <Activity className="mr-3 h-5 w-5 text-indigo-500 group-hover:animate-bounce" /> Ver Detalle en Asistencia
+                                    <Activity className="mr-2 h-4 w-4" />
+                                    Ver en Asistencia
                                 </Button>
-                                <Button className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/20 active:scale-95 group">
-                                    <Download className="mr-3 h-5 w-5 group-hover:translate-y-1 transition-transform" /> Descargar Ficha Técnica
+                                <Button variant="outline" className="flex-1">
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Descargar Ficha
                                 </Button>
                             </div>
                         </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
-                        {/* Panel de Datos "Executive View" */}
-                        <div className="md:col-span-8 p-12 overflow-y-auto custom-scrollbar bg-gradient-to-br from-transparent to-indigo-500/[0.02]">
-                            <div className="space-y-12">
-                                {/* Fila 1: KPIs Personales (Mocked/Calculated base) */}
-                                <div className="grid grid-cols-3 gap-6">
-                                    <div className="bg-white/5 p-6 rounded-3xl border border-white/5 space-y-1 flex flex-col items-center">
-                                        <div className="h-12 w-12 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 flex items-center justify-center mb-3">
-                                            <span className="text-xs font-black text-emerald-500">98%</span>
-                                        </div>
-                                        <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Puntualidad</p>
-                                        <p className="text-xl font-black text-white italic tracking-tighter">EFICIENTE</p>
-                                    </div>
-                                    <div className="bg-white/5 p-6 rounded-3xl border border-white/5 space-y-1 flex flex-col items-center">
-                                        <div className="h-12 w-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-3">
-                                            <XCircle className="h-6 w-6 text-orange-500" />
-                                        </div>
-                                        <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Ausencias</p>
-                                        <p className="text-xl font-black text-white italic tracking-tighter">02 DÍAS</p>
-                                    </div>
-                                    <div className="bg-white/5 p-6 rounded-3xl border border-white/5 space-y-1 flex flex-col items-center">
-                                        <div className="h-12 w-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-3">
-                                            <TrendingUp className="h-6 w-6 text-indigo-500" />
-                                        </div>
-                                        <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Horas Extra</p>
-                                        <p className="text-xl font-black text-white italic tracking-tighter">+12.5 hrs</p>
-                                    </div>
-                                </div>
-
-                                {/* Secciones de Datos */}
-                                <div className="grid grid-cols-2 gap-10">
-                                    <div className="space-y-8">
-                                        <div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-500 mb-6 flex items-center gap-3">
-                                                <span className="h-px w-8 bg-indigo-500" /> Identidad Admin
-                                            </h3>
-                                            <div className="space-y-5">
-                                                <div className="space-y-1">
-                                                    <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest">DNI Titular</p>
-                                                    <p className="text-sm font-black tracking-widest text-white/90">{selectedEmployee?.documentId || '---'}</p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest">Email Corporativo</p>
-                                                    <p className="text-sm font-bold text-white/70 underline decoration-indigo-500/30">{selectedEmployee?.email || 'N/A'}</p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest">Celular Contacto</p>
-                                                    <p className="text-sm font-mono font-black text-white/90">{selectedEmployee?.phone || '---'}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-500 mb-6 flex items-center gap-3">
-                                                <span className="h-px w-8 bg-emerald-500" /> Historial / Estructura
-                                            </h3>
-                                            <div className="space-y-5">
-                                                <div className="space-y-1">
-                                                    <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest">Fecha Ingreso</p>
-                                                    <p className="text-sm font-black text-white/90 uppercase">{selectedEmployee?.hireDate ? format(new Date(selectedEmployee.hireDate), 'MMMM yyyy', { locale: es }) : '---'}</p>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest">Tipo de Contrato</p>
-                                                    <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black text-[9px] px-3">ESTABLE / {selectedEmployee?.contract}</Badge>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-8">
-                                        <div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-500 mb-6 flex items-center gap-3">
-                                                <span className="h-px w-8 bg-blue-500" /> Percepción Mensual
-                                            </h3>
-                                            <div className="bg-white/5 p-8 rounded-3xl border border-white/5 space-y-6 relative overflow-hidden group">
-                                                <div className="absolute top-0 right-0 h-24 w-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors" />
-                                                <div className="space-y-1 relative">
-                                                    <p className="text-[8px] font-black uppercase text-slate-600 tracking-widest">Sueldo Base Nominal</p>
-                                                    <p className="text-4xl font-black text-white tracking-tighter">S/ {selectedEmployee?.baseSalary ? Number(selectedEmployee.baseSalary).toLocaleString() : '0'}</p>
-                                                </div>
-                                                <div className="space-y-4 pt-4 border-t border-white/5 relative">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-[10px] font-bold text-slate-500">CTA Bancaria</span>
-                                                        <span className="text-[10px] font-mono font-black text-white">{selectedEmployee?.bankAccount?.slice(-6) ? '****' + selectedEmployee.bankAccount.slice(-6) : 'PENDIENTE'}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-[10px] font-bold text-slate-500">Estado Pago</span>
-                                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-none font-black text-[8px]">AL DÍA</Badge>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-indigo-500/5 border border-indigo-500/10 p-6 rounded-2xl relative">
-                                            <Info className="h-5 w-5 text-indigo-500 absolute top-4 right-4 opacity-50" />
-                                            <p className="text-[9px] font-black uppercase text-indigo-500 tracking-widest mb-2">Observaciones Gerenciales</p>
-                                            <p className="text-[11px] text-slate-400 font-medium italic leading-relaxed">
-                                                {selectedEmployee?.notes || "Perfil verificado por la dirección médica. No registra anomalías contractuales en el histórico de los últimos 12 meses."}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </DialogContent >
-            </Dialog >
-
-            {/* Modal de Boleta de Pago */}
+            {/* ─── PAYROLL MODAL ─── */}
             <Dialog open={isPaystubModalOpen} onOpenChange={setIsPaystubModalOpen}>
-                <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-[#0c0c0e] border-white/10 shadow-3xl rounded-3xl text-white">
-                    <DialogHeader className="p-6 pb-0">
-                        <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">
-                            Boleta de Pago
-                        </DialogTitle>
-                        <DialogDescription className="text-[10px] uppercase tracking-widest text-slate-500">
-                            Detalle del registro de nómina
-                        </DialogDescription>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Boleta de Pago</DialogTitle>
+                        <DialogDescription>Detalle del registro de nómina</DialogDescription>
                     </DialogHeader>
 
                     {selectedPayroll && (
-                        <div className="p-6 space-y-6">
+                        <div className="space-y-4 pt-4">
                             {/* Header con empleado */}
-                            <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
-                                <Avatar className="h-14 w-14 rounded-xl border-2 border-emerald-500/30">
+                            <div className="flex items-center gap-4 p-4 bg-accent rounded-lg">
+                                <Avatar className="h-12 w-12">
                                     <AvatarImage src={selectedPayroll.employeePhoto} />
-                                    <AvatarFallback className="bg-emerald-500 text-white font-bold">
+                                    <AvatarFallback className="bg-green-500 text-white font-semibold">
                                         {selectedPayroll.employeeName?.charAt(0)}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <p className="text-lg font-black text-white">{selectedPayroll.employeeName}</p>
-                                    <p className="text-[10px] uppercase text-slate-500 tracking-widest">
+                                    <p className="font-semibold">{selectedPayroll.employeeName}</p>
+                                    <p className="text-xs text-muted-foreground">
                                         Período: {typeof selectedPayroll.period === 'string' ? selectedPayroll.period : format(new Date(selectedPayroll.period || selectedPayroll.createdAt || Date.now()), 'MMMM yyyy', { locale: es })}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Desglose de pago */}
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center p-4 bg-white/5 rounded-xl">
-                                    <span className="text-sm text-slate-400">Salario Base</span>
-                                    <span className="text-lg font-mono font-bold text-white">S/ {Number(selectedPayroll.baseSalary || 0).toLocaleString()}</span>
+                            <div className="space-y-2">
+                                <div className="flex justify-between p-3 bg-accent/50 rounded">
+                                    <span className="text-sm">Salario Base</span>
+                                    <span className="font-mono font-semibold">S/ {Number(selectedPayroll.baseSalary || 0).toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between items-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                                    <span className="text-sm text-emerald-400">Bonificaciones</span>
-                                    <span className="text-lg font-mono font-bold text-emerald-400">+S/ {Number(selectedPayroll.bonuses || 0).toLocaleString()}</span>
+                                <div className="flex justify-between p-3 bg-green-50 rounded border border-green-200">
+                                    <span className="text-sm text-green-700">Bonificaciones</span>
+                                    <span className="font-mono font-semibold text-green-700">+S/ {Number(selectedPayroll.bonuses || 0).toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between items-center p-4 bg-red-500/10 rounded-xl border border-red-500/20">
-                                    <span className="text-sm text-red-400">Deducciones</span>
-                                    <span className="text-lg font-mono font-bold text-red-400">-S/ {Number(selectedPayroll.deductions || 0).toLocaleString()}</span>
+                                <div className="flex justify-between p-3 bg-red-50 rounded border border-red-200">
+                                    <span className="text-sm text-red-700">Deducciones</span>
+                                    <span className="font-mono font-semibold text-red-700">-S/ {Number(selectedPayroll.deductions || 0).toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between items-center p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                                    <span className="text-sm font-bold text-white">NETO A PAGAR</span>
-                                    <span className="text-2xl font-mono font-black text-indigo-400">S/ {Number(selectedPayroll.netSalary || 0).toLocaleString()}</span>
+                                <div className="flex justify-between p-3 bg-indigo-50 rounded border border-indigo-200">
+                                    <span className="text-sm font-bold">NETO A PAGAR</span>
+                                    <span className="text-xl font-mono font-bold text-indigo-600">S/ {Number(selectedPayroll.netSalary || 0).toLocaleString()}</span>
                                 </div>
                             </div>
 
                             {/* Estado */}
-                            <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                                <span className="text-sm text-slate-400">Estado</span>
-                                <Badge className={`text-xs font-black uppercase ${selectedPayroll.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' : selectedPayroll.status === 'PENDING' ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                            <div className="flex items-center justify-between p-3 bg-accent/50 rounded">
+                                <span className="text-sm">Estado</span>
+                                <Badge className={`text-xs font-semibold ${selectedPayroll.status === 'PAID' ? 'bg-green-100 text-green-700' : selectedPayroll.status === 'PENDING' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
                                     {selectedPayroll.status === 'PAID' ? 'Pagado' : selectedPayroll.status === 'PENDING' ? 'Pendiente' : 'Procesando'}
                                 </Badge>
                             </div>
@@ -1025,7 +917,7 @@ export default function HRPage() {
                                         printWindow.print();
                                     }
                                 }}
-                                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold uppercase tracking-wider"
+                                className="w-full bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20"
                             >
                                 <Download className="mr-2 h-4 w-4" /> Descargar PDF
                             </Button>
@@ -1033,6 +925,6 @@ export default function HRPage() {
                     )}
                 </DialogContent>
             </Dialog>
-        </div >
+        </div>
     )
 }

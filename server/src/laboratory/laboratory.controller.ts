@@ -43,6 +43,12 @@ export class LaboratoryController {
         return this.laboratoryService.deleteOrder(id);
     }
 
+    @Get('stats')
+    @ApiOperation({ summary: 'Get laboratory statistics' })
+    async getStats() {
+        return this.laboratoryService.getStats();
+    }
+
     @Get('tests')
     @ApiOperation({ summary: 'Get available tests' })
     async getTests() {
