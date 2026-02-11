@@ -17,7 +17,7 @@ export const exportHRAttendanceToPDF = (attendance: any[]) => {
     // Header
     doc.setFontSize(22);
     doc.setTextColor(40);
-    doc.text('REPORTE DE ASISTENCIA - MEDISYNC', 14, 22);
+    doc.text('REPORTE DE ASISTENCIA - EDICAREX', 14, 22);
 
     doc.setFontSize(10);
     doc.setTextColor(100);
@@ -48,7 +48,7 @@ export const exportPayrollToPDF = (payroll: any[]) => {
     const doc = new jsPDF() as any;
 
     doc.setFontSize(22);
-    doc.text('REPORTE DE NÓMINA - MEDISYNC', 14, 22);
+    doc.text('REPORTE DE NÓMINA - EDICAREX', 14, 22);
 
     const tableData = payroll.map(p => [
         p.employee?.name || '---',

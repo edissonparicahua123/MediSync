@@ -202,7 +202,7 @@ export default function PatientsPage() {
             // Header
             doc.setFontSize(20)
             doc.setTextColor(40)
-            doc.text('REPORTE DE PACIENTES - MEDISYNC', 14, 22)
+            doc.text('REPORTE DE PACIENTES - EDICAREX', 14, 22)
 
             doc.setFontSize(10)
             doc.setTextColor(100)

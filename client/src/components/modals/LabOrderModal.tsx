@@ -46,7 +46,7 @@ export default function LabOrderModal({
     const [formData, setFormData] = useState({
         patientId: defaultPatientId || '',
         doctorId: defaultDoctorId || '',
-        testType: '',
+        testId: '',
         priority: 'NORMAL',
         notes: ''
     })
@@ -105,7 +105,7 @@ export default function LabOrderModal({
 
     const handleSubmit = async () => {
         // Validation
-        if (!formData.patientId || !formData.doctorId || !formData.testType) {
+        if (!formData.patientId || !formData.doctorId || !formData.testId) {
             toast({
                 title: "Campos Incompletos",
                 description: "Por favor seleccione paciente, médico y tipo de examen.",
@@ -131,11 +131,11 @@ export default function LabOrderModal({
             if (onSuccess) onSuccess()
             onOpenChange(false)
 
-            // Reset form (keeping defaults if present is tricky, better to just reset specific fields or let next open handle it)
+            // Reset form
             setFormData({
                 patientId: defaultPatientId || '',
                 doctorId: defaultDoctorId || '',
-                testType: '',
+                testId: '',
                 priority: 'NORMAL',
                 notes: ''
             })
@@ -213,8 +213,8 @@ export default function LabOrderModal({
                     <div className="space-y-2">
                         <Label className="text-zinc-300">Tipo de Examen</Label>
                         <Select
-                            value={formData.testType}
-                            onValueChange={(v) => setFormData({ ...formData, testType: v })}
+                            value={formData.testId}
+                            onValueChange={(v) => setFormData({ ...formData, testId: v })}
                         >
                             <SelectTrigger className="bg-zinc-900 border-zinc-800 focus:ring-red-500/20 text-zinc-100">
                                 <SelectValue placeholder="Seleccionar análisis..." />

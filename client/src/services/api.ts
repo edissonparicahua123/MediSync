@@ -20,16 +20,29 @@ api.interceptors.request.use((config) => {
     return config
 })
 
-// Handle auth errors
+// Handle common errors (Auth, Maintenance)
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         const isLoginRequest = error.config?.url?.includes('/auth/login')
-        if (error.response?.status === 401 && !isLoginRequest) {
+        const status = error.response?.status
+
+        // 401 Unauthorized - Kick to login
+        if (status === 401 && !isLoginRequest) {
             localStorage.removeItem('token')
             useAuthStore.getState().logout()
             window.location.href = '/login'
         }
+
+        // 503 Service Unavailable - Check for Maintenance Mode
+        const errorData = error.response?.data
+        if (status === 503 && errorData?.code === 'MAINTENANCE_MODE_ACTIVE') {
+            // Only redirect if we are not already on the maintenance page
+            if (window.location.pathname !== '/maintenance') {
+                window.location.href = '/maintenance'
+            }
+        }
+
         return Promise.reject(error)
     }
 )
@@ -113,6 +126,7 @@ export const doctorsAPI = {
     create: (data: any) => api.post('/doctors', data),
     update: (id: string, data: any) => api.patch(`/doctors/${id}`, data),
     delete: (id: string) => api.delete(`/doctors/${id}`),
+    getSpecialties: () => api.get('/doctors/specialties'),
     // Documents
     getDocuments: (id: string) => api.get(`/doctors/${id}/documents`),
     addDocument: (id: string, data: any) => api.post(`/doctors/${id}/documents`, data),
@@ -226,6 +240,9 @@ export const adminAPI = {
     updateOrganization: (data: any) => api.put('/admin/organization', data),
     getBackups: () => api.get('/admin/backups'),
     createBackup: () => api.post('/admin/backups'),
+    restoreBackup: (id: string) => api.post(`/admin/backups/${id}/restore`),
+    getSystemStats: () => api.get('/admin/system/stats'),
+    getSystemHealth: () => api.get('/admin/system/health'),
 }
 
 // ============================================
@@ -263,20 +280,24 @@ export const messagesAPI = {
 // ANALYTICS API (NEW)
 // ============================================
 export const analyticsAPI = {
-    getDashboard: () => api.get('/analytics/dashboard'),
-    getHeatmap: () => api.get('/analytics/heatmap'),
-    getSaturation: () => api.get('/analytics/saturation'),
-    getAreaComparison: () => api.get('/analytics/area-comparison'),
-    getPatientCycle: () => api.get('/analytics/patient-cycle'),
-    getCapacity: () => api.get('/analytics/capacity'),
-    getHistorical: () => api.get('/analytics/historical'),
-    // Kept for backward compatibility if needed, but these might be redundant now
+    getDashboard: (range?: string) => api.get('/analytics/dashboard', { params: { range } }),
+    getHeatmap: (range?: string) => api.get('/analytics/heatmap', { params: { range } }),
+    getSaturation: (range?: string) => api.get('/analytics/saturation', { params: { range } }),
+    getAreaComparison: (range?: string) => api.get('/analytics/area-comparison', { params: { range } }),
+    getPatientCycle: (range?: string) => api.get('/analytics/patient-cycle', { params: { range } }),
+    getCapacity: (range?: string) => api.get('/analytics/capacity', { params: { range } }),
+    getHistorical: (range?: string) => api.get('/analytics/historical', { params: { range } }),
+    // Kept for backward compatibility
     getAppointmentsByDay: (days?: number) =>
         api.get('/analytics/appointments/by-day', { params: { days } }),
-    getAppointmentsByPriority: () => api.get('/analytics/appointments/by-priority'),
-    getAppointmentsByStatus: () => api.get('/analytics/appointments/by-status'),
-    getPatientStats: () => api.get('/analytics/patients/stats'),
-    getRevenueStats: () => api.get('/analytics/revenue/stats'),
+    getAppointmentsByPriority: (range?: string) => api.get('/analytics/appointments/by-priority', { params: { range } }),
+    getAppointmentsByStatus: (range?: string) => api.get('/analytics/appointments/by-status', { params: { range } }),
+    getPatientStats: (range?: string) => api.get('/analytics/patients/stats', { params: { range } }),
+    getRevenueStats: (range?: string) => api.get('/analytics/revenue/stats', { params: { range } }),
+    getAppointmentTypes: (range?: string) => api.get('/analytics/appointments/types', { params: { range } }),
+    getLabStats: (range?: string) => api.get('/analytics/lab/stats', { params: { range } }),
+    getTopMeds: (range?: string) => api.get('/analytics/pharmacy/top-meds', { params: { range } }),
+    getAgeDistribution: (range?: string) => api.get('/analytics/patients/age-distribution', { params: { range } }),
 }
 
 // ============================================

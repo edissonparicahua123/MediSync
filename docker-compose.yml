@@ -4,20 +4,20 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: medisync-postgres
+    container_name: edicarex-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-medisync}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medisync_secure_password}
-      POSTGRES_DB: ${POSTGRES_DB:-medisync}
+      POSTGRES_USER: ${POSTGRES_USER:-edicarex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edicarex_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-edicarex}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - medisync-network
+      - edicarex-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U medisync"]
+      test: ["CMD-SHELL", "pg_isready -U edicarex"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,14 +25,14 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: medisync-redis
+    container_name: edicarex-redis
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
-      - medisync-network
+      - edicarex-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -44,12 +44,12 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: medisync-server
+    container_name: edicarex-server
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: ${SERVER_PORT:-3000}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-medisync}:${POSTGRES_PASSWORD:-medisync_secure_password}@postgres:5432/${POSTGRES_DB:-medisync}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-edicarex}:${POSTGRES_PASSWORD:-edicarex_secure_password}@postgres:5432/${POSTGRES_DB:-edicarex}
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
@@ -67,10 +67,10 @@ services:
       - /app/node_modules
       - uploads:/app/uploads
     networks:
-      - medisync-network
+      - edicarex-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.server.rule=Host(`api.medisync.local`)"
+      - "traefik.http.routers.server.rule=Host(`api.edicarex.local`)"
       - "traefik.http.services.server.loadbalancer.server.port=3000"
 
   # AI Service - FastAPI
@@ -78,7 +78,7 @@ services:
     build:
       context: ./ai
       dockerfile: Dockerfile
-    container_name: medisync-ai
+    container_name: edicarex-ai
     restart: unless-stopped
     environment:
       PYTHONUNBUFFERED: 1
@@ -90,10 +90,10 @@ services:
       - ./ai:/app
       - ai_models:/app/models
     networks:
-      - medisync-network
+      - edicarex-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ai.rule=Host(`ai.medisync.local`)"
+      - "traefik.http.routers.ai.rule=Host(`ai.edicarex.local`)"
       - "traefik.http.services.ai.loadbalancer.server.port=8000"
 
   # Frontend - React + Vite
@@ -102,7 +102,7 @@ services:
       context: ./client
       dockerfile: Dockerfile
       target: development
-    container_name: medisync-client
+    container_name: edicarex-client
     restart: unless-stopped
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
@@ -113,18 +113,18 @@ services:
       - ./client:/app
       - /app/node_modules
     networks:
-      - medisync-network
+      - edicarex-network
     depends_on:
       - server
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.client.rule=Host(`medisync.local`)"
+      - "traefik.http.routers.client.rule=Host(`edicarex.local`)"
       - "traefik.http.services.client.loadbalancer.server.port=5173"
 
   # Traefik Reverse Proxy
   traefik:
     image: traefik:v2.10
-    container_name: medisync-traefik
+    container_name: edicarex-traefik
     restart: unless-stopped
     command:
       - "--api.insecure=true"
@@ -139,10 +139,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - medisync-network
+      - edicarex-network
 
 networks:
-  medisync-network:
+  edicarex-network:
     driver: bridge
 
 volumes:

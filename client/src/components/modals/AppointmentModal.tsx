@@ -361,11 +361,21 @@ export default function AppointmentModal({
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
+                                                <SelectItem value="CONSULTATION">Consulta Médica</SelectItem>
                                                 <SelectItem value="CHECKUP">Chequeo General</SelectItem>
-                                                <SelectItem value="FOLLOW_UP">Seguimiento</SelectItem>
                                                 <SelectItem value="EMERGENCY">Emergencia</SelectItem>
-                                                <SelectItem value="CONSULTATION">Consulta</SelectItem>
+                                                <SelectItem value="FOLLOW_UP">Seguimiento</SelectItem>
                                                 <SelectItem value="SURGERY">Cirugía</SelectItem>
+                                                <SelectItem value="TELEMEDICINE">Telemedicina</SelectItem>
+                                                <SelectItem value="THERAPY">Terapia / Rehabilitación</SelectItem>
+                                                <SelectItem value="PROCEDURE">Procedimiento Especial</SelectItem>
+                                                <SelectItem value="LABORATORY">Laboratorio / Examen</SelectItem>
+                                                <SelectItem value="ROUTINE">Rutina</SelectItem>
+                                                <SelectItem value="IMAGING">Imagenología (Rayos X, etc.)</SelectItem>
+                                                <SelectItem value="DENTISTRY">Odontología</SelectItem>
+                                                <SelectItem value="NUTRITION">Nutrición</SelectItem>
+                                                <SelectItem value="MENTAL_HEALTH">Salud Mental</SelectItem>
+                                                <SelectItem value="VACCINATION">Vacunación</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />

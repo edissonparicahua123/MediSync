@@ -1,12 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { HRService } from './hr.service';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 
 @ApiTags('HR')
 @ApiBearerAuth()
-// @UseGuards(JwtAuthGuard) // Temporarily disabled for testing
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
+@UseInterceptors(AuditInterceptor)
 @Controller('hr')
 export class HRController {
     constructor(private readonly hrService: HRService) { }

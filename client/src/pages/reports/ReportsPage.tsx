@@ -21,12 +21,14 @@ import {
     TrendingUp,
     BarChart3,
     Brain,
+    CheckCircle2,
 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { reportsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
@@ -655,56 +657,367 @@ export default function ReportsPage() {
                     {/* 6. Doctors Performance Report */}
                     {activeReport === 'doctors' && (
                         <ResponsiveContainer width="100%" height={400}>
-                            <BarChart data={reportsData.doctors}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend payload={[{ value: 'Pacientes', type: 'square', color: '#3b82f6' }, { value: 'Satisfacción', type: 'square', color: '#f59e0b' }]} />
-                                <Bar dataKey="patients" fill="#3b82f6" name="Pacientes" />
-                                <Bar dataKey="satisfaction" fill="#f59e0b" name="Satisfacción" />
+                            <BarChart data={reportsData.doctors} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                                <defs>
+                                    <linearGradient id="colorPatients" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
+                                    </linearGradient>
+                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.2} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
+                                <XAxis
+                                    dataKey="name"
+                                    tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    interval={0}
+                                    angle={-45}
+                                    textAnchor="end"
+                                />
+                                <YAxis
+                                    yAxisId="left"
+                                    orientation="left"
+                                    tick={{ fill: '#a1a1aa', fontSize: 12 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tickFormatter={(val) => `${val}`}
+                                />
+                                <YAxis
+                                    yAxisId="right"
+                                    orientation="right"
+                                    tick={{ fill: '#10b981', fontSize: 12 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tickFormatter={(val) => `S/.${val}`}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#fff' }}
+                                    itemStyle={{ color: '#fff' }}
+                                    formatter={(value: any, name: string) => {
+                                        if (name === 'Ingresos') return [`S/.${value.toLocaleString()}`, name];
+                                        return [value, name];
+                                    }}
+                                />
+                                <Legend
+                                    verticalAlign="top"
+                                    align="right"
+                                    wrapperStyle={{ paddingBottom: '20px' }}
+                                    formatter={(value) => <span className="text-zinc-400 text-sm font-medium ml-1">{value}</span>}
+                                />
+                                <Bar yAxisId="left" dataKey="patients" fill="url(#colorPatients)" name="Pacientes" radius={[4, 4, 0, 0]} barSize={30} />
+                                <Bar yAxisId="right" dataKey="revenue" fill="url(#colorRevenue)" name="Ingresos" radius={[4, 4, 0, 0]} barSize={30} />
+                                <Bar yAxisId="left" dataKey="satisfaction" fill="#f59e0b" name="Satisfacción" radius={[4, 4, 0, 0]} barSize={10} />
                             </BarChart>
                         </ResponsiveContainer>
                     )}
 
-                    {/* 7. Monthly Comparison Report */}
+                    {/* 7. Monthly Comparison Report (PREMIUM) */}
                     {activeReport === 'comparison' && (
-                        <ResponsiveContainer width="100%" height={400}>
-                            <BarChart data={reportsData.comparison}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="month" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend payload={[{ value: 'Año Actual', type: 'square', color: '#10b981' }, { value: 'Año Anterior', type: 'square', color: '#94a3b8' }]} />
-                                <Bar dataKey="current" fill="#10b981" name="Año Actual" />
-                                <Bar dataKey="previous" fill="#94a3b8" name="Año Anterior" />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <div className="space-y-6">
+                            {/* Comparison StatCards */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                <Card className="bg-zinc-950/40 border-zinc-800 backdrop-blur-sm">
+                                    <CardContent className="pt-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Año Actual</p>
+                                                <p className="text-2xl font-bold text-emerald-500 mt-1">
+                                                    S/. {reportsData.comparison.reduce((sum: number, m: any) => sum + m.current, 0).toLocaleString()}
+                                                </p>
+                                            </div>
+                                            <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-zinc-950/40 border-zinc-800 backdrop-blur-sm">
+                                    <CardContent className="pt-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Año Anterior</p>
+                                                <p className="text-2xl font-bold text-zinc-400 mt-1">
+                                                    S/. {reportsData.comparison.reduce((sum: number, m: any) => sum + m.previous, 0).toLocaleString()}
+                                                </p>
+                                            </div>
+                                            <div className="p-2 bg-zinc-500/10 rounded-lg">
+                                                <Calendar className="h-4 w-4 text-zinc-500" />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-zinc-950/40 border-zinc-800 backdrop-blur-sm">
+                                    <CardContent className="pt-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Crecimiento</p>
+                                                {(() => {
+                                                    const current = reportsData.comparison.reduce((sum: number, m: any) => sum + m.current, 0);
+                                                    const previous = reportsData.comparison.reduce((sum: number, m: any) => sum + m.previous, 0);
+                                                    const growth = previous > 0 ? ((current - previous) / previous) * 100 : 0;
+                                                    return (
+                                                        <p className={`text-2xl font-bold mt-1 ${growth >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                            {growth >= 0 ? '+' : ''}{growth.toFixed(1)}%
+                                                        </p>
+                                                    );
+                                                })()}
+                                            </div>
+                                            <div className="p-2 bg-blue-500/10 rounded-lg">
+                                                <BarChart3 className="h-4 w-4 text-blue-500" />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-zinc-950/40 border-zinc-800 backdrop-blur-sm">
+                                    <CardContent className="pt-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Mejor Mes</p>
+                                                {(() => {
+                                                    const bestMonth = [...reportsData.comparison].sort((a, b) => b.current - a.current)[0];
+                                                    return (
+                                                        <p className="text-2xl font-bold text-amber-500 mt-1">
+                                                            {bestMonth?.month || 'N/A'}
+                                                        </p>
+                                                    );
+                                                })()}
+                                            </div>
+                                            <div className="p-2 bg-amber-500/10 rounded-lg text-amber-500 font-bold text-xs">
+                                                ★
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <div className="bg-zinc-950/30 rounded-xl p-6 border border-zinc-800/50">
+                                <ResponsiveContainer width="100%" height={400}>
+                                    <BarChart data={reportsData.comparison} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
+                                        <defs>
+                                            <linearGradient id="currentYearGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0.3} />
+                                            </linearGradient>
+                                            <linearGradient id="previousYearGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.2} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
+                                        <XAxis
+                                            dataKey="month"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#71717a', fontSize: 12 }}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#71717a', fontSize: 12 }}
+                                            tickFormatter={(value) => `S/.${value >= 1000 ? (value / 1000) + 'k' : value}`}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                                            contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
+                                            itemStyle={{ color: '#fff' }}
+                                            formatter={(value: any, name: string) => [
+                                                <span className="font-bold">S/. {value.toLocaleString()}</span>,
+                                                name
+                                            ]}
+                                        />
+                                        <Legend
+                                            verticalAlign="top"
+                                            align="right"
+                                            iconType="circle"
+                                            wrapperStyle={{ paddingBottom: '30px' }}
+                                            formatter={(value) => <span className="text-zinc-400 text-xs font-medium ml-1">{value}</span>}
+                                        />
+                                        <Bar
+                                            dataKey="current"
+                                            fill="url(#currentYearGrad)"
+                                            name="Año Actual"
+                                            radius={[6, 6, 0, 0]}
+                                            barSize={32}
+                                        />
+                                        <Bar
+                                            dataKey="previous"
+                                            fill="url(#previousYearGrad)"
+                                            name="Año Anterior"
+                                            radius={[6, 6, 0, 0]}
+                                            barSize={32}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
                     )}
 
                     {/* 8. AI Predictions Report */}
-                    {activeReport === 'aiPredictions' && (
-                        <div className="space-y-4">
-                            <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                                <p className="text-sm font-semibold text-indigo-900 flex items-center gap-2">
-                                    <Brain className="h-4 w-4" />
-                                    Previsión de Ingresos Potenciada por IA
-                                </p>
-                                <p className="text-xs text-indigo-700 mt-1">
-                                    Basado en datos históricos y algoritmos de aprendizaje automático
-                                </p>
+                    {activeReport === 'aiPredictions' && reportsData.aiPredictions && (
+                        <div className="space-y-6">
+                            {/* Insight Banner */}
+                            <div className="p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20 backdrop-blur-sm">
+                                <div className="flex items-start gap-4">
+                                    <div className="p-2 bg-indigo-500/20 rounded-lg shrink-0">
+                                        <Brain className="h-5 w-5 text-indigo-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-indigo-300">Análisis Predictivo EdiCarex IA</p>
+                                        <div className="text-sm text-indigo-200/80 mt-1 italic leading-relaxed prose prose-invert max-w-none">
+                                            <ReactMarkdown>
+                                                {reportsData.aiPredictions.insight || 'Generando perspectiva estratégica...'}
+                                            </ReactMarkdown>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <ResponsiveContainer width="100%" height={350}>
-                                <LineChart data={reportsData.aiPredictions}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend payload={[{ value: 'Ingresos Predichos ($)', type: 'line', color: '#8b5cf6' }, { value: 'Confianza (%)', type: 'line', color: '#10b981' }]} />
-                                    <Line type="monotone" dataKey="predicted" stroke="#8b5cf6" strokeWidth={3} name="Ingresos Predichos ($)" strokeDasharray="5 5" />
-                                    <Line type="monotone" dataKey="confidence" stroke="#10b981" strokeWidth={2} name="Confianza (%)" />
-                                </LineChart>
-                            </ResponsiveContainer>
+
+                            {/* Prediction Stat Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <Card className="bg-zinc-950/40 border-zinc-800 backdrop-blur-sm">
+                                    <CardContent className="pt-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Próximo Mes Est.</p>
+                                                <p className="text-2xl font-bold text-violet-400 mt-1">
+                                                    S/. {(reportsData.aiPredictions.predictions?.[0]?.predicted || 0).toLocaleString()}
+                                                </p>
+                                            </div>
+                                            <div className="p-2 bg-violet-500/10 rounded-lg">
+                                                <TrendingUp className="h-4 w-4 text-violet-400" />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-zinc-950/40 border-zinc-800 backdrop-blur-sm">
+                                    <CardContent className="pt-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Crecimiento Proy.</p>
+                                                <p className="text-2xl font-bold text-emerald-400 mt-1">
+                                                    {Number(reportsData.aiPredictions.projected_annual_growth) >= 0 ? '+' : ''}
+                                                    {Number(reportsData.aiPredictions.projected_annual_growth || 0).toFixed(1)}%
+                                                </p>
+                                            </div>
+                                            <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                                <BarChart3 className="h-4 w-4 text-emerald-400" />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-zinc-950/40 border-zinc-800 backdrop-blur-sm">
+                                    <CardContent className="pt-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Precisión Modelo</p>
+                                                <p className="text-2xl font-bold text-amber-400 mt-1">
+                                                    {(() => {
+                                                        const acc = Number(reportsData.aiPredictions.accuracy_score || 0);
+                                                        return acc <= 1 ? (acc * 100).toFixed(0) : acc.toFixed(0);
+                                                    })()}%
+                                                </p>
+                                            </div>
+                                            <div className="p-2 bg-amber-500/10 rounded-lg">
+                                                <CheckCircle2 className="h-4 w-4 text-amber-400" />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Prediction Chart */}
+                            <div className="bg-zinc-950/30 rounded-xl p-6 border border-zinc-800/50">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-sm font-medium text-zinc-400">
+                                        Proyección de Ingresos de los próximos {reportsData.aiPredictions.predictions?.length || 0} meses
+                                    </h3>
+                                    <div className="flex gap-4 text-xs">
+                                        <div className="flex items-center gap-1.5 text-violet-400">
+                                            <div className="w-2 h-2 rounded-full bg-violet-400" />
+                                            <span>Predicho</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-emerald-400">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                                            <span>Confianza</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={reportsData.aiPredictions.predictions}>
+                                            <defs>
+                                                <linearGradient id="predGrad" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#27272a" />
+                                            <XAxis
+                                                dataKey="month"
+                                                stroke="#71717a"
+                                                fontSize={12}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                dy={10}
+                                            />
+                                            <YAxis
+                                                yAxisId="left"
+                                                stroke="#71717a"
+                                                fontSize={12}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                tickFormatter={(value) => `S/. ${value / 1000}k`}
+                                            />
+                                            <YAxis
+                                                yAxisId="right"
+                                                orientation="right"
+                                                stroke="#10b981"
+                                                fontSize={12}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                tickFormatter={(value) => `${value}%`}
+                                                domain={[0, 100]}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', borderRadius: '8px' }}
+                                                itemStyle={{ fontSize: '12px' }}
+                                                formatter={(value, name) => [
+                                                    name === 'predicted' ? `S/. ${value.toLocaleString()}` : `${value}%`,
+                                                    name === 'predicted' ? 'Ingreso Predicho' : 'Confianza'
+                                                ]}
+                                            />
+                                            <Area
+                                                yAxisId="left"
+                                                type="monotone"
+                                                dataKey="predicted"
+                                                stroke="#8b5cf6"
+                                                strokeWidth={3}
+                                                fillOpacity={1}
+                                                fill="url(#predGrad)"
+                                            />
+                                            <Line
+                                                yAxisId="right"
+                                                type="monotone"
+                                                dataKey="confidence"
+                                                stroke="#10b981"
+                                                strokeWidth={2}
+                                                dot={{ fill: '#10b981', r: 4 }}
+                                                activeDot={{ r: 6 }}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </CardContent>

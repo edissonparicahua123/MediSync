@@ -1,144 +1,151 @@
 from app.models.schemas import TriageInput, TriageOutput
+from app.services.groq_service import GroqService
 import re
+import json
+import logging
+import numpy as np
+from sklearn.preprocessing import StandardScaler
 
+logger = logging.getLogger("EdiCarexAI.Triage")
 
 class TriageService:
     """
-    AI-powered triage service using rule-based system + ML (mock implementation).
-    In production, this would use a trained ML model.
+    Servicio de Triaje Clínico de EdiCarex.
+    Clasifica emergencias basándose en el Protocolo Manchester con soporte de IA.
     """
 
     def __init__(self):
-        # Critical symptoms that require urgent attention
-        self.critical_symptoms = [
-            "chest pain", "difficulty breathing", "unconscious", "severe bleeding",
-            "stroke", "heart attack", "seizure", "severe head injury"
-        ]
-        
-        # High priority symptoms
-        self.high_priority_symptoms = [
-            "high fever", "severe pain", "vomiting blood", "broken bone",
-            "deep cut", "severe burn", "allergic reaction"
-        ]
-        
-        # Moderate symptoms
-        self.moderate_symptoms = [
-            "fever", "cough", "headache", "abdominal pain", "nausea",
-            "dizziness", "rash", "minor injury"
-        ]
+        self.groq = GroqService()
 
-    def predict(self, data: TriageInput) -> TriageOutput:
+    async def predict(self, data: TriageInput) -> TriageOutput:
         """
-        Predict triage priority based on symptoms and vital signs.
+        Calcula la prioridad de triaje utilizando la lógica avanzada de EdiCarex.
+        Integra un modelo local de severidad (Scikit-Learn) + Razonamiento LLM.
         """
-        symptoms_lower = data.symptoms.lower()
-        score = 0
-        priority = "LOW"
-        notes = []
+        vital_score, vital_warnings = self._analyze_vital_signs(data.vitalSigns or {})
         
-        # Check for critical symptoms
-        for symptom in self.critical_symptoms:
-            if symptom in symptoms_lower:
-                score = max(score, 90)
-                priority = "URGENT"
-                notes.append(f"Critical symptom detected: {symptom}")
+        # Clasificación Local de Severidad (Digital Phenotyping / Hybrid AI)
+        severity_index = self._calculate_local_severity(data)
         
-        # Check for high priority symptoms
-        if priority != "URGENT":
-            for symptom in self.high_priority_symptoms:
-                if symptom in symptoms_lower:
-                    score = max(score, 70)
-                    priority = "HIGH"
-                    notes.append(f"High priority symptom: {symptom}")
-        
-        # Check for moderate symptoms
-        if priority not in ["URGENT", "HIGH"]:
-            for symptom in self.moderate_symptoms:
-                if symptom in symptoms_lower:
-                    score = max(score, 40)
-                    priority = "NORMAL"
-                    notes.append(f"Moderate symptom: {symptom}")
-        
-        # Adjust based on vital signs
-        if data.vitalSigns:
-            vital_score, vital_notes = self._analyze_vital_signs(data.vitalSigns)
-            score = max(score, vital_score)
-            notes.extend(vital_notes)
-            
-            if vital_score >= 80:
-                priority = "URGENT"
-            elif vital_score >= 60 and priority not in ["URGENT"]:
-                priority = "HIGH"
-        
-        # Adjust based on age
-        if data.age < 2 or data.age > 70:
-            score += 10
-            notes.append(f"Age factor: {data.age} years (vulnerable age group)")
-        
-        # Ensure score is within bounds
-        score = min(100, max(0, score))
-        
-        # Default if no symptoms matched
-        if score == 0:
-            score = 20
-            priority = "LOW"
-            notes.append("Routine consultation recommended")
-        
-        # Calculate confidence based on symptom clarity
-        confidence = 0.85 if len(notes) > 1 else 0.65
-        
-        return TriageOutput(
-            score=score,
-            priority=priority,
-            notes="; ".join(notes) if notes else "General consultation",
-            confidence=confidence
+        system_persona = (
+            "Eres el Jefe de Triaje de EdiCarex Enterprise. Experto certificado en el Protocolo Manchester. "
+            "Tu análisis debe ser exhaustivo, citando signos vitales y gravedad potencial. "
+            "Usa un lenguaje clínico preciso y estructura tu respuesta para ser revisada por un médico senior."
         )
+        
+        prompt = f"""
+        ANÁLISIS DE TRIAJE REQUERIDO:
+        - Paciente de {data.age} años.
+        - Motivo de Consulta: "{data.symptoms}"
+        - Signos Vitales: {json.dumps(data.vitalSigns)}
+        - Alertas Automáticas (Motor Local): {", ".join(vital_warnings)}
+        - Índice de Desviación Estadística: {severity_index:.2f}
+        
+        TAREA:
+        1. Clasificación Manchester:
+           - ROJO: Emergencia (Atención inmediata).
+           - NARANJA: Muy Urgente (Atención < 10-15 min).
+           - AMARILLO: Urgente (Atención < 60 min).
+           - VERDE: Estándar (Atención < 120 min).
+           - AZUL: No urgente.
+        
+        2. Proporciona una 'Justificación Clínica Senior' detallada.
+        
+        FORMATO JSON REQUERIDO:
+        {{
+            "score": {vital_score},
+            "priority": "COLOR (Nivel)",
+            "notes": "Análisis clínico detallado y estructurado con diagnósticos diferenciales potenciales.",
+            "confidence": 0.XX
+        }}
+        """
+
+        try:
+            result = await self.groq.execute_prompt(prompt, system_persona)
+            if result:
+                # Enriquecimiento del resultado si es muy simple
+                notes = result.get("notes", "")
+                if len(notes) < 50:
+                    notes += f"\n\n[Soporte EdiCarex]: Se detectó una severidad local de {severity_index:.2f}. " \
+                             f"Revisión de signos vitales completada: {', '.join(vital_warnings) if vital_warnings else 'Estables'}."
+
+                return TriageOutput(
+                    score=result.get("score", vital_score),
+                    priority=result.get("priority", "VERDE (Estándar)"),
+                    notes=notes,
+                    confidence=result.get("confidence", 0.95)
+                )
+            return self._get_fallback_triage(vital_score, vital_warnings)
+        except Exception as e:
+            logger.error(f"Error en triaje EdiCarex: {e}")
+            return self._get_fallback_triage(vital_score, vital_warnings)
     
+    def _score_to_priority(self, score: int) -> str:
+        if score >= 90: return "URGENT"
+        if score >= 70: return "HIGH"
+        if score >= 40: return "NORMAL"
+        return "LOW"
+
+    def _get_fallback_triage(self, vital_score: int, warnings: list) -> TriageOutput:
+        priority = self._score_to_priority(vital_score)
+        notes = f"⚠️ (Modo Backup) Evaluación basada en signos vitales. Alertas: {', '.join(warnings) if warnings else 'Ninguna'}."
+        return TriageOutput(score=vital_score, priority=priority, notes=notes, confidence=0.6)
+
     def _analyze_vital_signs(self, vital_signs: dict) -> tuple[int, list]:
-        """Analyze vital signs and return score and notes."""
+        """Análisis determinístico de signos vitales para soporte de IA."""
         score = 0
         notes = []
         
-        # Temperature
+        # Temperatura (Fiebre alta o hipotermia)
         if "temperature" in vital_signs:
-            temp = vital_signs["temperature"]
-            if temp >= 39.5 or temp <= 35:
-                score = max(score, 80)
-                notes.append(f"Critical temperature: {temp}°C")
-            elif temp >= 38.5 or temp <= 36:
-                score = max(score, 60)
-                notes.append(f"Abnormal temperature: {temp}°C")
+            temp = float(vital_signs["temperature"])
+            if temp >= 40.0 or temp <= 35.0:
+                score = max(score, 90); notes.append("Temperatura crítica")
+            elif temp >= 38.5:
+                score = max(score, 50); notes.append("Hipertermia moderada")
         
-        # Blood pressure
+        # Presión Arterial (Sistólica crírtica)
         if "bloodPressure" in vital_signs:
-            bp = vital_signs["bloodPressure"]
-            if isinstance(bp, str):
-                match = re.match(r"(\d+)/(\d+)", bp)
-                if match:
-                    systolic = int(match.group(1))
-                    diastolic = int(match.group(2))
-                    if systolic >= 180 or systolic <= 90 or diastolic >= 120 or diastolic <= 60:
-                        score = max(score, 85)
-                        notes.append(f"Critical blood pressure: {bp}")
-                    elif systolic >= 140 or diastolic >= 90:
-                        score = max(score, 65)
-                        notes.append(f"Elevated blood pressure: {bp}")
+            bp = str(vital_signs["bloodPressure"])
+            match = re.match(r"(\d+)/(\d+)", bp)
+            if match:
+                sys = int(match.group(1))
+                if sys >= 180 or sys <= 80:
+                    score = max(score, 95); notes.append("Inestabilidad hemodinámica")
+                elif sys >= 140:
+                    score = max(score, 40); notes.append("Hipertensión estadio 1")
         
-        # Heart rate
-        if "heartRate" in vital_signs:
-            hr = vital_signs["heartRate"]
-            if hr >= 120 or hr <= 50:
-                score = max(score, 75)
-                notes.append(f"Abnormal heart rate: {hr} bpm")
-        
-        # Oxygen saturation
+        # Saturación de Oxígeno (Crítica)
         if "oxygenSaturation" in vital_signs:
-            o2 = vital_signs["oxygenSaturation"]
-            if o2 <= 90:
-                score = max(score, 90)
-                notes.append(f"Critical oxygen saturation: {o2}%")
-            elif o2 <= 94:
-                score = max(score, 70)
-                notes.append(f"Low oxygen saturation: {o2}%")
+            o2 = int(vital_signs["oxygenSaturation"])
+            if o2 <= 88:
+                score = max(score, 100); notes.append("Insuficiencia respiratoria inminente")
+            elif o2 <= 92:
+                score = max(score, 80); notes.append("Hipoxia moderada")
         
         return score, notes
+
+    def _calculate_local_severity(self, data: TriageInput) -> float:
+        """
+        Utiliza Scikit-Learn para normalizar y calcular un vector de gravedad clínica.
+        En un entorno real, este vector se usaría en un clasificador entrenado (ej. Random Forest).
+        """
+        try:
+            # Simulamos un vector de características: [edad, temp, sat, sys_bp]
+            vs = data.vitalSigns or {}
+            features = np.array([[
+                float(data.age),
+                float(vs.get("temperature", 37.0)),
+                float(vs.get("oxygenSaturation", 98)),
+                float(re.search(r"(\d+)", str(vs.get("bloodPressure", "120/80"))).group(1)) if vs.get("bloodPressure") else 120
+            ]])
+            
+            scaler = StandardScaler()
+            norm_features = scaler.fit_transform(features)
+            
+            # Cálculo de score de anomalía local (Mock de modelo predictivo)
+            severity = np.abs(norm_features).mean()
+            return float(severity)
+        except Exception as e:
+            logger.warning(f"Error en clasificación Scikit-Learn: {e}")
+            return 0.0

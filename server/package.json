@@ -1,8 +1,8 @@
 {
-    "name": "medisync-server",
+    "name": "edicarex-server",
     "version": "1.0.0",
-    "description": "MediSync Enterprise - Backend API",
-    "author": "MediSync Team",
+    "description": "EdiCarex Enterprise - Backend API",
+    "author": "EdiCarex Team",
     "private": true,
     "license": "UNLICENSED",
     "scripts": {

@@ -239,7 +239,7 @@ export default function LaboratoryPage() {
             // In a real senior app, we would upload the file to S3/Cloudinary first
             // Here we simulate and then call status update
             await laboratoryAPI.updateStatus(orderId, 'COMPLETADO', {
-                resultFile: `https://medisync-storage.com/results/${file.name}`,
+                resultFile: `https://edicarex-storage.com/results/${file.name}`,
                 results: [{ name: 'Resultado General', value: 'Ver Archivo', unit: '-', range: '-', status: 'NORMAL' }]
             })
 
@@ -967,7 +967,7 @@ export default function LaboratoryPage() {
                                             MS
                                         </div>
                                         <div>
-                                            <h2 className="text-2xl font-black text-zinc-900 tracking-tight">MEDISYNC CLINIC</h2>
+                                            <h2 className="text-2xl font-black text-zinc-900 tracking-tight">EDICAREX CLINIC</h2>
                                             <p className="text-sm font-bold text-red-600">CENTRO DE ANÁLISIS CLÍNICOS</p>
                                         </div>
                                     </div>
@@ -1046,7 +1046,7 @@ export default function LaboratoryPage() {
                                 {/* Footer / Signature */}
                                 <div className="mt-auto pt-12 flex justify-between items-end border-t border-zinc-100 italic text-zinc-400 text-[10px]">
                                     <div>
-                                        <p>Documento generado electrónicamente por MediSync Enterprise</p>
+                                        <p>Documento generado electrónicamente por EdiCarex Enterprise</p>
                                         <p>La interpretación de este resultado es exclusiva responsabilidad del médico tratante.</p>
                                     </div>
                                     <div className="text-center w-64 border-t border-dashed border-zinc-300 pt-2">

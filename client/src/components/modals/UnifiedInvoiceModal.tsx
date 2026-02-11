@@ -102,6 +102,8 @@ const formSchema = z.object({
     notes: z.string().optional(),
     invoiceDate: z.string().optional(),
     dueDate: z.string().optional(),
+    doctorId: z.string().optional().nullable(),
+    appointmentId: z.string().optional().nullable(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -116,6 +118,8 @@ interface UnifiedInvoiceModalProps {
         serviceDescription?: string
         servicePrice?: number
         doctorName?: string
+        doctorId?: string
+        appointmentId?: string
     }
 }
 
@@ -203,6 +207,8 @@ export function UnifiedInvoiceModal({ open, onOpenChange, invoice, onSuccess, in
             notes: '',
             invoiceDate: new Date().toISOString().split('T')[0],
             dueDate: '',
+            doctorId: null,
+            appointmentId: null,
         },
     })
 
@@ -226,6 +232,8 @@ export function UnifiedInvoiceModal({ open, onOpenChange, invoice, onSuccess, in
                     notes: invoice.notes || '',
                     invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '',
+                    doctorId: invoice.doctorId || null,
+                    appointmentId: invoice.appointmentId || null,
                 })
 
                 // Restore Catalog Selections
@@ -291,6 +299,8 @@ export function UnifiedInvoiceModal({ open, onOpenChange, invoice, onSuccess, in
                     notes: initialData.doctorName ? `Atención: ${initialData.doctorName}` : '',
                     invoiceDate: new Date().toISOString().split('T')[0],
                     dueDate: '',
+                    doctorId: initialData.doctorId || null,
+                    appointmentId: initialData.appointmentId || null,
                 })
             } else {
                 // Reset for new invoice
@@ -309,10 +319,12 @@ export function UnifiedInvoiceModal({ open, onOpenChange, invoice, onSuccess, in
                     notes: '',
                     invoiceDate: new Date().toISOString().split('T')[0],
                     dueDate: '',
+                    doctorId: null,
+                    appointmentId: null,
                 })
             }
         }
-    }, [open, invoice])
+    }, [open, invoice, initialData])
 
     const loadPatients = async () => {
         try {
@@ -395,7 +407,7 @@ export function UnifiedInvoiceModal({ open, onOpenChange, invoice, onSuccess, in
     const generateQR = async () => {
         try {
             const qrData = JSON.stringify({
-                empresa: 'MediSync Clinic SAC',
+                empresa: 'EdiCarex Clinic SAC',
                 ruc: '20601234567',
                 fecha: new Date().toISOString().split('T')[0],
                 total: totals.total.toFixed(2),
@@ -461,6 +473,8 @@ export function UnifiedInvoiceModal({ open, onOpenChange, invoice, onSuccess, in
                 invoiceDate: data.invoiceDate ? new Date(data.invoiceDate).toISOString() : new Date().toISOString(),
                 dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : null,
                 notes: data.notes || null,
+                doctorId: data.doctorId || null,
+                appointmentId: data.appointmentId || null,
             }
 
             if (invoice) {
@@ -752,9 +766,20 @@ export function UnifiedInvoiceModal({ open, onOpenChange, invoice, onSuccess, in
                                                 onChange={(e) => setManualItemForm({ ...manualItemForm, unitPrice: Number(e.target.value) })}
                                                 className="w-20 bg-black border-zinc-700 h-9 text-xs"
                                             />
-                                            <Button type="button" onClick={addManualItem} size="sm" className="bg-blue-600 hover:bg-blue-500 h-9 w-9 p-0">
-                                                <Plus className="h-4 w-4" />
-                                            </Button>
+                                            {editingManualId ? (
+                                                <div className="flex gap-1">
+                                                    <Button type="button" onClick={() => updateManualItem(editingManualId)} size="sm" className="bg-emerald-600 hover:bg-emerald-500 h-9 w-9 p-0">
+                                                        <Check className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button type="button" onClick={() => { setEditingManualId(null); setManualItemForm({ description: '', quantity: 1, unitPrice: 0 }) }} size="sm" className="bg-zinc-700 hover:bg-zinc-600 h-9 w-9 p-0">
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <Button type="button" onClick={addManualItem} size="sm" className="bg-blue-600 hover:bg-blue-500 h-9 w-9 p-0">
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -827,9 +852,14 @@ export function UnifiedInvoiceModal({ open, onOpenChange, invoice, onSuccess, in
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-xs font-mono text-white">{formatCurrency(item.quantity * item.unitPrice)}</span>
-                                                <button type="button" onClick={() => removeManualItem(item.id)} className="text-zinc-600 hover:text-red-500 transition-colors">
-                                                    <X className="h-3 w-3" />
-                                                </button>
+                                                <div className="flex gap-1">
+                                                    <button type="button" onClick={() => { setEditingManualId(item.id); setManualItemForm({ description: item.description, quantity: item.quantity, unitPrice: item.unitPrice }) }} className="text-zinc-600 hover:text-blue-500 transition-colors">
+                                                        <Edit3 className="h-3 w-3" />
+                                                    </button>
+                                                    <button type="button" onClick={() => removeManualItem(item.id)} className="text-zinc-600 hover:text-red-500 transition-colors">
+                                                        <X className="h-3 w-3" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

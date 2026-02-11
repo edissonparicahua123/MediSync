@@ -1,8 +1,15 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, UseInterceptors, Request } from '@nestjs/common';
 import { PharmacyService } from './pharmacy.service';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Audit } from '../common/decorators/audit.decorator';
 
 @ApiTags('Pharmacy')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
+@UseInterceptors(AuditInterceptor)
 @Controller('pharmacy')
 export class PharmacyController {
     constructor(private readonly pharmacyService: PharmacyService) { }
@@ -21,18 +28,21 @@ export class PharmacyController {
 
     @Post('medications')
     @ApiOperation({ summary: 'Create medication' })
+    @Audit('CREATE_MEDICATION', 'medications')
     async createMedication(@Body() data: any) {
         return this.pharmacyService.createMedication(data);
     }
 
     @Patch('medications/:id')
     @ApiOperation({ summary: 'Update medication' })
+    @Audit('UPDATE_MEDICATION', 'medications')
     async updateMedication(@Param('id') id: string, @Body() data: any) {
         return this.pharmacyService.updateMedication(id, data);
     }
 
     @Delete('medications/:id')
     @ApiOperation({ summary: 'Delete medication' })
+    @Audit('DELETE_MEDICATION', 'medications')
     async deleteMedication(@Param('id') id: string) {
         return this.pharmacyService.deleteMedication(id);
     }
@@ -51,6 +61,7 @@ export class PharmacyController {
 
     @Patch('stock/:id')
     @ApiOperation({ summary: 'Update stock' })
+    @Audit('UPDATE_STOCK', 'stock')
     async updateStock(@Param('id') id: string, @Body() data: any) {
         return this.pharmacyService.updateStock(id, data);
     }
@@ -69,12 +80,14 @@ export class PharmacyController {
 
     @Patch('orders/:id/approve')
     @ApiOperation({ summary: 'Approve order' })
-    async approveOrder(@Param('id') id: string) {
-        return this.pharmacyService.approveOrder(id, 'user-id-placeholder');
+    @Audit('APPROVE_PHARMACY_ORDER', 'pharmacy-orders')
+    async approveOrder(@Param('id') id: string, @Request() req) {
+        return this.pharmacyService.approveOrder(id, req.user.id);
     }
 
     @Patch('orders/:id/reject')
     @ApiOperation({ summary: 'Reject order' })
+    @Audit('REJECT_PHARMACY_ORDER', 'pharmacy-orders')
     async rejectOrder(@Param('id') id: string, @Body('reason') reason: string) {
         return this.pharmacyService.rejectOrder(id, reason);
     }

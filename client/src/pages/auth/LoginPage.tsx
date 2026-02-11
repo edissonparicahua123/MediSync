@@ -43,7 +43,7 @@ export default function LoginPage() {
 
                 // Also save basic user info just in case
                 try {
-                    localStorage.setItem('medisync-user-backup', JSON.stringify(response.data.user))
+                    localStorage.setItem('edicarex-user-backup', JSON.stringify(response.data.user))
                 } catch (e) {
                     console.error('Failed to save user backup', e)
                 }
@@ -80,7 +80,7 @@ export default function LoginPage() {
                             <Input
                                 {...register('email')}
                                 type="email"
-                                placeholder="admin@medisync.com"
+                                placeholder="admin@edicarex.com"
                                 disabled={loading}
                             />
                             {errors.email && (
@@ -114,7 +114,7 @@ export default function LoginPage() {
 
                     <div className="mt-4 text-center text-sm text-muted-foreground">
                         <p>Credenciales de prueba:</p>
-                        <p className="font-mono">admin@medisync.com / password123</p>
+                        <p className="font-mono">admin@edicarex.com / password123</p>
                     </div>
                 </CardContent>
             </Card>

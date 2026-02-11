@@ -9,16 +9,16 @@ pharmacy_service = PharmacyService()
 @router.post("/demand", response_model=PharmacyDemandOutput)
 async def predict_demand(data: PharmacyDemandInput):
     """
-    Predict pharmacy medication demand using time series forecasting.
+    Predecir la demanda de medicamentos de la farmacia utilizando pronósticos de series temporales.
     
-    Returns:
-        - medication_id: ID of the medication
-        - predicted_demand: Predicted quantity needed
-        - confidence: Prediction confidence
-        - recommendation: Stock management recommendation
+    Retorna:
+        - medication_id: ID del medicamento
+        - predicted_demand: Cantidad predicha necesaria
+        - confidence: Confianza de la predicción
+        - recommendation: Recomendación de gestión de stock
     """
     try:
-        result = pharmacy_service.predict_demand(data)
+        result = await pharmacy_service.predict_demand(data)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Demand prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Fallo en la predicción de demanda: {str(e)}")

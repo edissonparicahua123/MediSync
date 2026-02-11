@@ -1006,7 +1006,7 @@ export default function EmergencyCaseProfilePage() {
                                                         </div>
                                                         <div className="flex items-center gap-2 pr-2">
                                                             <div className="text-right">
-                                                                <p className="text-xs font-bold text-zinc-300">{record.doctor?.user ? `Dr. ${record.doctor.user.firstName} ${record.doctor.user.lastName}` : 'Médico Medisync'}</p>
+                                                                <p className="text-xs font-bold text-zinc-300">{record.doctor?.user ? `Dr. ${record.doctor.user.firstName} ${record.doctor.user.lastName}` : 'Médico EdiCarex'}</p>
                                                                 <p className="text-[10px] text-zinc-500 uppercase tracking-tighter">{record.doctor?.specialty || 'Especialista'}</p>
                                                             </div>
                                                             <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xs">

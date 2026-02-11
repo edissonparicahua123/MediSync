@@ -75,11 +75,18 @@ export class LaboratoryService {
 
     async createOrder(data: any) {
         try {
-            const { patientId, doctorId, testId, priority, notes } = data;
+            let { patientId, doctorId, testId, priority, notes } = data;
+
+            // Senior Robustness: Check if testType was sent instead of testId (frontend legacy or error)
+            const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+            if (!testId && data.testType && isUUID(data.testType)) {
+                testId = data.testType;
+            }
 
             // Fetch test details if testId is provided
             let testName = data.testName;
             let testType = data.testType;
+
             if (testId) {
                 const test = await (this.prisma as any).labTest.findUnique({ where: { id: testId } });
                 if (test) {
@@ -167,33 +174,32 @@ export class LaboratoryService {
 
             // Bioquímica
             { name: 'Glucosa Basal', category: 'Bioquímica', normalRange: '70-100 mg/dL', unit: 'mg/dL' },
-            { name: 'Perfil Lipídico', category: 'Bioquímica', normalRange: '<200 mg/dL', unit: 'mg/dL' },
+            { name: 'Perfil Lipídico Completo', category: 'Bioquímica', normalRange: 'Varía', unit: 'mg/dL' },
             { name: 'Colesterol Total', category: 'Bioquímica', normalRange: '<200 mg/dL', unit: 'mg/dL' },
             { name: 'Triglicéridos', category: 'Bioquímica', normalRange: '<150 mg/dL', unit: 'mg/dL' },
-            { name: 'HDL Colesterol', category: 'Bioquímica', normalRange: '>40 mg/dL', unit: 'mg/dL' },
-            { name: 'LDL Colesterol', category: 'Bioquímica', normalRange: '<100 mg/dL', unit: 'mg/dL' },
             { name: 'Urea', category: 'Bioquímica', normalRange: '7-20 mg/dL', unit: 'mg/dL' },
-            { name: 'Creatinina', category: 'Bioquímica', normalRange: '0.7-1.3 mg/dL', unit: 'mg/dL' },
+            { name: 'Creatinina Sérica', category: 'Bioquímica', normalRange: '0.7-1.3 mg/dL', unit: 'mg/dL' },
             { name: 'Ácido Úrico', category: 'Bioquímica', normalRange: '3.5-7.2 mg/dL', unit: 'mg/dL' },
-            { name: 'Bilirrubina Total', category: 'Bioquímica', normalRange: '0.1-1.2 mg/dL', unit: 'mg/dL' },
-            { name: 'Transaminasa TGO/AST', category: 'Bioquímica', normalRange: '10-40 U/L', unit: 'U/L' },
-            { name: 'Transaminasa TGP/ALT', category: 'Bioquímica', normalRange: '7-56 U/L', unit: 'U/L' },
+            { name: 'Bilirrubina Total y Fraccionada', category: 'Bioquímica', normalRange: '0.1-1.2 mg/dL', unit: 'mg/dL' },
+            { name: 'Perfil Hepático (TGO/TGP/GGT)', category: 'Bioquímica', normalRange: 'Varía', unit: 'U/L' },
 
-            // Inmunología
+            // Inmunología / Hormonas
             { name: 'Proteína C Reactiva (PCR)', category: 'Inmunología', normalRange: '<10 mg/L', unit: 'mg/L' },
             { name: 'Factor Reumatoide', category: 'Inmunología', normalRange: '<14 IU/mL', unit: 'IU/mL' },
             { name: 'Prueba de Embarazo (HCG)', category: 'Inmunología', normalRange: 'Negativo', unit: '' },
-            { name: 'VIH (Elisa)', category: 'Inmunología', normalRange: 'No Reactivo', unit: '' },
+            { name: 'Perfil Tiroideo (TSH/T3/T4)', category: 'Inmunología', normalRange: 'Varía', unit: 'uIU/mL' },
             { name: 'Antígeno Prostático (PSA)', category: 'Inmunología', normalRange: '<4.0 ng/mL', unit: 'ng/mL' },
+            { name: 'Prueba de VIH (Elisa)', category: 'Inmunología', normalRange: 'No Reactivo', unit: '' },
 
-            // Uroanálisis
-            { name: 'Examen Completo de Orina', category: 'Uroanálisis', normalRange: 'Negativo', unit: '' },
-            { name: 'Urocultivo', category: 'Uroanálisis', normalRange: 'Negativo', unit: '' },
+            // Uroanálisis / Parasitología
+            { name: 'Examen Completo de Orina', category: 'Uroanálisis', normalRange: 'Negativo', unit: 'N/A' },
+            { name: 'Examen Parasitológico Simple', category: 'Parasitología', normalRange: 'Negativo', unit: 'N/A' },
+            { name: 'Coprocultivo', category: 'Microbiología', normalRange: 'Negativo', unit: 'N/A' },
+            { name: 'Urocultivo con Antibiograma', category: 'Microbiología', normalRange: 'Negativo', unit: 'N/A' },
 
-            // Microbiología
-            { name: 'Cultivo de Secreción Faríngea', category: 'Microbiología', normalRange: 'Negativo', unit: '' },
-            { name: 'Coprocultivo', category: 'Microbiología', normalRange: 'Negativo', unit: '' },
-            { name: 'Examen Parasitológico Seriado', category: 'Microbiología', normalRange: 'Negativo', unit: '' }
+            // Otros
+            { name: 'Cultivo de Secreción Faríngea', category: 'Microbiología', normalRange: 'Negativo', unit: 'N/A' },
+            { name: 'Toxicología Básica', category: 'Toxicología', normalRange: 'Negativo', unit: 'mg/L' }
         ];
 
         let tests = await (this.prisma as any).labTest.findMany({

@@ -61,7 +61,7 @@ export const useAuthStore = create<AuthState>()(
             },
         }),
         {
-            name: 'medisync-auth',
+            name: 'edicarex-auth',
         }
     )
 )

@@ -29,6 +29,7 @@ import BedManagementPage from '@/pages/beds/BedManagementPage'
 import AdminPage from '@/pages/admin/AdminPage'
 import AuditLogsPage from '@/pages/admin/AuditLogsPage'
 import MessagesPage from '@/pages/messages/MessagesPage'
+import MaintenancePage from './pages/MaintenancePage'
 
 // Patient Portal imports
 import PatientLoginPage from '@/pages/patient-portal/PatientLoginPage'
@@ -44,10 +45,11 @@ import AttendanceLoginPage from '@/pages/attendance/AttendanceLoginPage'
 
 function App() {
     return (
-        <ThemeProvider defaultTheme="light" storageKey="medisync-theme">
+        <ThemeProvider defaultTheme="light" storageKey="edicarex-theme">
             <BrowserRouter>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
+                    <Route path="/maintenance" element={<MaintenancePage />} />
                     <Route path="/attendance/login" element={<AttendanceLoginPage />} />
                     <Route path="/public-screen" element={<PublicScreenPage />} />
 

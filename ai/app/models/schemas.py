@@ -3,62 +3,68 @@ from typing import Optional, Dict, List
 
 
 class TriageInput(BaseModel):
-    symptoms: str = Field(..., description="Patient symptoms description")
-    age: int = Field(..., ge=0, le=150, description="Patient age")
-    vitalSigns: Optional[Dict] = Field(default={}, description="Vital signs data")
-    medicalHistory: Optional[List[str]] = Field(default=[], description="Medical history")
+    symptoms: str = Field(..., description="Descripción de los síntomas del paciente")
+    age: int = Field(..., ge=0, le=150, description="Edad del paciente")
+    vitalSigns: Optional[Dict] = Field(default={}, description="Datos de signos vitales")
+    medicalHistory: Optional[List[str]] = Field(default=[], description="Historial médico")
 
 
 class TriageOutput(BaseModel):
-    score: int = Field(..., ge=0, le=100, description="Triage score (0-100)")
-    priority: str = Field(..., description="Priority level: LOW, NORMAL, HIGH, URGENT")
-    notes: str = Field(..., description="Triage notes and recommendations")
-    confidence: float = Field(..., ge=0, le=1, description="Prediction confidence")
+    score: int = Field(..., ge=0, le=100, description="Puntaje de triaje (0-100)")
+    priority: str = Field(..., description="Nivel de prioridad: BAJA, NORMAL, ALTA, URGENTE")
+    notes: str = Field(..., description="Notas de triaje y recomendaciones")
+    confidence: float = Field(..., ge=0, le=1, description="Confianza de la predicción")
 
 
 class SummarizationInput(BaseModel):
-    text: str = Field(..., description="Clinical text to summarize")
-    max_length: Optional[int] = Field(default=200, description="Maximum summary length")
+    text: str = Field(..., description="Texto clínico a resumir")
+    max_length: Optional[int] = Field(default=200, description="Longitud máxima del resumen")
 
 
 class SummarizationOutput(BaseModel):
-    summary: str = Field(..., description="Summarized text")
-    original_length: int = Field(..., description="Original text length")
-    summary_length: int = Field(..., description="Summary length")
+    summary: str = Field(..., description="Texto resumido")
+    original_length: int = Field(..., description="Longitud del texto original")
+    summary_length: int = Field(..., description="Longitud del resumen")
 
 
 class PharmacyDemandInput(BaseModel):
-    medication_id: str = Field(..., description="Medication ID")
-    historical_data: Optional[List[int]] = Field(default=[], description="Historical usage data")
-    days_ahead: Optional[int] = Field(default=30, description="Days to predict ahead")
+    medication_id: str = Field(..., description="ID del medicamento")
+    historical_data: Optional[List[int]] = Field(default=[], description="Datos históricos de uso")
+    days_ahead: Optional[int] = Field(default=30, description="Días a predecir a futuro")
 
 
 class PharmacyDemandOutput(BaseModel):
     medication_id: str
-    predicted_demand: int = Field(..., description="Predicted demand quantity")
+    predicted_demand: int = Field(..., description="Cantidad de demanda predicha")
     confidence: float = Field(..., ge=0, le=1)
-    recommendation: str = Field(..., description="Stock recommendation")
+    recommendation: str = Field(..., description="Recomendación de stock")
 
 
 class TextGeneratorInput(BaseModel):
-    template_type: str = Field(..., description="Type of medical text: prescription, referral, discharge")
-    patient_data: Dict = Field(..., description="Patient data for generation")
-    additional_notes: Optional[str] = Field(default="", description="Additional notes")
+    template_type: str = Field(..., description="Tipo de texto médico: receta, referencia, alta")
+    patient_data: Dict = Field(..., description="Datos del paciente para la generación")
+    additional_notes: Optional[str] = Field(default="", description="Notas adicionales")
 
 
 class TextGeneratorOutput(BaseModel):
-    generated_text: str = Field(..., description="Generated medical text")
+    generated_text: str = Field(..., description="Texto médico generado")
     template_type: str
 
 
 class ChatInput(BaseModel):
-    message: str = Field(..., description="User message to the medical AI assistant")
-    context: Optional[str] = Field(default="", description="Additional context for the conversation")
-    history: Optional[List[Dict]] = Field(default=[], description="Chat history")
+    message: str = Field(..., description="Mensaje del usuario al asistente médico IA")
+    context: Optional[str] = Field(default="", description="Contexto adicional para la conversación")
+    history: Optional[List[Dict]] = Field(default=[], description="Historial de chat")
 
 
 class ChatOutput(BaseModel):
-    response: str = Field(..., description="AI assistant response")
-    confidence: float = Field(default=0.85, ge=0, le=1, description="Response confidence")
-    suggestions: Optional[List[str]] = Field(default=[], description="Follow-up suggestions")
+    response: str = Field(..., description="Respuesta del asistente IA")
+    confidence: float = Field(default=0.85, ge=0, le=1, description="Confianza de la respuesta")
+    suggestions: Optional[List[str]] = Field(default=[], description="Sugerencias de seguimiento")
+    source: str = Field(default="groq", description="Fuente de la respuesta: 'groq' o 'local_fallback'")
+    model: Optional[str] = Field(default=None, description="Nombre del modelo de IA específico utilizado")
+
+
+class AnalyticsInput(BaseModel):
+    financial_data: Dict = Field(..., description="Datos financieros históricos por mes")
 

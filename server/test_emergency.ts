@@ -8,7 +8,7 @@ async function testEmergencyAPI() {
         // Login to get token
         console.log('Logging in...');
         const loginRes = await axios.post('http://localhost:3000/api/v1/auth/login', {
-            email: 'admin@medisync.com',
+            email: 'admin@edicarex.com',
             password: 'password123'
         });
 

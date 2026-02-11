@@ -9,16 +9,16 @@ triage_service = TriageService()
 @router.post("/triage", response_model=TriageOutput)
 async def predict_triage(data: TriageInput):
     """
-    AI-powered triage prediction based on symptoms, vital signs, and patient data.
+    Predicción de triaje impulsada por IA basada en síntomas, signos vitales y datos del paciente.
     
-    Returns:
-        - score: Triage score (0-100)
-        - priority: LOW, NORMAL, HIGH, or URGENT
-        - notes: Detailed triage notes
-        - confidence: Prediction confidence (0-1)
+    Retorna:
+        - score: Puntaje de triaje (0-100)
+        - priority: BAJA, NORMAL, ALTA o URGENTE
+        - notes: Notas detalladas de triaje
+        - confidence: Confianza de la predicción (0-1)
     """
     try:
-        result = triage_service.predict(data)
+        result = await triage_service.predict(data)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Triage prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Fallo en la predicción de triaje: {str(e)}")

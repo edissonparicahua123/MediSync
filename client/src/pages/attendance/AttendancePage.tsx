@@ -111,6 +111,7 @@ export default function AttendancePage() {
         attendance: [],
         shifts: [],
         auditConfig: null,
+        payroll: [],
         stats: {
             present: 0,
             late: 0,
@@ -766,7 +767,7 @@ export default function AttendancePage() {
                                         <h3 className="text-xl font-bold text-foreground tracking-tight mb-2">Motor Financiero</h3>
                                         <p className="text-muted-foreground text-xs mb-6 leading-relaxed font-medium">Cálculo automatizado de haberes y emisión de boletas legales.</p>
                                         <div className="text-3xl font-bold text-edicarex">
-                                            S/ {data.payroll.reduce((acc: number, p: any) => acc + (Number(p.netSalary) || 0), 0).toLocaleString()}
+                                            S/ {(data.payroll || []).reduce((acc: number, p: any) => acc + (Number(p.netSalary) || 0), 0).toLocaleString()}
                                             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest ml-2">Total</span>
                                         </div>
                                     </Card>

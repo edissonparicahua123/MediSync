@@ -89,7 +89,9 @@ export class BillingService {
                 operationNumber,
                 invoiceDate,
                 dueDate,
-                notes
+                notes,
+                doctorId,
+                appointmentId
             } = data;
 
             // Generate invoice number
@@ -115,6 +117,8 @@ export class BillingService {
                     invoiceDate: invoiceDate ? new Date(invoiceDate) : new Date(),
                     dueDate: dueDate ? new Date(dueDate) : null,
                     notes: notes || null,
+                    doctorId: doctorId || null,
+                    appointmentId: appointmentId || null,
                     items: {
                         create: items.map((item: any) => ({
                             description: item.name || item.description,

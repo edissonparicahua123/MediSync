@@ -19,7 +19,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
         return <Navigate to="/login" replace />
     }
 
-    // Verificar roles si están especificados
+    // 1. Verificar roles si están especificados
     if (allowedRoles && user && !allowedRoles.includes(user.role)) {
         console.warn(`Acceso denegado: El rol ${user.role} no tiene permiso para esta sección.`)
         // Si intenta entrar a asistencia sin ser HR, mandarlo al login de asistencia (o dashboard)
@@ -28,6 +28,9 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
         }
         return <Navigate to="/dashboard" replace />
     }
+
+    // 2. Nota: El backend ya bloquea las peticiones (503). 
+    // Podríamos añadir un check de estado global aquí si el store tuviera el flag de mantenimiento.
 
     return children ? <>{children}</> : <Outlet />
 }

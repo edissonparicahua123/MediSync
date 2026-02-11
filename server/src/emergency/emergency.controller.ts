@@ -1,19 +1,24 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { EmergencyService } from './emergency.service';
 import { CreateBedDto, UpdateBedStatusDto, CreateEmergencyCaseDto } from './dto';
 import { AddVitalSignDto, AddMedicationDto, AddProcedureDto, AddAttachmentDto } from './dto/clinical.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Audit } from '../common/decorators/audit.decorator';
 
 @ApiTags('Emergency')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
+@UseInterceptors(AuditInterceptor)
 @Controller('emergency')
 export class EmergencyController {
     constructor(private readonly emergencyService: EmergencyService) { }
 
     @Post('cases')
     @ApiOperation({ summary: 'Create new emergency case' })
+    @Audit('CREATE_EMERGENCY_CASE', 'emergency')
     createCase(@Body() createEmergencyCaseDto: CreateEmergencyCaseDto) {
         return this.emergencyService.createEmergencyCase(createEmergencyCaseDto);
     }
@@ -38,6 +43,7 @@ export class EmergencyController {
 
     @Put('cases/:id')
     @ApiOperation({ summary: 'Update emergency case' })
+    @Audit('UPDATE_EMERGENCY_CASE', 'emergency')
     async updateCase(@Param('id') id: string, @Body() updateCaseDto: Partial<CreateEmergencyCaseDto>) {
         try {
             return await this.emergencyService.updateEmergencyCase(id, updateCaseDto);
@@ -77,6 +83,7 @@ export class EmergencyController {
 
     @Put('beds/:id')
     @ApiOperation({ summary: 'Update bed status' })
+    @Audit('UPDATE_BED_STATUS', 'emergency')
     updateBedStatus(@Param('id') id: string, @Body() updateBedStatusDto: UpdateBedStatusDto) {
         return this.emergencyService.updateBedStatus(id, updateBedStatusDto);
     }
@@ -89,12 +96,14 @@ export class EmergencyController {
 
     @Put('cases/:id/discharge')
     @ApiOperation({ summary: 'Discharge emergency case and free bed' })
+    @Audit('DISCHARGE_EMERGENCY_CASE', 'emergency')
     dischargeCase(@Param('id') id: string) {
         return this.emergencyService.dischargeCase(id);
     }
 
     @Put('cases/:id/transfer')
     @ApiOperation({ summary: 'Transfer emergency case to another ward' })
+    @Audit('TRANSFER_PATIENT', 'emergency')
     transferPatient(@Param('id') id: string, @Body() data: { targetWard: string, targetBedId?: string, notes?: string }) {
         return this.emergencyService.transferPatient(id, data);
     }

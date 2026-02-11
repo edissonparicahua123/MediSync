@@ -18,6 +18,13 @@ import {
     FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
@@ -35,7 +42,8 @@ const doctorSchema = z.object({
     avatar: z.string().optional(),
 
     // Doctor fields
-    specialization: z.string().min(2, 'La especialidad es requerida'),
+    specialtyId: z.string().min(1, 'La especialidad es requerida'),
+    specialization: z.string().optional(),
     licenseNumber: z.string().min(5, 'El número de licencia es requerido'),
     consultationFee: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
         message: 'La tarifa debe ser un número positivo',
@@ -65,6 +73,8 @@ export default function DoctorModal({
 }: DoctorModalProps) {
     const { toast } = useToast()
     const [scheduleItems, setScheduleItems] = useState<{ dayOfWeek: number; enabled: boolean; startTime: string; endTime: string }[]>([])
+    const [specialties, setSpecialties] = useState<{ id: string; name: string }[]>([])
+    const [loadingSpecialties, setLoadingSpecialties] = useState(false)
 
     const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -111,6 +121,20 @@ export default function DoctorModal({
                 })))
             }
 
+            // Fetch Specialties
+            const fetchSpecialties = async () => {
+                try {
+                    setLoadingSpecialties(true)
+                    const res = await doctorsAPI.getSpecialties()
+                    setSpecialties(res.data || [])
+                } catch (error) {
+                    console.error('Error fetching specialties:', error)
+                } finally {
+                    setLoadingSpecialties(false)
+                }
+            }
+            fetchSpecialties()
+
             if (doctor) {
                 form.reset({
                     firstName: doctor.user?.firstName || '',
@@ -119,6 +143,7 @@ export default function DoctorModal({
                     phone: doctor.user?.phone || '',
                     address: doctor.user?.address || '',
                     avatar: doctor.user?.avatar || '',
+                    specialtyId: doctor.specialtyId || '',
                     specialization: doctor.specialization || '',
                     licenseNumber: doctor.licenseNumber || '',
                     consultationFee: doctor.consultationFee ? String(doctor.consultationFee) : '',
@@ -134,6 +159,7 @@ export default function DoctorModal({
                     phone: '',
                     address: '',
                     avatar: '',
+                    specialtyId: '',
                     specialization: '',
                     licenseNumber: '',
                     consultationFee: '',
@@ -255,7 +281,7 @@ export default function DoctorModal({
                                     <FormItem>
                                         <FormLabel>Correo Electrónico</FormLabel>
                                         <FormControl>
-                                            <Input type="email" placeholder="doctor@medisync.com" {...field} />
+                                            <Input type="email" placeholder="doctor@edicarex.com" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -376,13 +402,30 @@ export default function DoctorModal({
 
                             <FormField
                                 control={form.control}
-                                name="specialization"
+                                name="specialtyId"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Especialidad</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Cardiología" {...field} />
-                                        </FormControl>
+                                        <Select
+                                            disabled={loadingSpecialties}
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={loadingSpecialties ? "Cargando..." : "Seleccionar especialidad"} />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {specialties.map((s) => (
+                                                    <SelectItem key={s.id} value={s.id}>
+                                                        {// Translation for labels if needed or just display as is
+                                                            s.name
+                                                        }
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage />
                                     </FormItem>
                                 )}

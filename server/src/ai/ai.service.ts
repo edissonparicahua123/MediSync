@@ -57,6 +57,18 @@ export class AiService {
         }
     }
 
+    async predictGrowth(financialData: any): Promise<any> {
+        try {
+            const response = await firstValueFrom(
+                this.httpService.post(`${this.aiServiceUrl}/analytics/predict/growth`, { financial_data: financialData }),
+            );
+            return response.data;
+        } catch (error) {
+            this.logger.error('AI growth prediction failed', error);
+            return null;
+        }
+    }
+
     async chat(data: { message: string; context?: string }): Promise<any> {
         try {
             const response = await firstValueFrom(
@@ -83,7 +95,7 @@ export class AiService {
         } else if (messageLower.includes('dolor de pecho') || messageLower.includes('pecho')) {
             response = '⚠️ El dolor de pecho puede ser serio. Si es intenso, repentino o viene con dificultad para respirar, busca atención médica de emergencia inmediatamente.';
         } else if (messageLower.includes('hola') || messageLower.includes('buenos') || messageLower.includes('qué tal')) {
-            response = '¡Hola! Soy el Asistente Médico IA de MediSync. ¿En qué puedo ayudarte hoy? Puedes consultarme sobre síntomas, orientación médica general o información sobre citas.';
+            response = '¡Hola! Soy EdiCarex AI, tu asistente médico inteligente. ¿En qué puedo ayudarte hoy? Puedes consultarme sobre síntomas, orientación médica general o información sobre citas.';
         } else if (messageLower.includes('como estas') || messageLower.includes('cómo estás')) {
             response = '¡Estoy funcionando correctamente y listo para ayudarte! Soy una inteligencia artificial diseñada para asistirte.';
         } else if (messageLower.includes('ok') || messageLower.includes('gracias') || messageLower.includes('entendido')) {

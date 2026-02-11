@@ -1,11 +1,11 @@
 ================================================================================
-INVENTARIO COMPLETO DEL SISTEMA MEDISYNC ENTERPRISE
+INVENTARIO COMPLETO DEL SISTEMA EDICAREX ENTERPRISE
 Fecha: 02 de Enero de 2026
 Versión del Documento: 1.0
 ================================================================================
 
 Este documento detalla EXHAUSTIVAMENTE todos los componentes, páginas, módulos y
-servicios que componen el sistema MediSync Enterprise.
+servicios que componen el sistema EdiCarex Enterprise.
 
 --------------------------------------------------------------------------------
 1. RESUMEN DE ARQUITECTURA
@@ -13,7 +13,7 @@ servicios que componen el sistema MediSync Enterprise.
 El sistema es una plataforma Monorepo con tres componentes principales:
 1. CLIENTE (Frontend): React 18, Vite, TypeScript, Tailwind CSS.
 2. SERVIDOR (Backend): NestJS, TypeScript, Prisma, PostgreSQL.
-3. INTELIGENCIA ARTIFICIAL: Python, FastAPI, Google Gemini Pro.
+3. INTELIGENCIA ARTIFICIAL: Python, FastAPI, Groq (Llama 3.3).
 
 --------------------------------------------------------------------------------
 2. CLIENTE (FRONTEND) - Estructura Visual y Funcional
@@ -132,11 +132,11 @@ Entidades principales en PostgreSQL:
 4. INTELIGENCIA ARTIFICIAL - El Cerebro del Sistema
 --------------------------------------------------------------------------------
 Ruta Base: /ai
-Tecnología: Python (FastAPI) + Google Gemini Pro
+Tecnología: Python (FastAPI) + Groq (Llama 3.3 70B)
 
 4.1. CAPACIDADES
 - /app/services/chat_service.py:
-  Interactúa directamente con Google Gemini Pro para responder preguntas
+  Interactúa directamente con Groq para responder de manera ultra-rápida
   médicas y operativas en lenguaje natural.
 
 - /app/services/triage_service.py:
@@ -151,7 +151,7 @@ Tecnología: Python (FastAPI) + Google Gemini Pro
 --------------------------------------------------------------------------------
 5. INTEGRACIONES Y SERVICIOS EXTERNOS
 --------------------------------------------------------------------------------
-- Google Gemini API: Motor de IA Generativa.
+- Groq Cloud API: Motor de IA Generativa LPU.
 - Redis: Caché de alto rendimiento.
 - Docker: Contenerización de todos los servicios.
 - Traefik: Proxy inverso para gestión de rutas.

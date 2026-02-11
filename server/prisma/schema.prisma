@@ -168,8 +168,9 @@ model OrganizationConfig {
   openingHours Json?
   billing      Json?
   ai           Json?
+  maintenanceMode Boolean @default(false)
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt   DateTime @updatedAt
 
   @@map("organization_configs")
 }
@@ -403,6 +404,7 @@ model Doctor {
   pharmacyOrders PharmacyOrder[]
   prescribedMedications PatientMedication[]
   labOrders      LabOrder[] @relation("DoctorLabOrders")
+  invoices       Invoice[]
 
   @@index([licenseNumber])
   @@map("doctors")
@@ -468,8 +470,10 @@ model Appointment {
   doctorId  String
   doctor    Doctor  @relation(fields: [doctorId], references: [id])
 
+  checkIn        AppointmentCheckIn?
   history        AppointmentHistory[]
   medicalRecords MedicalRecord[]
+  invoices       Invoice[]     @relation("AppointmentInvoice")
 
   @@index([patientId])
   @@index([doctorId])
@@ -497,6 +501,7 @@ model AppointmentHistory {
 model AppointmentCheckIn {
   id              String    @id @default(uuid())
   appointmentId   String    @unique
+  appointment     Appointment @relation(fields: [appointmentId], references: [id])
   checkedInAt     DateTime  @default(now())
   checkedInBy     String?
   checkedOutAt    DateTime?
@@ -802,6 +807,10 @@ model Invoice {
   // Relations
   patientId String
   patient   Patient @relation(fields: [patientId], references: [id])
+  doctorId  String?
+  doctor    Doctor? @relation(fields: [doctorId], references: [id])
+  appointmentId String?
+  appointment   Appointment? @relation("AppointmentInvoice", fields: [appointmentId], references: [id])
 
   items    InvoiceItem[]
   payments Payment[]

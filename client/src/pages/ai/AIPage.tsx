@@ -206,6 +206,8 @@ export default function AIPage() {
                 role: 'assistant',
                 content: response.data.response,
                 timestamp: new Date(),
+                source: response.data.source || 'groq',
+                model: response.data.model || 'EdiCarex Llama 3.3'
             }
 
             setChatMessages(prev => [...prev, aiMessage])
@@ -232,39 +234,60 @@ export default function AIPage() {
 
     return (
         <div className="container mx-auto p-6 space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-                        <Brain className="h-8 w-8 text-indigo-600" />
-                        Asistente Médico IA
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2">
-                        Sistema inteligente de triaje, diagnóstico preliminar y predicción de demanda
-                    </p>
+            <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-red-600 to-indigo-600 rounded-lg blur opacity-10 group-hover:opacity-20 transition duration-1000 group-hover:duration-200"></div>
+                <div className="relative flex items-center justify-between p-6 bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden">
+                    <div className="flex items-center gap-6">
+                        <div className="relative">
+                            <div className="absolute -inset-2 bg-indigo-500/20 rounded-full blur-xl animate-pulse"></div>
+                            <div className="relative bg-gradient-to-br from-indigo-500 to-violet-600 p-4 rounded-2xl shadow-lg shadow-indigo-500/20">
+                                <Brain className="h-8 w-8 text-white" />
+                            </div>
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-zinc-400">
+                                Asistente Médico EdiCarex IA
+                            </h1>
+                            <p className="text-zinc-500 dark:text-zinc-400 mt-1 flex items-center gap-2">
+                                <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+                                Sistema inteligente EdiCarex de diagnóstico preliminar y análisis predictivo
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                        <Badge variant="outline" className="px-4 py-1.5 text-sm border-indigo-500/30 text-indigo-400 bg-indigo-500/5 backdrop-blur-md">
+                            <Activity className="h-3.5 w-3.5 mr-2 animate-pulse text-emerald-400" />
+                            Modelo Llama 3.3 LPU Online
+                        </Badge>
+                        <div className="flex -space-x-2">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="h-6 w-6 rounded-full border-2 border-white dark:border-zinc-950 bg-zinc-800 flex items-center justify-center">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                                </div>
+                            ))}
+                            <span className="pl-3 text-[10px] text-zinc-500 self-center uppercase tracking-widest font-semibold">Nodes active</span>
+                        </div>
+                    </div>
                 </div>
-                <Badge variant="outline" className="px-4 py-2 text-sm border-indigo-200 text-indigo-700 bg-indigo-50">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Modelo GPT-4 Activo
-                </Badge>
             </div>
 
             <Tabs defaultValue="triaje" className="space-y-6" onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
-                    <TabsTrigger value="triaje">
-                        <AlertTriangle className="h-4 w-4 mr-2" />
+                <TabsList className="grid w-full grid-cols-4 lg:w-[650px] p-1 bg-zinc-100 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                    <TabsTrigger value="triaje" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-lg dark:data-[state=active]:shadow-indigo-500/10">
+                        <AlertTriangle className="h-4 w-4 mr-2 text-amber-500" />
                         Evaluación
                     </TabsTrigger>
-                    <TabsTrigger value="chat">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Chat Médico
+                    <TabsTrigger value="chat" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-lg dark:data-[state=active]:shadow-indigo-500/10">
+                        <MessageSquare className="h-4 w-4 mr-2 text-indigo-500" />
+                        Chat Clínico
                     </TabsTrigger>
-                    <TabsTrigger value="predicciones">
-                        <TrendingUp className="h-4 w-4 mr-2" />
+                    <TabsTrigger value="predicciones" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-lg dark:data-[state=active]:shadow-indigo-500/10">
+                        <TrendingUp className="h-4 w-4 mr-2 text-emerald-500" />
                         Predicciones
                     </TabsTrigger>
-                    <TabsTrigger value="categorias">
-                        <Activity className="h-4 w-4 mr-2" />
-                        Categorización
+                    <TabsTrigger value="categorias" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-lg dark:data-[state=active]:shadow-indigo-500/10">
+                        <Activity className="h-4 w-4 mr-2 text-rose-500" />
+                        Análisis
                     </TabsTrigger>
                 </TabsList>
 
@@ -305,42 +328,56 @@ export default function AIPage() {
                         </Card>
 
                         {triageResult && (
-                            <Card className="border-l-4" style={{ borderLeftColor: triageResult.priority.color.replace('bg-', '') }}>
-                                <CardHeader>
+                            <Card className="relative overflow-hidden border-zinc-200 dark:border-zinc-800 shadow-2xl bg-white dark:bg-zinc-950/50 backdrop-blur-xl">
+                                <div className={`absolute top-0 left-0 w-1.5 h-full ${triageResult.priority.color}`} />
+                                <CardHeader className="border-b border-zinc-200 dark:border-zinc-800/50 bg-zinc-50/50 dark:bg-zinc-900/30">
                                     <div className="flex justify-between items-center">
-                                        <CardTitle>Resultados del Análisis</CardTitle>
-                                        <Badge className={`${triageResult.priority.color} text-white`}>
+                                        <CardTitle className="text-lg font-bold">Resultados del Análisis</CardTitle>
+                                        <Badge className={`${triageResult.priority.color} text-white px-3 py-1 shadow-lg`}>
                                             {triageResult.priority.label}
                                         </Badge>
                                     </div>
-                                    <CardDescription>
-                                        Confianza del modelo: {triageResult.confidence}%
+                                    <CardDescription className="flex items-center gap-1.5">
+                                        <div className="flex gap-0.5">
+                                            {[1, 2, 3, 4, 5].map((s) => (
+                                                <div key={s} className={`h-1 w-4 rounded-full ${s <= (triageResult.confidence / 20) ? 'bg-indigo-500' : 'bg-zinc-700'}`} />
+                                            ))}
+                                        </div>
+                                        Confianza: {triageResult.confidence}%
                                     </CardDescription>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="p-4 bg-gray-50 rounded-lg dark:bg-gray-800">
-                                        <h4 className="font-semibold mb-2">Análisis:</h4>
-                                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                                <CardContent className="pt-6 space-y-6">
+                                    <div className="relative p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+                                        <div className="absolute top-0 right-0 p-3 opacity-10">
+                                            <Brain className="h-10 w-10 text-indigo-400" />
+                                        </div>
+                                        <h4 className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-3">Perspectiva de la IA</h4>
+                                        <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed font-medium">
                                             {triageResult.analysis}
                                         </p>
                                     </div>
 
-                                    <div>
-                                        <h4 className="font-semibold mb-2">Recomendaciones:</h4>
-                                        <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                                            {triageResult.recommendations.map((rec: string, idx: number) => (
-                                                <li key={idx}>{rec}</li>
-                                            ))}
-                                        </ul>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
+                                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Espera Sugerida</p>
+                                            <p className="text-xl font-bold text-zinc-900 dark:text-white">{triageResult.priority.waitTime} min</p>
+                                        </div>
+                                        <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800">
+                                            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Especialidad</p>
+                                            <p className="text-xl font-bold text-indigo-500">{triageResult.category}</p>
+                                        </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between text-sm pt-4 border-t">
-                                        <span className="text-gray-500">Tiempo de espera estimado:</span>
-                                        <span className="font-bold">{triageResult.priority.waitTime} min</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500">Especialidad sugerida:</span>
-                                        <span className="font-bold text-indigo-600">{triageResult.category}</span>
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-3 px-1">Acciones Recomendadas</h4>
+                                        <div className="space-y-2">
+                                            {triageResult.recommendations.map((rec: string, idx: number) => (
+                                                <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-sm">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                    {rec}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -351,26 +388,26 @@ export default function AIPage() {
                 <TabsContent value="chat" className="space-y-4">
                     <Card className="h-[600px] flex flex-col">
                         <CardHeader>
-                            <CardTitle>Asistente Médico Virtual</CardTitle>
+                            <CardTitle>Asistente Médico EdiCarex</CardTitle>
                             <CardDescription>
-                                Chat interactivo para consultas médicas generales y orientación.
+                                Chat interactivo inteligente para orientación médica basada en el cerebro EdiCarex.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-1 flex flex-col p-0">
-                            <ScrollArea className="flex-1 p-4">
-                                <div className="space-y-4">
+                        <CardContent className="flex-1 flex flex-col p-0 overflow-hidden bg-zinc-50/50 dark:bg-zinc-900/20">
+                            <ScrollArea className="flex-1 p-6">
+                                <div className="space-y-6">
                                     {chatMessages.map((message, idx) => (
                                         <div
                                             key={idx}
                                             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div
-                                                className={`max-w-[80%] rounded-lg p-3 ${message.role === 'user'
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-800 dark:text-gray-100'
-                                                    }`}
+                                                className={`max-w-[85%] relative group ${message.role === 'user'
+                                                    ? 'bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-lg shadow-indigo-500/20 rounded-2xl rounded-tr-none'
+                                                    : 'bg-white dark:bg-zinc-800 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700/50 shadow-sm rounded-2xl rounded-tl-none'
+                                                    } p-4 transition-all duration-200 hover:shadow-md`}
                                             >
-                                                <div className="text-sm prose prose-sm dark:prose-invert max-w-none break-words">
+                                                <div className={`text-sm prose prose-sm dark:prose-invert max-w-none break-words ${message.role === 'user' ? 'prose-p:text-white/90' : ''}`}>
                                                     <ReactMarkdown
                                                         remarkPlugins={[remarkGfm]}
                                                         components={{
@@ -384,36 +421,55 @@ export default function AIPage() {
                                                         {message.content}
                                                     </ReactMarkdown>
                                                 </div>
-                                                <p className="text-xs opacity-70 mt-1">
-                                                    {message.timestamp.toLocaleTimeString()}
-                                                </p>
+                                                <div className={`text-[10px] mt-2 font-mono flex items-center justify-between opacity-50`}>
+                                                    <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    {message.role === 'assistant' && (
+                                                        <div className="flex gap-1 h-3 items-center">
+                                                            <div className={`w-1 h-1 rounded-full ${message.source === 'groq' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                                                            <span className="text-[8px] uppercase tracking-tighter">
+                                                                {message.source === 'groq' ? `Verified AI: ${message.model}` : `Fallback: ${message.model}`}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
                                     {sendingMessage && (
                                         <div className="flex justify-start">
-                                            <div className="bg-gray-100 rounded-lg p-3">
-                                                <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                                            <div className="bg-zinc-800 rounded-2xl p-4 flex gap-2 items-center border border-zinc-700/50 shadow-sm">
+                                                <div className="flex gap-1">
+                                                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                                    <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></div>
+                                                </div>
+                                                <span className="text-xs text-zinc-500 font-medium">EdiCarex está escribiendo...</span>
                                             </div>
                                         </div>
                                     )}
                                 </div>
                             </ScrollArea>
-                            <div className="p-4 border-t">
+                            <div className="p-4 bg-white dark:bg-zinc-950/80 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800">
                                 <form
                                     onSubmit={(e) => {
                                         e.preventDefault()
                                         handleSendMessage()
                                     }}
-                                    className="flex gap-2"
+                                    className="relative flex items-center"
                                 >
                                     <Input
-                                        placeholder="Escriba su consulta médica..."
+                                        placeholder="Consulta sobre síntomas, diagnósticos o medicación..."
+                                        className="pr-14 h-12 bg-zinc-100 dark:bg-zinc-900 border-transparent focus:ring-2 focus:ring-indigo-500/50 rounded-xl"
                                         value={chatInput}
                                         onChange={(e) => setChatInput(e.target.value)}
                                         disabled={sendingMessage}
                                     />
-                                    <Button type="submit" disabled={sendingMessage || !chatInput.trim()}>
+                                    <Button
+                                        type="submit"
+                                        size="icon"
+                                        className="absolute right-1.5 bg-indigo-600 hover:bg-indigo-700 h-9 w-9 rounded-lg"
+                                        disabled={sendingMessage || !chatInput.trim()}
+                                    >
                                         <Send className="h-4 w-4" />
                                     </Button>
                                 </form>

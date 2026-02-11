@@ -2,14 +2,11 @@ import { Controller, Get, Query, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AuditService } from './audit.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-// Assuming you have a RolesGuard, if not I'll stick to JwtAuthGuard for now, 
-// but usually this should be Admin only.
-// import { RolesGuard } from '../auth/guards/roles.guard';
-// import { Roles } from '../auth/decorators/roles.decorator';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
 @Controller('audit')
 export class AuditController {
     constructor(private readonly auditService: AuditService) { }
@@ -29,6 +26,7 @@ export class AuditController {
         @Query('userId') userId?: string,
         @Query('resource') resource?: string,
         @Query('action') action?: string,
+        @Query('query') query?: string,
         @Query('startDate') startDate?: string,
         @Query('endDate') endDate?: string,
     ) {
@@ -38,6 +36,7 @@ export class AuditController {
             userId,
             resource,
             action,
+            query,
             startDate: startDate ? new Date(startDate) : undefined,
             endDate: endDate ? new Date(endDate) : undefined,
         });

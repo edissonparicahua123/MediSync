@@ -1,8 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { BedsService } from './beds.service';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
 
 @ApiTags('beds')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
 @Controller('beds')
 export class BedsController {
     constructor(private readonly bedsService: BedsService) { }

@@ -282,7 +282,7 @@ export default function PatientProfilePage() {
                     </div>
                     <div style="margin-top: 50px; text-align: center; color: #64748b; font-size: 12px;">
                         <p>Documento generado el ${new Date().toLocaleString()}</p>
-                        <p>MediSync - Sistema de Gestión Hospitalaria</p>
+                        <p>EdiCarex - Sistema de Gestión Hospitalaria</p>
                     </div>
                 </body>
                 </html>

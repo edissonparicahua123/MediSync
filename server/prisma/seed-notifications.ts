@@ -19,7 +19,7 @@ async function main() {
     const notifications = [
         {
             userId: user.id,
-            title: '¡Bienvenido a MediSync!',
+            title: '¡Bienvenido a EdiCarex!',
             message: 'Gracias por usar nuestra plataforma. Aquí recibirás todas tus alertas importantes.',
             type: 'SYSTEM_ALERT',
             isRead: false,

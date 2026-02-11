@@ -17,7 +17,12 @@ import {
     Activity,
     AlertTriangle,
     Calendar,
+    Stethoscope,
+    PieChart,
+    ArrowUpRight,
+    TestTube,
 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { analyticsAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 import {
@@ -39,6 +44,9 @@ import {
     PolarRadiusAxis,
     Radar,
     ComposedChart,
+    Cell,
+    PieChart as RePieChart,
+    Pie,
 } from 'recharts'
 
 export default function AnalyticsPage() {
@@ -54,6 +62,14 @@ export default function AnalyticsPage() {
         patientCycle: [],
         capacity: [],
         historical: [],
+        topDoctors: [],
+        patientStats: { total: 0, byGender: [], byStatus: [] },
+        ageDist: [],
+        revenueStats: { totalRevenue: 0, pendingRevenue: 0, thisMonthRevenue: 0 },
+        dashboard: { appointments: [], patients: { total: 0, byGender: [], byStatus: [] }, topDoctors: [] },
+        appointmentTypes: [],
+        labStats: [],
+        topMeds: []
     })
 
     useEffect(() => {
@@ -63,21 +79,34 @@ export default function AnalyticsPage() {
     const loadAnalytics = async () => {
         try {
             setLoading(true)
-
             const [
                 heatmapRes,
                 saturationRes,
                 areaRes,
                 cycleRes,
                 capacityRes,
-                historicalRes
+                historicalRes,
+                dashboardRes,
+                patientStatsRes,
+                appTypesRes,
+                labStatsRes,
+                topMedsRes,
+                ageDistRes,
+                revenueStatsRes
             ] = await Promise.all([
-                analyticsAPI.getHeatmap(),
-                analyticsAPI.getSaturation(),
-                analyticsAPI.getAreaComparison(),
-                analyticsAPI.getPatientCycle(),
-                analyticsAPI.getCapacity(),
-                analyticsAPI.getHistorical()
+                analyticsAPI.getHeatmap(timeRange),
+                analyticsAPI.getSaturation(timeRange),
+                analyticsAPI.getAreaComparison(timeRange),
+                analyticsAPI.getPatientCycle(timeRange),
+                analyticsAPI.getCapacity(timeRange),
+                analyticsAPI.getHistorical(timeRange),
+                analyticsAPI.getDashboard(timeRange),
+                analyticsAPI.getPatientStats(timeRange),
+                analyticsAPI.getAppointmentTypes(timeRange),
+                analyticsAPI.getLabStats(timeRange),
+                analyticsAPI.getTopMeds(timeRange),
+                analyticsAPI.getAgeDistribution(timeRange),
+                analyticsAPI.getRevenueStats(timeRange)
             ])
 
             setAnalyticsData({
@@ -87,6 +116,14 @@ export default function AnalyticsPage() {
                 patientCycle: cycleRes.data,
                 capacity: capacityRes.data,
                 historical: historicalRes.data,
+                topDoctors: dashboardRes.data?.topDoctors || [],
+                patientStats: patientStatsRes.data,
+                appointmentTypes: appTypesRes.data,
+                labStats: labStatsRes.data,
+                topMeds: topMedsRes.data,
+                ageDist: ageDistRes.data,
+                revenueStats: revenueStatsRes.data,
+                dashboard: dashboardRes.data
             })
 
         } catch (error: any) {
@@ -102,33 +139,35 @@ export default function AnalyticsPage() {
     }
 
 
-
-    // Calcular estadísticas
+    // Calcular estadísticas optimizadas usando 100% de la API
     const stats = {
-        totalPatients: analyticsData.historical.reduce((sum: number, m: any) => sum + m.patients, 0),
-        totalRevenue: analyticsData.historical.reduce((sum: number, m: any) => sum + m.revenue, 0),
+        totalPatients: analyticsData.dashboard.patients?.total || 0,
+        newPatientsThisMonth: analyticsData.patientStats.newThisMonth || 0,
+        totalRevenue: analyticsData.revenueStats?.totalRevenue || 0,
+        thisMonthRevenue: analyticsData.revenueStats?.thisMonthRevenue || 0,
+        pendingRevenue: analyticsData.revenueStats?.pendingRevenue || 0,
         avgSaturation: Math.round(
-            analyticsData.saturation.reduce((sum: number, h: any) => sum + (h.current / h.capacity * 100), 0) /
-            analyticsData.saturation.length
+            (analyticsData.saturation || []).reduce((sum: number, h: any) => sum + (h.current / (h.capacity || 100) * 100), 0) /
+            (analyticsData.saturation?.length || 1)
         ),
         avgCapacityUsage: Math.round(
-            analyticsData.capacity.reduce((sum: number, d: any) => sum + (d.booked / d.available * 100), 0) /
-            analyticsData.capacity.length
+            (analyticsData.capacity || []).reduce((sum: number, d: any) => sum + (d.booked / (d.available || 100) * 100), 0) /
+            (analyticsData.capacity?.length || 1)
         ),
     }
 
     // Obtener color del heatmap
     const getHeatmapColor = (value: number) => {
-        if (value >= 70) return '#ef4444' // Rojo - Alta demanda
-        if (value >= 50) return '#f59e0b' // Naranja - Media-Alta
-        if (value >= 30) return '#3b82f6' // Azul - Media
+        if (value >= 15) return '#ef4444' // Rojo - Alta demanda
+        if (value >= 10) return '#f59e0b' // Naranja - Media-Alta
+        if (value >= 5) return '#3b82f6' // Azul - Media
         return '#10b981' // Verde - Baja
     }
 
     if (loading) {
         return (
             <div className="flex items-center justify-center h-96">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         )
     }
@@ -138,270 +177,444 @@ export default function AnalyticsPage() {
             {/* Header */}
             <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                        <BarChart3 className="h-6 w-6 text-blue-600" />
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                        <BarChart3 className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Analítica Avanzada</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Inteligencia de Datos</h1>
                         <p className="text-muted-foreground">
-                            Análisis profesionales con analítica predictiva
+                            Análisis estratégico y predictivo basado en datos reales
                         </p>
                     </div>
                 </div>
-                <Select value={timeRange} onValueChange={setTimeRange}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Rango de Tiempo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="7days">Últimos 7 Días</SelectItem>
-                        <SelectItem value="30days">Últimos 30 Días</SelectItem>
-                        <SelectItem value="12months">Últimos 12 Meses</SelectItem>
-                    </SelectContent>
-                </Select>
+                <div className="flex items-center gap-4">
+                    <Select value={timeRange} onValueChange={setTimeRange}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Rango de Tiempo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="7days">Últimos 7 Días</SelectItem>
+                            <SelectItem value="30days">Últimos 30 Días</SelectItem>
+                            <SelectItem value="12months">Últimos 12 Meses</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pacientes</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalPatients.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">Últimos 12 meses</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">Últimos 12 meses</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-orange-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Saturación Promedio</CardTitle>
-                        <Activity className="h-4 w-4 text-orange-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-orange-600">{stats.avgSaturation}%</div>
-                        <p className="text-xs text-muted-foreground">Uso de capacidad actual</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-green-200">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Uso de Capacidad</CardTitle>
-                        <Calendar className="h-4 w-4 text-green-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{stats.avgCapacityUsage}%</div>
-                        <p className="text-xs text-muted-foreground">Promedio semanal</p>
-                    </CardContent>
-                </Card>
+                {[
+                    {
+                        title: 'Pacientes Totales',
+                        value: stats.totalPatients,
+                        sub: `+${stats.newPatientsThisMonth} este mes`,
+                        icon: <Users />,
+                        color: 'blue',
+                        trend: 'up'
+                    },
+                    {
+                        title: 'Facturación Total',
+                        value: `S/. ${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`,
+                        sub: `S/. ${stats.thisMonthRevenue.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} este mes`,
+                        icon: <DollarSign />,
+                        color: 'green',
+                        trend: 'up'
+                    },
+                    {
+                        title: 'Recaudación Pendiente',
+                        value: `S/. ${stats.pendingRevenue.toLocaleString()}`,
+                        sub: 'Cuentas por cobrar',
+                        icon: <TrendingUp />,
+                        color: 'purple',
+                        trend: 'neutral'
+                    },
+                    {
+                        title: 'Saturación Prom.',
+                        value: `${stats.avgSaturation}%`,
+                        sub: 'Estado Crítico > 85%',
+                        icon: <Activity />,
+                        color: 'orange',
+                        trend: stats.avgSaturation > 80 ? 'up' : 'down'
+                    },
+                ].map((item, i) => (
+                    <Card key={i} className="border-none shadow-sm overflow-hidden group hover:shadow-md transition-all">
+                        <div className={`h-1 w-full bg-${item.color}-500`} />
+                        <CardContent className="p-6">
+                            <div className="flex justify-between items-start">
+                                <div className={`p-2 rounded-lg bg-${item.color}-50 text-${item.color}-600 group-hover:scale-110 transition-transform`}>
+                                    {item.icon}
+                                </div>
+                                {item.trend && (
+                                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${item.trend === 'up' ? 'bg-green-50 text-green-600' :
+                                        item.trend === 'down' ? 'bg-blue-50 text-blue-600' :
+                                            'bg-gray-50 text-gray-600'
+                                        }`}>
+                                        {item.trend === 'up' ? 'Creciendo' : item.trend === 'down' ? 'Estable' : 'Info'}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="mt-4">
+                                <p className="text-sm font-medium text-muted-foreground">{item.title}</p>
+                                <h3 className="text-2xl font-bold mt-1 tracking-tight">{item.value}</h3>
+                                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                    <ArrowUpRight className="h-3 w-3" />
+                                    {item.sub}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
             </div>
 
-            {/* 1. Heatmap de horas de alta demanda */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Mapa de Calor de Horas Pico</CardTitle>
-                    <CardDescription>Demanda de pacientes por día y hora</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr>
-                                    <th className="p-2 text-left text-sm font-medium">Hora</th>
-                                    {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
-                                        <th key={day} className="p-2 text-center text-sm font-medium">{day}</th>
+            <div className="space-y-12 pb-12">
+                {/* 1. SECCIÓN OPERATIVA */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="h-8 w-1 bg-blue-600 rounded-full" />
+                        <h2 className="text-xl font-bold">Gestión Operativa y Afluencia</h2>
+                    </div>
+
+                    <Card className="border-none shadow-sm overflow-hidden">
+                        <CardHeader className="bg-muted/30">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <CardTitle>Grilla de Densidad: Afluencia de Pacientes</CardTitle>
+                                    <CardDescription>Mapa de calor basado en citas confirmadas y triaje</CardDescription>
+                                </div>
+                                <div className="flex gap-2 text-xs font-medium">
+                                    {[{ l: '0-5', c: '#10b981' }, { l: '5-10', c: '#3b82f6' }, { l: '10-15', c: '#f59e0b' }, { l: '15+', c: '#ef4444' }].map(t => (
+                                        <div key={t.l} className="flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.c }} />
+                                            <span>{t.l}</span>
+                                        </div>
                                     ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {analyticsData.heatmap.map((row: any, idx: number) => (
-                                    <tr key={idx}>
-                                        <td className="p-2 text-sm font-medium">{row.hour}</td>
-                                        {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
-                                            <td key={day} className="p-1">
-                                                <div
-                                                    className="h-12 w-full rounded flex items-center justify-center text-white text-sm font-semibold"
-                                                    style={{ backgroundColor: getHeatmapColor(row[day]) }}
-                                                >
-                                                    {row[day]}
-                                                </div>
-                                            </td>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr className="bg-muted/10">
+                                            <th className="p-3 text-left text-xs font-bold text-muted-foreground uppercase tracking-widest w-24">Horario</th>
+                                            {['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'].map(day => (
+                                                <th key={day} className="p-3 text-center text-xs font-bold text-muted-foreground">{day}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {analyticsData.heatmap.map((row: any, idx: number) => (
+                                            <tr key={idx} className="border-b border-muted/10 hover:bg-muted/5 transition-colors">
+                                                <td className="p-3 text-xs font-bold bg-muted/5 text-muted-foreground">{row.hour}</td>
+                                                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(day => (
+                                                    <td key={day} className="p-1">
+                                                        <div
+                                                            className="h-10 w-full rounded-md flex items-center justify-center text-white text-[10px] font-black shadow-sm transition-all hover:scale-105 cursor-help"
+                                                            style={{
+                                                                backgroundColor: getHeatmapColor(row[day]),
+                                                                opacity: row[day] === 0 ? 0.2 : 1,
+                                                                border: row[day] > 10 ? '1px solid rgba(255,255,255,0.2)' : 'none'
+                                                            }}
+                                                            title={`${row[day]} pacientes el ${day} a las ${row.hour}`}
+                                                        >
+                                                            {row[day] > 0 ? row[day] : ''}
+                                                        </div>
+                                                    </td>
+                                                ))}
+                                            </tr>
                                         ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Activity className="h-5 w-5 text-blue-600" />
+                                    Balance de Carga Predictiva
+                                </CardTitle>
+                                <CardDescription>Saturación actual vs Demanda estimada (Próximas 24h)</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <ComposedChart data={(analyticsData.saturation || []).filter((d: any) => d.hour !== '0:00')}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} unit="%" />
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                        <Legend verticalAlign="top" height={36} />
+                                        <Area type="monotone" dataKey="capacity" fill="#f1f5f9" stroke="#cbd5e1" name="Límite del Centro" />
+                                        <Line type="stepAfter" dataKey="current" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }} name="Saturación Real" />
+                                        <Line type="monotone" dataKey="predicted" stroke="#f59e0b" strokeWidth={3} strokeDasharray="5 5" dot={false} name="Forecast Predictivo" />
+                                    </ComposedChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Calendar className="h-5 w-5 text-green-600" />
+                                    Eficiencia de Agenda Semanal
+                                </CardTitle>
+                                <CardDescription>Capacidad instalada vs Reservas efectivas</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={analyticsData.capacity}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                                        <Tooltip cursor={{ fill: '#f8fafc' }} />
+                                        <Legend verticalAlign="top" height={36} />
+                                        <Bar dataKey="available" fill="#e2e8f0" name="Espacios Totales" radius={[4, 4, 0, 0]} barSize={20} />
+                                        <Bar dataKey="booked" fill="#10b981" name="Turnos Tomados" radius={[4, 4, 0, 0]} barSize={20} />
+                                        <Bar dataKey="walkins" fill="#3b82f6" name="Citas de Guardia" radius={[4, 4, 0, 0]} barSize={20} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
                     </div>
-                    <div className="flex gap-4 mt-4 text-sm">
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-green-500"></div>
-                            <span>Baja (0-30)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-blue-500"></div>
-                            <span>Media (30-50)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-orange-500"></div>
-                            <span>Alta (50-70)</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-red-500"></div>
-                            <span>Crítica (70+)</span>
-                        </div>
+                </section>
+
+                {/* 2. SECCIÓN FINANCIERA */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="h-8 w-1 bg-emerald-600 rounded-full" />
+                        <h2 className="text-xl font-bold">Rendimiento Financiero y Ranking</h2>
                     </div>
-                </CardContent>
-            </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 2. Predicción de saturación */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-orange-600" />
-                            Predicción de Saturación
-                        </CardTitle>
-                        <CardDescription>Uso de capacidad actual vs predicha</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <ComposedChart data={analyticsData.saturation}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="hour" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="capacity" fill="#94a3b8" name="Capacidad" />
-                                <Line type="monotone" dataKey="current" stroke="#3b82f6" strokeWidth={2} name="Actual" />
-                                <Line type="monotone" dataKey="predicted" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" name="Predicha" />
-                            </ComposedChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="lg:col-span-2 border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <DollarSign className="h-5 w-5 text-emerald-600" />
+                                    Flujo de Caja Anual (Facturación Real)
+                                </CardTitle>
+                                <CardDescription>Ingresos percibidos por meses (Invoices Pagados)</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <AreaChart data={analyticsData.historical}>
+                                        <defs>
+                                            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.15} />
+                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `S/. ${val.toLocaleString()}`} />
+                                        <Tooltip />
+                                        <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" name="Recaudación Mensual" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
 
-                {/* 3. Comparación de áreas */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Comparación de Áreas</CardTitle>
-                        <CardDescription>Rendimiento por departamento</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <RadarChart data={analyticsData.areaComparison}>
-                                <PolarGrid />
-                                <PolarAngleAxis dataKey="area" />
-                                <PolarRadiusAxis />
-                                <Radar name="Pacientes" dataKey="patients" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
-                                <Radar name="Satisfacción" dataKey="satisfaction" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
-                                <Tooltip />
-                                <Legend />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Stethoscope className="h-5 w-5 text-indigo-600" />
+                                    Top 5 Doctores: Facturación
+                                </CardTitle>
+                                <CardDescription>Líderes en generación de valor</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <BarChart
+                                        data={analyticsData.topDoctors || []}
+                                        layout="vertical"
+                                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                                        <XAxis type="number" hide />
+                                        <YAxis
+                                            dataKey="name"
+                                            type="category"
+                                            width={180}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 11, fontWeight: 500 }}
+                                        />
+                                        <Tooltip formatter={(val) => `S/. ${val.toLocaleString()}`} />
+                                        <Bar dataKey="revenue" fill="#6366f1" radius={[0, 4, 4, 0]} name="Ingresos Totales" barSize={30}>
+                                            {(analyticsData.topDoctors || []).map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={index === 0 ? '#4f46e5' : '#818cf8'} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
+
+                {/* 3. SECCIÓN ESTRATÉGICA Y DEMOGRÁFICA */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="h-8 w-1 bg-purple-600 rounded-full" />
+                        <h2 className="text-xl font-bold">Análisis Estratégico y Conversión</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <TrendingUp className="h-5 w-5 text-purple-600" />
+                                    Embudo de Flujo Clínico
+                                </CardTitle>
+                                <CardDescription>Conversión real de pacientes por etapa del proceso</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <BarChart data={analyticsData.patientCycle}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="stage" axisLine={false} tickLine={false} />
+                                        <YAxis axisLine={false} tickLine={false} />
+                                        <Tooltip cursor={{ fill: '#f8fafc' }} />
+                                        <Legend />
+                                        <Bar dataKey="count" fill="#8b5cf6" name="Carga de Pacientes" radius={[4, 4, 0, 0]} barSize={40} />
+                                        <Bar dataKey="avgTime" fill="#f59e0b" name="Espera Promedio (min)" radius={[4, 4, 0, 0]} barSize={10} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <PieChart className="h-5 w-5 text-orange-600" />
+                                    Distribución Operativa por Área
+                                </CardTitle>
+                                <CardDescription>Balance entre volumen e ingresos por especialidad</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={analyticsData.areaComparison}>
+                                        <PolarGrid stroke="#e2e8f0" />
+                                        <PolarAngleAxis dataKey="area" tick={{ fill: '#64748b', fontSize: 12 }} />
+                                        <PolarRadiusAxis angle={30} domain={[0, 'auto']} />
+                                        <Radar name="Pacientes" dataKey="patients" stroke="#2563eb" strokeWidth={3} fill="#2563eb" fillOpacity={0.2} />
+                                        <Radar name="Ingresos (x1000)" dataKey="revenue" stroke="#10b981" strokeWidth={3} fill="#10b981" fillOpacity={0.1} />
+                                        <Tooltip />
+                                        <Legend />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
+
+                {/* 4. SECCIÓN DE INSUMOS Y DEMANDA (NEW) */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="h-8 w-1 bg-amber-600 rounded-full" />
+                        <h2 className="text-xl font-bold">Demanda de Insumos y Servicios</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Activity className="h-5 w-5 text-amber-600" />
+                                    Mix de Servicios (Citas por Tipo)
+                                </CardTitle>
+                                <CardDescription>Distribución real de motivos de consulta</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <RePieChart>
+                                        <Pie
+                                            data={analyticsData.appointmentTypes}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={100}
+                                            paddingAngle={5}
+                                            dataKey="_count"
+                                            nameKey="type"
+                                        >
+                                            {(analyticsData.appointmentTypes || []).map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'][index % 5]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                        <Legend />
+                                    </RePieChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Activity className="h-5 w-5 text-rose-600" />
+                                    Demanda de Farmacia (Top 10)
+                                </CardTitle>
+                                <CardDescription>Medicamentos con mayor rotación de pedidos</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={analyticsData.topMeds} layout="vertical">
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="name" type="category" width={120} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                                        <Tooltip />
+                                        <Bar dataKey="count" fill="#f43f5e" radius={[0, 4, 4, 0]} barSize={15} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <TestTube className="h-5 w-5 text-cyan-600" />
+                                    Carga de Laboratorio por Categoría
+                                </CardTitle>
+                                <CardDescription>Distribución de órdenes por tipo de examen</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={analyticsData.labStats}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="category" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                        <YAxis axisLine={false} tickLine={false} />
+                                        <Tooltip cursor={{ fill: '#f8fafc' }} />
+                                        <Bar dataKey="count" fill="#0891b2" radius={[4, 4, 0, 0]} barSize={40} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-none shadow-sm">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                    <Users className="h-5 w-5 text-teal-600" />
+                                    Distribución Etaria de Pacientes
+                                </CardTitle>
+                                <CardDescription>Composición de la población por grupos de edad</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <BarChart data={analyticsData.ageDist} layout="vertical">
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="range" type="category" width={120} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                                        <Tooltip />
+                                        <Bar dataKey="count" fill="#0d9488" radius={[0, 4, 4, 0]} barSize={25} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 4. Ciclo de pacientes */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Ciclo de Viaje del Paciente</CardTitle>
-                        <CardDescription>Flujo de pacientes a través de etapas</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={analyticsData.patientCycle}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="stage" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="count" fill="#8b5cf6" name="Pacientes" />
-                                <Bar dataKey="avgTime" fill="#f59e0b" name="Tiempo Prom. (min)" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-
-                {/* 5. Cupos vs Disponibilidad */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Capacidad vs Disponibilidad</CardTitle>
-                        <CardDescription>Cupos de citas semanales</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={analyticsData.capacity}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="day" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="available" fill="#94a3b8" name="Disponible" />
-                                <Bar dataKey="booked" fill="#10b981" name="Reservado" />
-                                <Bar dataKey="walkins" fill="#3b82f6" name="Sin Cita" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* 6. Histórico de 12 meses */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tendencias Históricas de 12 Meses</CardTitle>
-                    <CardDescription>Visión general anual completa</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={400}>
-                        <AreaChart data={analyticsData.historical}>
-                            <defs>
-                                <linearGradient id="colorPatients" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="colorAppointments" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="month" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Area type="monotone" dataKey="patients" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPatients)" name="Pacientes" />
-                            <Area type="monotone" dataKey="appointments" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorAppointments)" name="Citas" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-
-                    <ResponsiveContainer width="100%" height={300} className="mt-6">
-                        <LineChart data={analyticsData.historical}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="month" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} name="Ingresos ($)" />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
         </div>
     )
 }

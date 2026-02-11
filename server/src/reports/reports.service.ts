@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class ReportsService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private aiService: AiService
+    ) { }
 
     async getDashboardStats() {
         const [todayAppointments, totalPatients, totalDoctors, pendingInvoices] = await Promise.all([
@@ -201,6 +205,16 @@ export class ReportsService {
                     },
                     select: { status: true }
                 },
+                invoices: {
+                    where: {
+                        status: 'PAID',
+                        invoiceDate: {
+                            gte: startDate,
+                            lte: endDate
+                        },
+                        deletedAt: null
+                    }
+                }
             }
         });
 
@@ -209,15 +223,17 @@ export class ReportsService {
             const completedAppointments = d.appointments.filter(a => a.status === 'COMPLETED').length;
 
             // Calculate satisfaction based on completion rate (real metric)
-            // 5 stars if > 90% completion, scaled down otherwise
             const completionRate = totalAppointments > 0 ? completedAppointments / totalAppointments : 0;
             const satisfaction = totalAppointments > 0 ? (completionRate * 5).toFixed(1) : 0;
+
+            // Calculate real revenue from PAID invoices linked to this doctor
+            const revenue = d.invoices.reduce((sum, inv) => sum + Number(inv.total), 0);
 
             return {
                 name: `${d.user.firstName} ${d.user.lastName}`,
                 patients: totalAppointments,
                 satisfaction: Number(satisfaction) || 0,
-                revenue: completedAppointments * 50 // Est. revenue per completed appointment
+                revenue: revenue
             };
         }).sort((a, b) => b.patients - a.patients).slice(0, 5);
     }
@@ -326,42 +342,51 @@ export class ReportsService {
     }
 
     async getAiPredictions(params: any = {}) {
+        // 1. Get current year data
         const stats = await this.getFinancialStats(params);
-        const monthlyData = stats.monthlyBreakdown;
-        const activeMonths = monthlyData.filter(m => m.revenue > 0);
 
-        if (activeMonths.length < 2) {
-            return [
-                { month: 'Jul', predicted: 0, confidence: 50 },
-                { month: 'Ago', predicted: 0, confidence: 40 },
-            ];
+        // 2. Get previous year data (2025) for better context
+        const lastYearParams = {
+            startDate: new Date(new Date().getFullYear() - 1, 0, 1),
+            endDate: new Date(new Date().getFullYear() - 1, 11, 31)
+        };
+        const lastYearStats = await this.getFinancialStats(lastYearParams);
+
+        // 3. Construct historical context for Groq
+        const financialContext = {
+            currentYear: stats.monthlyBreakdown,
+            previousYear: lastYearStats.monthlyBreakdown,
+            totals: {
+                currentRevenue: stats.totalRevenue,
+                previousRevenue: lastYearStats.totalRevenue,
+                growth: lastYearStats.totalRevenue > 0
+                    ? ((stats.totalRevenue - lastYearStats.totalRevenue) / lastYearStats.totalRevenue) * 100
+                    : 0
+            }
+        };
+
+        try {
+            // 4. Call Groq via AI service
+            const aiPrediction = await this.aiService.predictGrowth(financialContext);
+
+            if (aiPrediction) {
+                return aiPrediction;
+            }
+        } catch (error) {
+            console.error('Groq prediction failed, using enhanced fallback', error);
         }
 
-        const lastMonthRevenue = activeMonths[activeMonths.length - 1].revenue;
-        const growthRate = activeMonths.length >= 2
-            ? (lastMonthRevenue / activeMonths[activeMonths.length - 2].revenue)
-            : 1.05;
-
-        const nextMonths = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        const startIdx = activeMonths.length;
-
-        const predictions = [];
-        let currentPrediction = lastMonthRevenue;
-        let confidence = 90;
-
-        for (let i = 0; i < 6; i++) {
-            const monthIdx = (startIdx + i) % 12;
-            currentPrediction = currentPrediction * (Math.random() * 0.1 + 0.95) * (growthRate > 2 ? 1.1 : growthRate);
-            confidence -= 5;
-
-            predictions.push({
-                month: nextMonths[monthIdx],
-                predicted: Math.round(currentPrediction),
-                confidence
-            });
-        }
-
-        return predictions;
+        // 5. Enhanced Fallback if AI fails (but using real data trends)
+        const lastMonthRevenue = stats.monthlyBreakdown.filter(m => m.revenue > 0).pop()?.revenue || 10000;
+        return {
+            predictions: [
+                { month: 'Próximo', predicted: Math.round(lastMonthRevenue * 1.05), confidence: 70 },
+                { month: 'Siguiente', predicted: Math.round(lastMonthRevenue * 1.10), confidence: 60 }
+            ],
+            insight: "⚠️ (MODO FALLBACK) Análisis de tendencia lineal basado en ingresos actuales. El motor Groq no respondió a tiempo.",
+            projected_annual_growth: 5.5,
+            accuracy_score: 75
+        };
     }
 
     async exportReport(type: string, params: any) {

@@ -98,7 +98,7 @@ export function InvoiceViewerModal({ open, onOpenChange, invoice }: InvoiceViewe
                                     <div className="mt-6 text-zinc-400 text-xs space-y-1">
                                         <div className="flex items-center gap-2">
                                             <Building2 className="h-3 w-3" />
-                                            <span className="font-bold text-zinc-300">CLÍNICA MEDISYNC S.A.C.</span>
+                                            <span className="font-bold text-zinc-300">CLÍNICA EDICAREX S.A.C.</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <MapPin className="h-3 w-3" />
@@ -110,7 +110,7 @@ export function InvoiceViewerModal({ open, onOpenChange, invoice }: InvoiceViewe
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Mail className="h-3 w-3" />
-                                            <span>facturacion@medisync.com</span>
+                                            <span>facturacion@edicarex.com</span>
                                         </div>
                                     </div>
                                 </div>

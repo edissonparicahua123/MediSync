@@ -14,16 +14,22 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Audit } from '../common/decorators/audit.decorator';
+import { UseInterceptors } from '@nestjs/common';
 
 @ApiTags('Users')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
+@UseInterceptors(AuditInterceptor)
 @Controller('users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) { }
 
     @Post()
     @ApiOperation({ summary: 'Create new user' })
+    @Audit('CREATE_USER', 'users')
     create(@Body() createUserDto: CreateUserDto) {
         return this.usersService.create(createUserDto);
     }
@@ -53,6 +59,7 @@ export class UsersController {
 
     @Patch('me')
     @ApiOperation({ summary: 'Update current user profile' })
+    @Audit('UPDATE_PROFILE', 'users')
     updateProfile(@Request() req, @Body() updateUserDto: UpdateUserDto) {
         return this.usersService.update(req.user.id, updateUserDto);
     }
@@ -65,12 +72,14 @@ export class UsersController {
 
     @Patch(':id')
     @ApiOperation({ summary: 'Update user' })
+    @Audit('UPDATE_USER', 'users')
     update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
         return this.usersService.update(id, updateUserDto);
     }
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete user (soft delete)' })
+    @Audit('DELETE_USER', 'users')
     remove(@Param('id') id: string) {
         return this.usersService.remove(id);
     }

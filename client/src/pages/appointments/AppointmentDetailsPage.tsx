@@ -78,7 +78,9 @@ export default function AppointmentDetailsPage() {
             patientId: appointment.patient?.id,
             serviceDescription: `Consulta Médica - ${appointment.reason || 'General'}`,
             servicePrice: 50,
-            doctorName: appointment.doctor?.user ? `${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName}` : undefined
+            doctorName: appointment.doctor?.user ? `${appointment.doctor.user.firstName} ${appointment.doctor.user.lastName}` : undefined,
+            doctorId: appointment.doctorId,
+            appointmentId: appointment.id
         })
         setShowInvoiceModal(true)
     }
@@ -174,6 +176,27 @@ export default function AppointmentDetailsPage() {
             'IN_PROGRESS': 'En Progreso'
         }
         return statuses[status] || status
+    }
+
+    const translateAppointmentType = (type: string) => {
+        const types: Record<string, string> = {
+            'CHECKUP': 'Chequeo General',
+            'FOLLOW_UP': 'Seguimiento',
+            'EMERGENCY': 'Emergencia',
+            'CONSULTATION': 'Consulta Médica',
+            'SURGERY': 'Cirugía',
+            'ROUTINE': 'Rutina',
+            'TELEMEDICINE': 'Telemedicina',
+            'THERAPY': 'Terapia / Rehabilitación',
+            'PROCEDURE': 'Procedimiento Especial',
+            'LABORATORY': 'Laboratorio / Examen',
+            'IMAGING': 'Imagenología (Rayos X, etc.)',
+            'DENTISTRY': 'Odontología',
+            'NUTRITION': 'Nutrición',
+            'MENTAL_HEALTH': 'Salud Mental',
+            'VACCINATION': 'Vacunación'
+        };
+        return types[type] || type
     }
 
     const translateType = (type: string) => {
@@ -281,8 +304,12 @@ export default function AppointmentDetailsPage() {
                                 </div>
                             </div>
                             <div>
+                                <p className="text-sm text-muted-foreground">Tipo de Cita</p>
+                                <p className="font-medium">{translateAppointmentType(appointment.type)}</p>
+                            </div>
+                            <div>
                                 <p className="text-sm text-muted-foreground">Motivo</p>
-                                <p className="font-medium">{appointment.reason || 'Chequeo General'}</p>
+                                <p className="font-medium">{appointment.reason || 'General'}</p>
                             </div>
                         </div>
                     </div>

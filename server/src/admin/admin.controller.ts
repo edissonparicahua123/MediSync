@@ -3,10 +3,14 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { AdminService } from './admin.service';
 import { CreateConfigDto, UpdateConfigDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Audit } from '../common/decorators/audit.decorator';
+import { UseInterceptors } from '@nestjs/common';
 
 @ApiTags('Admin')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(AuditInterceptor)
 @Controller('admin')
 export class AdminController {
     constructor(private readonly adminService: AdminService) { }
@@ -31,6 +35,7 @@ export class AdminController {
     }
 
     @Put('config/:id')
+    @Audit('ACTUALIZAR', 'SEGURIDAD')
     @ApiOperation({ summary: 'Update configuration' })
     updateConfig(@Param('id') id: string, @Body() updateConfigDto: UpdateConfigDto) {
         return this.adminService.updateConfig(id, updateConfigDto);
@@ -55,6 +60,7 @@ export class AdminController {
     }
 
     @Put('organization')
+    @Audit('ACTUALIZAR', 'SEGURIDAD')
     @ApiOperation({ summary: 'Update organization configuration' })
     updateOrganizationConfig(@Body() body: any) {
         return this.adminService.updateOrganizationConfig(body);
@@ -67,8 +73,28 @@ export class AdminController {
     }
 
     @Post('backups')
+    @Audit('CREAR', 'SEGURIDAD')
     @ApiOperation({ summary: 'Create new backup' })
     createBackup() {
         return this.adminService.createBackup();
+    }
+
+    @Post('backups/:id/restore')
+    @Audit('RESTAURAR', 'SEGURIDAD')
+    @ApiOperation({ summary: 'Restore from backup' })
+    restoreBackup(@Param('id') id: string) {
+        return this.adminService.restoreBackup(id);
+    }
+
+    @Get('system/stats')
+    @ApiOperation({ summary: 'Get real-time system infrastructure stats' })
+    getSystemStats() {
+        return this.adminService.getSystemStats();
+    }
+
+    @Get('system/health')
+    @ApiOperation({ summary: 'Get status of core and external services' })
+    getSystemHealth() {
+        return this.adminService.getSystemHealth();
     }
 }

@@ -1,0 +1,24 @@
+# MediSync AI - Environment
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+test_*.py
+diag_*.py
+models.json
+models.txt
+last_test.log

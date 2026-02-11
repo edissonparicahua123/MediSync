@@ -20,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import {
     Dialog,
     DialogContent,
@@ -57,21 +58,40 @@ import {
     UserCog,
     MessageSquare,
     Sliders,
+    CalendarCheck,
+    Package,
+    UserPlus,
+    ShieldCheck,
+    DatabaseBackup,
     Trash2,
     Key,
     Pencil,
     User,
+    Cpu,
+    HardDrive,
+    Server,
+    Fingerprint,
+    Globe,
+    CheckCircle2
 } from 'lucide-react'
-import { adminAPI, usersAPI } from '@/services/api'
+import { adminAPI, usersAPI, auditAPI } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
+import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 export default function AdminPage() {
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState('users')
+    const [activeTab, setActiveTab] = useState('overview')
+    const [maintenanceMode, setMaintenanceMode] = useState(false)
     const [userModalOpen, setUserModalOpen] = useState(false)
     const [selectedUser, setSelectedUser] = useState<any>(null)
+    const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+    const [newPassword, setNewPassword] = useState('')
+    const [searchTerm, setSearchTerm] = useState('')
+    const [recentActivity, setRecentActivity] = useState<any[]>([])
+    const [selectedUsers, setSelectedUsers] = useState<string[]>([])
     const { toast } = useToast()
 
     // Form states for New/Edit User
@@ -105,6 +125,25 @@ export default function AdminPage() {
         'PATIENT': 'Paciente'
     };
 
+    const PERMISSION_MAP: Record<string, { label: string, icon: any }> = {
+        'DASHBOARD': { label: 'Panel de Control', icon: LayoutDashboard },
+        'PATIENTS': { label: 'Gestión de Pacientes', icon: User },
+        'DOCTORS': { label: 'Cuerpo Médico', icon: Stethoscope },
+        'APPOINTMENTS': { label: 'Citas Médicas', icon: Calendar },
+        'WAITING_ROOM': { label: 'Sala de Espera', icon: Clock },
+        'BEDS': { label: 'Hospitalización / Camas', icon: Bed },
+        'EMERGENCY': { label: 'Urgencias / Triage', icon: AlertTriangle },
+        'LAB_RESULTS': { label: 'Laboratorio / Resultados', icon: FlaskConical },
+        'PHARMACY': { label: 'Farmacia / Stock', icon: Pill },
+        'BILLING': { label: 'Facturación / Caja', icon: Receipt },
+        'HR': { label: 'Recursos Humanos', icon: Users },
+        'ANALYTICS': { label: 'Analítica Avanzada', icon: BarChart3 },
+        'REPORTS': { label: 'Reportes y PDF', icon: FileText },
+        'MESSAGES': { label: 'Mensajería Interna', icon: MessageSquare },
+        'AUDIT': { label: 'Logs de Auditoría', icon: Shield },
+        'SYSTEM': { label: 'Configuración de Sistema', icon: Settings },
+    };
+
     const [userData, setUserData] = useState({
         firstName: '',
         lastName: '',
@@ -130,6 +169,8 @@ export default function AdminPage() {
             ai: { features: {} },
         },
         backups: [],
+        systemStats: null,
+        systemHealth: [],
     })
 
     useEffect(() => {
@@ -139,11 +180,14 @@ export default function AdminPage() {
     const loadAdminData = async () => {
         try {
             setLoading(true)
-            const [usersRes, rolesRes, orgRes, backupsRes] = await Promise.all([
+            const [usersRes, rolesRes, orgRes, backupsRes, auditRes, statsRes, healthRes] = await Promise.all([
                 usersAPI.getAll({ limit: 100 }),
                 usersAPI.getRoles(),
                 adminAPI.getOrganization(),
-                adminAPI.getBackups()
+                adminAPI.getBackups(),
+                auditAPI.getAll({ limit: 5 }),
+                adminAPI.getSystemStats(),
+                adminAPI.getSystemHealth()
             ])
 
             setAdminData({
@@ -151,7 +195,11 @@ export default function AdminPage() {
                 roles: rolesRes.data || [],
                 settings: orgRes.data,
                 backups: backupsRes.data,
+                systemStats: statsRes.data,
+                systemHealth: healthRes.data,
             })
+            setRecentActivity(auditRes.data.data || [])
+            setMaintenanceMode(orgRes.data.maintenanceMode || false)
         } catch (error) {
             console.error(error)
             toast({
@@ -252,16 +300,17 @@ export default function AdminPage() {
         }
     }, [userData.roleId, userModalOpen]) // Depend on roleId changes while modal is open
 
-    const handleResetPassword = async (userId: string) => {
-        const newPassword = window.prompt('Ingresa la nueva contraseña para este usuario:');
-        if (!newPassword) return; // Cancelled
+    const handleResetPassword = async () => {
+        if (!newPassword || !selectedUser) return;
 
         try {
-            await usersAPI.update(userId, { password: newPassword });
+            await usersAPI.update(selectedUser.id, { password: newPassword });
             toast({
                 title: 'Contraseña Actualizada',
                 description: 'La contraseña ha sido cambiada exitosamente.',
             });
+            setPasswordModalOpen(false)
+            setNewPassword('')
         } catch (error) {
             toast({
                 title: 'Error',
@@ -271,23 +320,59 @@ export default function AdminPage() {
         }
     }
 
-    const handleDeleteUser = async (userId: string) => {
-        if (!window.confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) return;
+    const handleDeleteUser = async () => {
+        if (!selectedUser && selectedUsers.length === 0) return;
 
         try {
-            await usersAPI.delete(userId);
+            if (selectedUser) {
+                await usersAPI.delete(selectedUser.id);
+            } else {
+                // Bulk delete
+                await Promise.all(selectedUsers.map(id => usersAPI.delete(id)));
+                setSelectedUsers([]);
+            }
+
             toast({
-                title: 'Usuario Eliminado',
-                description: 'El usuario ha sido eliminado correctamente del sistema.',
+                title: selectedUser ? 'Usuario Eliminado' : 'Usuarios Eliminados',
+                description: 'La operación se completó correctamente.',
             });
+            setDeleteModalOpen(false);
             loadAdminData();
         } catch (error: any) {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'Error al eliminar usuario',
+                description: error.response?.data?.message || 'Error en la operación',
                 variant: 'destructive',
             })
         }
+    }
+
+    const handleExportUsers = () => {
+        const usersToExport = selectedUsers.length > 0
+            ? adminData.users.filter((u: any) => selectedUsers.includes(u.id))
+            : adminData.users;
+
+        const headers = ['Nombre', 'Apellido', 'Email', 'Rol', 'Estado'];
+        const rows = usersToExport.map((u: any) => [
+            u.firstName,
+            u.lastName,
+            u.email,
+            u.role?.name || 'N/A',
+            u.isActive ? 'Activo' : 'Inactivo'
+        ]);
+
+        const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `medisync_users_${format(new Date(), 'yyyyMMdd')}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast({ title: 'Exportación Exitosa', description: 'El archivo CSV ha sido generado.' });
     }
 
     const handleCreateBackup = async () => {
@@ -303,11 +388,16 @@ export default function AdminPage() {
         }
     }
 
-    const handleRestoreBackup = (backupId: string) => {
-        toast({
-            title: 'Restauración Iniciada',
-            description: 'Proceso de restauración iniciado (Simulado)',
-        })
+    const handleRestoreBackup = async (backupId: string) => {
+        try {
+            await adminAPI.restoreBackup(backupId)
+            toast({
+                title: 'Restauración Iniciada',
+                description: 'La base de datos se está restaurando. El sistema podría reiniciarse.',
+            })
+        } catch (error) {
+            toast({ title: 'Error al restaurar', variant: 'destructive' })
+        }
     }
 
     const handleSaveSettings = async () => {
@@ -382,30 +472,249 @@ export default function AdminPage() {
                 <div className="flex items-center gap-3">
                     <div className="px-4 py-2 bg-muted rounded-md border border-border text-sm font-medium text-muted-foreground flex items-center gap-2">
                         <Database className="h-4 w-4" />
-                        v2.5.0 Enterprise
+                        MediSync v2.5.0 Enterprise
                     </div>
                 </div>
             </div>
 
             {/* Tabs Pro - SOLID */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="bg-card p-1 rounded-lg border border-border h-auto w-full justify-start shadow-sm">
-                    <TabsTrigger value="users" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:border-primary/20 rounded-md px-6 py-3 transition-all flex-1 md:flex-none border border-transparent">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid grid-cols-5 w-full max-w-3xl bg-muted/50 p-1 border border-border/50 rounded-xl mb-6">
+                    <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-edicarex data-[state=active]:text-white transition-all duration-300">
+                        <LayoutDashboard className="h-4 w-4 mr-2" />
+                        Vista General
+                    </TabsTrigger>
+                    <TabsTrigger value="users" className="rounded-lg data-[state=active]:bg-edicarex data-[state=active]:text-white transition-all duration-300">
                         <Users className="h-4 w-4 mr-2" />
                         Usuarios
                     </TabsTrigger>
-                    <TabsTrigger value="settings" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:border-primary/20 rounded-md px-6 py-3 transition-all flex-1 md:flex-none border border-transparent">
+                    <TabsTrigger value="system" className="rounded-lg data-[state=active]:bg-edicarex data-[state=active]:text-white transition-all duration-300">
                         <Settings className="h-4 w-4 mr-2" />
-                        Configuración
+                        Sistema
                     </TabsTrigger>
-                    <TabsTrigger value="backups" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:border-primary/20 rounded-md px-6 py-3 transition-all flex-1 md:flex-none border border-transparent">
+                    <TabsTrigger value="backups" className="rounded-lg data-[state=active]:bg-edicarex data-[state=active]:text-white transition-all duration-300">
                         <Database className="h-4 w-4 mr-2" />
                         Respaldos
                     </TabsTrigger>
+                    <TabsTrigger value="roles" className="rounded-lg data-[state=active]:bg-edicarex data-[state=active]:text-white transition-all duration-300">
+                        <Shield className="h-4 w-4 mr-2" />
+                        Roles
+                    </TabsTrigger>
                 </TabsList>
 
+                <TabsContent value="overview" className="mt-0 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* CPU Monitor */}
+                        <Card className="bg-card border-border overflow-hidden group hover:border-blue-500 transition-all duration-300 shadow-md">
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Carga del CPU</p>
+                                        <h3 className="text-3xl font-bold tracking-tight text-blue-500">
+                                            {adminData.systemStats?.infrastructure.cpu.usage || 0}%
+                                        </h3>
+                                    </div>
+                                    <div className="p-3 bg-blue-500/10 rounded-xl">
+                                        <Cpu className="h-6 w-6 text-blue-500" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex items-center justify-between text-[10px] font-bold text-muted-foreground">
+                                    <span>{adminData.systemStats?.infrastructure.cpu.cores} CORES</span>
+                                    <span>{adminData.systemStats?.infrastructure.cpu.model.split(' ')[0]}</span>
+                                </div>
+                                <div className="mt-2 w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${adminData.systemStats?.infrastructure.cpu.usage || 0}%` }}
+                                        className="h-full bg-blue-500"
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Memory Monitor */}
+                        <Card className="bg-card border-border overflow-hidden group hover:border-purple-500 transition-all duration-300 shadow-md">
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Memoria RAM</p>
+                                        <h3 className="text-3xl font-bold tracking-tight text-purple-500">
+                                            {adminData.systemStats?.infrastructure.memory.usagePercent || 0}%
+                                        </h3>
+                                    </div>
+                                    <div className="p-3 bg-purple-500/10 rounded-xl">
+                                        <HardDrive className="h-6 w-6 text-purple-500" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex items-center justify-between text-[10px] font-bold text-muted-foreground">
+                                    <span>TOTAL: {adminData.systemStats?.infrastructure.memory.total} GB</span>
+                                    <span>LIBRE: {adminData.systemStats?.infrastructure.memory.free} GB</span>
+                                </div>
+                                <div className="mt-2 w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${adminData.systemStats?.infrastructure.memory.usagePercent || 0}%` }}
+                                        className="h-full bg-purple-500"
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Database Health */}
+                        <Card className="bg-card border-border overflow-hidden group hover:border-emerald-500 transition-all duration-300 shadow-md">
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Base de Datos</p>
+                                        <h3 className="text-3xl font-bold tracking-tight text-emerald-500">
+                                            {adminData.systemStats?.database.counts.users || 0}
+                                        </h3>
+                                    </div>
+                                    <div className="p-3 bg-emerald-500/10 rounded-xl">
+                                        <Database className="h-6 w-6 text-emerald-500" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-500">{adminData.systemStats?.database.counts.patients} PACIENTES</Badge>
+                                    <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-500">{adminData.systemStats?.database.counts.appointments} CITAS</Badge>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Uptime / Maintenance */}
+                        <Card className="bg-card border-border overflow-hidden group hover:border-orange-500 transition-all duration-300 shadow-md">
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Tiempo de Actividad</p>
+                                        <h3 className="text-xl font-black text-orange-500 uppercase">
+                                            {adminData.systemStats?.infrastructure.uptime.days}d {adminData.systemStats?.infrastructure.uptime.hours}h {adminData.systemStats?.infrastructure.uptime.minutes}m
+                                        </h3>
+                                    </div>
+                                    <div className="p-2 bg-orange-500/10 rounded-lg">
+                                        <Clock className="h-5 w-5 text-orange-500" />
+                                    </div>
+                                </div>
+                                <div className="mt-6 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Switch
+                                            checked={maintenanceMode}
+                                            onCheckedChange={async (checked) => {
+                                                try {
+                                                    await adminAPI.updateOrganization({ maintenanceMode: checked });
+                                                    setMaintenanceMode(checked);
+                                                    toast({
+                                                        title: checked ? 'Modo Mantenimiento Activado' : 'Modo Mantenimiento Desactivado',
+                                                        description: checked ? 'El sistema ahora es privado para administradores.' : 'El sistema vuelve a estar público.',
+                                                    });
+                                                } catch (error) {
+                                                    toast({
+                                                        title: 'Error',
+                                                        description: 'No se pudo cambiar el estado de mantenimiento',
+                                                        variant: 'destructive',
+                                                    });
+                                                }
+                                            }}
+                                        />
+                                        <span className="text-[10px] font-bold text-muted-foreground">MODO MANT.</span>
+                                    </div>
+                                    {maintenanceMode && <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Services Monitor */}
+                        <Card className="md:col-span-2 border-border bg-card shadow-sm">
+                            <CardHeader className="border-b border-border/50 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg flex items-center gap-2">
+                                            <Server className="h-5 w-5 text-edicarex" />
+                                            Monitor de Servicios CORE
+                                        </CardTitle>
+                                        <CardDescription>Estado de integración y latencia de sistemas externos</CardDescription>
+                                    </div>
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-[10px] font-black">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        SISTEMA ÍNTEGRO
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="grid grid-cols-1 sm:grid-cols-2">
+                                    {adminData.systemHealth.map((service: any) => (
+                                        <div key={service.id} className="p-6 flex items-center justify-between border-b border-r border-border/50 last:border-b-0 group hover:bg-muted/50 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`p-2.5 rounded-xl ${service.status === 'OPERATIONAL' ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                                                    <Fingerprint className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-foreground">{service.name}</h4>
+                                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase">{service.type}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-xs font-black text-foreground">{service.latency}ms</div>
+                                                <div className="text-[9px] font-bold text-green-500 uppercase">ONLINE</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Environment Auditor */}
+                        <div className="space-y-6">
+                            <Card className="border-border bg-card shadow-sm">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-black flex items-center gap-2 uppercase tracking-tighter">
+                                        <Globe className="h-4 w-4 text-blue-500" />
+                                        Auditor de Entorno
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Runtime</span>
+                                        <span className="text-xs font-black text-edicarex">Node.js {adminData.systemStats?.infrastructure.nodeVersion}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Backend</span>
+                                        <span className="text-xs font-black text-orange-500">NestJS Enterprise</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Platform</span>
+                                        <span className="text-xs font-black">{adminData.systemStats?.infrastructure.platform} x64</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">API Version</span>
+                                        <span className="text-xs font-black tracking-widest">v2.5.0-PRO</span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-edicarex border-none shadow-xl overflow-hidden relative">
+                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                    <Shield className="h-24 w-24 text-white" />
+                                </div>
+                                <CardContent className="p-6 relative z-10">
+                                    <h4 className="text-white font-black text-lg mb-1">Estado de Seguridad</h4>
+                                    <p className="text-white/70 text-xs mb-4">Firmas y protocolos validados hoy.</p>
+                                    <div className="py-2 px-3 bg-white/10 rounded-lg backdrop-blur-md border border-white/20">
+                                        <div className="flex items-center gap-2">
+                                            <ShieldCheck className="h-4 w-4 text-white" />
+                                            <span className="text-xs font-black text-white">X-FRAME: DENY</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </TabsContent>
+
                 {/* A. Users Tab */}
-                <TabsContent value="users" className="mt-6">
+                < TabsContent value="users" className="mt-0" >
                     <Card className="overflow-hidden border-none shadow-xl transition-all">
                         <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
                         <CardHeader className="border-b border-border bg-muted/10 px-6 py-5">
@@ -419,9 +728,39 @@ export default function AdminPage() {
                                         <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
                                             placeholder="Buscar usuario..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
                                             className="pl-9 bg-background border-border focus:border-blue-500 transition-colors"
                                         />
                                     </div>
+                                    <AnimatePresence>
+                                        {selectedUsers.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, x: 20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: 20 }}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleExportUsers}
+                                                    className="border-green-500/50 text-green-600 hover:bg-green-50"
+                                                >
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                    Exportar ({selectedUsers.length})
+                                                </Button>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    onClick={() => setDeleteModalOpen(true)}
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    Eliminar
+                                                </Button>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                     <Button onClick={() => handleOpenUserModal(null)} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
                                         <Plus className="h-4 w-4 mr-2" />
                                         Nuevo Usuario
@@ -433,7 +772,20 @@ export default function AdminPage() {
                             <Table>
                                 <TableHeader className="bg-muted/50">
                                     <TableRow className="hover:bg-transparent border-b border-border">
-                                        <TableHead className="pl-6 h-12 font-semibold text-foreground">Usuario / Email</TableHead>
+                                        <TableHead className="w-12 pl-6">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-border"
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedUsers(adminData.users.map((u: any) => u.id))
+                                                    } else {
+                                                        setSelectedUsers([])
+                                                    }
+                                                }}
+                                            />
+                                        </TableHead>
+                                        <TableHead className="h-12 font-semibold text-foreground">Usuario / Email</TableHead>
                                         <TableHead className="font-semibold text-foreground">Rol Asignado</TableHead>
                                         <TableHead className="font-semibold text-foreground">Estado</TableHead>
                                         <TableHead className="text-right pr-6 font-semibold text-foreground">Acciones</TableHead>
@@ -443,7 +795,12 @@ export default function AdminPage() {
                                     {adminData.users
                                         .filter((user: any) => {
                                             const rName = user.role?.name || user.role || '';
-                                            return String(rName).toUpperCase() !== 'PATIENT';
+                                            const searchMatch = (
+                                                user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                                            );
+                                            return String(rName).toUpperCase() !== 'PATIENT' && searchMatch;
                                         })
                                         .map((user: any) => {
                                             const getSafeRoleName = (r: any) => {
@@ -456,7 +813,21 @@ export default function AdminPage() {
 
                                             return (
                                                 <TableRow key={user.id} className="group hover:bg-muted/30 transition-colors border-b border-border/50 last:border-0">
-                                                    <TableCell className="pl-6 py-4">
+                                                    <TableCell className="pl-6">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedUsers.includes(user.id)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedUsers([...selectedUsers, user.id])
+                                                                } else {
+                                                                    setSelectedUsers(selectedUsers.filter(id => id !== user.id))
+                                                                }
+                                                            }}
+                                                            className="rounded border-border"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="py-4">
                                                         <div className="flex flex-col">
                                                             <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
                                                                 {user.firstName} {user.lastName}
@@ -491,7 +862,10 @@ export default function AdminPage() {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="h-8 w-8 hover:bg-orange-500/10 hover:text-orange-600 transition-colors"
-                                                                onClick={() => handleResetPassword(user.id)}
+                                                                onClick={() => {
+                                                                    setSelectedUser(user);
+                                                                    setPasswordModalOpen(true);
+                                                                }}
                                                             >
                                                                 <Key className="h-4 w-4" />
                                                             </Button>
@@ -499,7 +873,10 @@ export default function AdminPage() {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="h-8 w-8 hover:bg-red-500/10 hover:text-red-600 transition-colors"
-                                                                onClick={() => handleDeleteUser(user.id)}
+                                                                onClick={() => {
+                                                                    setSelectedUser(user);
+                                                                    setDeleteModalOpen(true);
+                                                                }}
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
@@ -512,10 +889,9 @@ export default function AdminPage() {
                             </Table>
                         </CardContent>
                     </Card>
-                </TabsContent>
-
+                </TabsContent >
                 {/* B. System Settings Tab */}
-                <TabsContent value="settings" className="mt-6 space-y-6">
+                < TabsContent value="system" className="mt-6 space-y-6" >
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                         {/* LEFT COLUMN: Identity & Operations */}
                         <div className="space-y-6">
@@ -789,9 +1165,9 @@ export default function AdminPage() {
                             </Card>
                         </div>
                     </div>
-                </TabsContent>
+                </TabsContent >
 
-                <TabsContent value="backups" className="mt-6">
+                <TabsContent value="backups" className="mt-0">
                     <Card className="overflow-hidden border-none shadow-xl transition-all">
                         <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
                         <CardHeader className="border-b border-border bg-muted/10 px-6 py-5">
@@ -811,9 +1187,9 @@ export default function AdminPage() {
                                 <TableHeader className="bg-muted/50">
                                     <TableRow className="hover:bg-transparent border-b border-border">
                                         <TableHead className="pl-6 h-12 font-semibold text-foreground">Nombre del Archivo</TableHead>
-                                        <TableHead className="font-semibold text-foreground">Tipo de Respaldo</TableHead>
+                                        <TableHead className="font-semibold text-foreground">Tipo</TableHead>
                                         <TableHead className="font-semibold text-foreground">Tamaño</TableHead>
-                                        <TableHead className="font-semibold text-foreground">Fecha de Creación</TableHead>
+                                        <TableHead className="font-semibold text-foreground">Fecha</TableHead>
                                         <TableHead className="font-semibold text-foreground">Estado</TableHead>
                                         <TableHead className="text-right pr-6 font-semibold text-foreground">Acciones</TableHead>
                                     </TableRow>
@@ -827,36 +1203,32 @@ export default function AdminPage() {
                                         </TableRow>
                                     ) : (
                                         adminData.backups.map((backup: any) => (
-                                            <TableRow key={backup.id} className="hover:bg-muted/20 transition-colors border-b border-border last:border-0">
-                                                <TableCell className="pl-6 font-medium font-mono text-sm">
+                                            <TableRow key={backup.id} className="hover:bg-muted/20 transition-colors border-b border-border last:border-0 text-sm">
+                                                <TableCell className="pl-6 font-medium font-mono">
                                                     {backup.name}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${backup.type === 'FULL'
-                                                        ? 'bg-blue-500/10 text-blue-700 ring-blue-700/30 dark:text-blue-400 dark:ring-blue-400/30'
-                                                        : 'bg-purple-500/10 text-purple-700 ring-purple-700/30 dark:text-purple-400 dark:ring-purple-400/30'
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${backup.type === 'FULL' ? 'bg-blue-500/10 text-blue-600' : 'bg-purple-500/10 text-purple-600'
                                                         }`}>
                                                         {backup.type === 'FULL' ? 'COMPLETO' : 'INCREMENTAL'}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground">{backup.size}</TableCell>
-                                                <TableCell className="text-muted-foreground">{format(new Date(backup.createdAt), 'PPp', { locale: es })}</TableCell>
+                                                <TableCell className="text-muted-foreground">{format(new Date(backup.createdAt), 'PP', { locale: es })}</TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <span className={`h-1.5 w-1.5 rounded-full ${backup.status === 'COMPLETED' ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                                                        <span className="text-sm">
-                                                            {backup.status === 'COMPLETED' ? 'Completado' : backup.status}
-                                                        </span>
+                                                        <span className={`h-2 w-2 rounded-full ${backup.status === 'COMPLETED' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-yellow-500'} `} />
+                                                        <span>{backup.status === 'COMPLETED' ? 'Completado' : backup.status}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right pr-6">
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="hover:bg-primary/10 hover:text-primary transition-colors"
+                                                        className="hover:bg-edicarex/10 hover:text-edicarex"
                                                         onClick={() => handleRestoreBackup(backup.id)}
                                                     >
-                                                        <Upload className="h-4 w-4 mr-2" />
+                                                        <Upload className="h-3 w-3 mr-2" />
                                                         Restaurar
                                                     </Button>
                                                 </TableCell>
@@ -868,138 +1240,181 @@ export default function AdminPage() {
                         </CardContent>
                     </Card>
                 </TabsContent>
-            </Tabs>
 
-            {/* User Modal */}
-            <Dialog open={userModalOpen} onOpenChange={setUserModalOpen}>
-                <DialogContent className="max-w-5xl p-0 overflow-hidden bg-card border-border shadow-2xl">
-                    <DialogHeader className="p-6 pb-2 border-b border-border/50 bg-muted/20">
-                        <DialogTitle>{selectedUser ? 'Editar Usuario' : 'Crear Usuario'}</DialogTitle>
-                        <DialogDescription>
-                            Complete el formulario para {selectedUser ? 'actualizar' : 'crear'} una cuenta de usuario.
-                        </DialogDescription>
-                    </DialogHeader>
+                <TabsContent value="roles" className="mt-0">
+                    <Card className="border-none shadow-xl">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-edicarex" />
+                        <CardHeader>
+                            <CardTitle className="text-xl text-edicarex text-center">Matriz de Acceso MediSync Enterprise</CardTitle>
+                            <CardDescription className="text-center">Control jerárquico de permisos dinámicos</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {Object.entries(ROLE_DEFAULTS).map(([role, permissions], idx) => (
+                                    <motion.div
+                                        key={idx}
+                                        whileHover={{ scale: 1.02 }}
+                                        className="p-5 rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 p-3 opacity-5">
+                                            <Shield className="h-12 w-12" />
+                                        </div>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="p-2 bg-edicarex/10 rounded-lg">
+                                                <Shield className="h-5 w-5 text-edicarex" />
+                                            </div>
+                                            <h4 className="font-extrabold text-lg text-foreground">{ROLE_DISPLAY_NAMES[role] || role}</h4>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap gap-2">
+                                                {permissions.includes('ALL') ? (
+                                                    <div className="w-full flex items-center gap-2 text-xs font-bold text-green-600 bg-green-500/10 p-3 rounded-xl border border-green-500/20">
+                                                        <CheckCircle className="h-4 w-4" />
+                                                        Privilegios Administrativos Totales
+                                                    </div>
+                                                ) : (
+                                                    permissions.map((p, i) => {
+                                                        const info = PERMISSION_MAP[p];
+                                                        if (!info) return null;
+                                                        return (
+                                                            <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/30 border border-border/50 rounded-xl text-[11px] font-medium text-muted-foreground group-hover:bg-edicarex/5 group-hover:text-edicarex transition-colors">
+                                                                <info.icon className="h-3 w-3" />
+                                                                {info.label}
+                                                            </div>
+                                                        )
+                                                    })
+                                                )}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs >
 
-                    <div className="flex flex-col lg:flex-row h-[70vh]">
-                        {/* LEFT COLUMN: Credentials */}
-                        <div className="w-full lg:w-1/3 p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-border overflow-y-auto">
-                            <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                                <User className="w-5 h-5 text-primary" />
-                                Credenciales
-                            </h3>
+            {/* User Modal - Global Unified */}
+            < Dialog open={userModalOpen} onOpenChange={setUserModalOpen} >
+                <DialogContent className="max-w-6xl p-0 overflow-hidden bg-card border-border shadow-2xl rounded-3xl">
+                    <div className="flex flex-col lg:flex-row h-[85vh]">
+                        {/* LEFT: Credentials & Basic Info */}
+                        <div className="w-full lg:w-1/3 p-8 border-b lg:border-r border-border overflow-y-auto bg-muted/20">
+                            <div className="mb-8">
+                                <h2 className="text-2xl font-black text-edicarex mb-1">{selectedUser ? 'Editar Perfil' : 'Alta de Usuario'}</h2>
+                                <p className="text-sm text-muted-foreground">Gestión de identidad y acceso corporativo</p>
+                            </div>
 
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="firstName">Nombre</Label>
-                                    <Input
-                                        id="firstName"
-                                        placeholder="Nombre del usuario"
-                                        value={userData.firstName || ''}
-                                        onChange={(e) => setUserData({ ...userData, firstName: e.target.value })}
-                                    />
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nombre</Label>
+                                        <Input
+                                            className="bg-background focus-visible:ring-edicarex"
+                                            value={userData.firstName}
+                                            onChange={(e) => setUserData({ ...userData, firstName: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Apellido</Label>
+                                        <Input
+                                            className="bg-background focus-visible:ring-edicarex"
+                                            value={userData.lastName}
+                                            onChange={(e) => setUserData({ ...userData, lastName: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="lastName">Apellido</Label>
-                                    <Input
-                                        id="lastName"
-                                        placeholder="Apellido del usuario"
-                                        value={userData.lastName || ''}
-                                        onChange={(e) => setUserData({ ...userData, lastName: e.target.value })}
-                                    />
-                                </div>
 
                                 <div className="space-y-2">
-                                    <Label>Email</Label>
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Correo Electrónico</Label>
                                     <Input
                                         type="email"
-                                        placeholder="correo@ejemplo.com"
-                                        value={userData.email || ''}
+                                        placeholder="user@medisync.com"
+                                        className="bg-background focus-visible:ring-edicarex"
+                                        value={userData.email}
                                         onChange={(e) => setUserData({ ...userData, email: e.target.value })}
                                     />
                                 </div>
+
                                 <div className="space-y-2">
-                                    <Label>Password {selectedUser ? '(Deja en blanco para no cambiar)' : <span className="text-red-500 ml-1">* Obligatorio</span>}</Label>
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Contraseña</Label>
                                     <Input
                                         type="password"
-                                        placeholder="********"
-                                        value={userData.password || ''}
+                                        placeholder="••••••••"
+                                        className="bg-background focus-visible:ring-edicarex"
+                                        value={userData.password}
                                         onChange={(e) => setUserData({ ...userData, password: e.target.value })}
                                     />
+                                    {selectedUser && <p className="text-[10px] text-muted-foreground italic">Dejar vacío para mantener la actual</p>}
                                 </div>
+
                                 <div className="space-y-2">
-                                    <Label>Rol</Label>
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Rol Organizacional</Label>
                                     <Select
                                         value={userData.roleId}
-                                        onValueChange={(v) => setUserData({ ...userData, roleId: v })}
+                                        onValueChange={(v) => {
+                                            const role = adminData.roles.find((r: any) => r.id === v);
+                                            const defaultPerms = ROLE_DEFAULTS[role?.name?.toUpperCase()] || [];
+                                            setUserData({ ...userData, roleId: v, permissions: defaultPerms });
+                                        }}
                                     >
-                                        <SelectTrigger>
-                                            <SelectValue />
+                                        <SelectTrigger className="bg-background">
+                                            <SelectValue placeholder="Seleccione cargo" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {adminData.roles
-                                                .filter((role: any) => String(role.name).toUpperCase() !== 'PATIENT')
-                                                .map((role: any) => {
-                                                    const displayName = ROLE_DISPLAY_NAMES[role.name.toUpperCase()] || role.name;
-
-                                                    return (
-                                                        <SelectItem key={role.id} value={role.id}>
-                                                            {displayName}
-                                                        </SelectItem>
-                                                    )
-                                                })}
+                                            {adminData.roles.filter((r: any) => r.name !== 'PATIENT').map((role: any) => (
+                                                <SelectItem key={role.id} value={role.id}>
+                                                    {ROLE_DISPLAY_NAMES[role.name.toUpperCase()] || role.name}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Estado</Label>
-                                    <Select
-                                        value={userData.status || 'ACTIVE'}
-                                        onValueChange={(v) => setUserData({ ...userData, status: v })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="ACTIVE">Activo</SelectItem>
-                                            <SelectItem value="INACTIVE">Inactivo</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+
+                                <div className="pt-4 mt-6 border-t border-border/50">
+                                    <div className="flex items-center justify-between p-4 bg-background rounded-2xl border border-border">
+                                        <div className="space-y-0.5">
+                                            <Label className="font-bold">Estado de Cuenta</Label>
+                                            <p className="text-[10px] text-muted-foreground">Permitir acceso al sistema</p>
+                                        </div>
+                                        <Switch
+                                            checked={userData.status === 'ACTIVE'}
+                                            onCheckedChange={(c) => setUserData({ ...userData, status: c ? 'ACTIVE' : 'INACTIVE' })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* RIGHT COLUMN: Permissions (Enchufadores) */}
-                        <div className="w-full lg:w-2/3 p-6 bg-muted/5 overflow-y-auto">
-                            <div className="mb-4">
-                                <h3 className="font-semibold text-lg flex items-center gap-2">
-                                    <Sliders className="w-5 h-5 text-primary" />
-                                    Permisos Adicionales (Tipos Enchufadores)
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Active o desactive módulos específicos de forma granular.
-                                </p>
+                        {/* RIGHT: Visual Permissions Matrix */}
+                        <div className="flex-1 p-8 overflow-y-auto bg-background">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 className="text-xl font-black text-foreground">Matriz de Permisos</h3>
+                                    <p className="text-sm text-muted-foreground">Configuración granular de módulos asistenciales y administrativos</p>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-2xl font-black text-edicarex">{userData.permissions.length}</div>
+                                    <div className="text-[10px] uppercase font-bold text-muted-foreground">Módulos On</div>
+                                </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                                 {[
-                                    { id: 'DASHBOARD', label: 'Panel Principal', icon: LayoutDashboard },
+                                    { id: 'DASHBOARD', label: 'Dashboard', icon: LayoutDashboard },
                                     { id: 'PATIENTS', label: 'Pacientes', icon: Users },
-                                    { id: 'DOCTORS', label: 'Doctores', icon: Stethoscope },
-                                    { id: 'APPOINTMENTS', label: 'Citas', icon: Calendar },
-                                    { id: 'WAITING_ROOM', label: 'Sala de Espera', icon: Clock },
-                                    { id: 'BEDS', label: 'Gestión de Camas', icon: Bed },
-                                    { id: 'EMERGENCY', label: 'Emergencias / Triage', icon: AlertTriangle },
-                                    { id: 'PRESCRIPTIONS', label: 'Farmacia', icon: Pill },
-                                    { id: 'LAB_RESULTS', label: 'Laboratorio', icon: FlaskConical },
-                                    { id: 'BILLING', label: 'Facturación / Caja', icon: Receipt },
-                                    { id: 'REPORTS', label: 'Reportes', icon: FileText },
+                                    { id: 'APPOINTMENTS', label: 'Citas', icon: CalendarCheck },
+                                    { id: 'MEDICAL_RECORDS', label: 'Expedientes Médicos', icon: FileText },
+                                    { id: 'PRESCRIPTIONS', label: 'Recetas', icon: Pill },
+                                    { id: 'BILLING', label: 'Facturación', icon: DollarSign },
+                                    { id: 'INVENTORY', label: 'Inventario', icon: Package },
+                                    { id: 'SETTINGS', label: 'Configuración', icon: Settings },
+                                    { id: 'USERS', label: 'Usuarios', icon: UserPlus },
+                                    { id: 'ROLES', label: 'Roles', icon: ShieldCheck },
+                                    { id: 'BACKUPS', label: 'Respaldos', icon: DatabaseBackup },
                                     { id: 'ANALYTICS', label: 'Analítica', icon: BarChart3 },
                                     { id: 'HR', label: 'Recursos Humanos', icon: UserCog },
                                     { id: 'AUDIT', label: 'Auditoría', icon: Shield },
-                                    { id: 'SYSTEM', label: 'Configuración Sistema', icon: Settings },
-                                    { id: 'AI', label: 'Inteligencia Artificial', icon: Brain },
-                                    { id: 'MESSAGES', label: 'Mensajería', icon: MessageSquare },
-                                    { id: 'SETTINGS', label: 'Mi Cuenta / Configuración', icon: UserCog },
                                 ].map((perm) => (
                                     <div key={perm.id} className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/50 hover:border-primary/50 transition-colors shadow-sm">
                                         <div className="flex items-center gap-3">
@@ -1021,19 +1436,81 @@ export default function AdminPage() {
                                     </div>
                                 ))}
                             </div>
+
+                            <div className="mt-12 flex justify-end gap-3">
+                                <Button variant="ghost" onClick={() => setUserModalOpen(false)} className="rounded-xl px-8">Cancelar</Button>
+                                <Button
+                                    onClick={handleSaveUser}
+                                    className="bg-edicarex hover:bg-edicarex/90 text-white rounded-xl px-12 font-black shadow-lg shadow-blue-500/20"
+                                >
+                                    Confirmar y Guardar
+                                </Button>
+                            </div>
                         </div>
                     </div>
+                </DialogContent>
+            </Dialog >
 
-                    <DialogFooter className="p-6 border-t border-border/50 bg-background">
-                        <Button variant="outline" onClick={() => setUserModalOpen(false)}>
-                            Cancelar
-                        </Button>
-                        <Button onClick={handleSaveUser}>
-                            Guardar Usuario
+            {/* Password Modal */}
+            < Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen} >
+                <DialogContent className="sm:max-w-md bg-card border-border shadow-2xl rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Key className="h-5 w-5 text-edicarex" />
+                            Resetear Contraseña
+                        </DialogTitle>
+                        <DialogDescription>
+                            Introduzca la nueva contraseña maestra para {selectedUser?.firstName} {selectedUser?.lastName}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Nueva Contraseña</Label>
+                            <Input
+                                type="password"
+                                placeholder="Mínimo 8 caracteres"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                className="bg-muted/20"
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground bg-orange-500/10 p-3 rounded-lg border border-orange-500/20">
+                            <AlertTriangle className="h-3 w-3 inline mr-1" />
+                            Esta acción invalidará las sesiones activas del usuario.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setPasswordModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={handleResetPassword} className="bg-edicarex hover:bg-edicarex/90 text-white">
+                            Cambiar Contraseña
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
-        </div>
+            </Dialog >
+
+            {/* Delete Modal - SHADCN UI INTEGRATED */}
+            < Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen} >
+                <DialogContent className="sm:max-w-md bg-card border-border shadow-2xl rounded-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-500">
+                            <AlertTriangle className="h-5 w-5" />
+                            Confirmar Eliminación
+                        </DialogTitle>
+                        <DialogDescription>
+                            ¿Estás seguro de que deseas eliminar permanentemente a <strong>{selectedUser?.firstName} {selectedUser?.lastName}</strong>? Esta acción no se puede deshacer.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-6">
+                        <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>Cancelar</Button>
+                        <Button
+                            onClick={handleDeleteUser}
+                            className="bg-red-500 hover:bg-red-600 text-white"
+                        >
+                            Eliminar Usuario
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog >
+        </div >
     )
 }

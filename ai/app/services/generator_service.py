@@ -4,9 +4,8 @@ from datetime import datetime
 
 class GeneratorService:
     """
-    Medical text generation service.
-    Uses template-based generation (mock implementation).
-    In production, would use GPT or other LLM models.
+    Servicio de Generación de Documentación Clínica de EdiCarex.
+    Crea documentos médicos de alta fidelidad con la identidad corporativa.
     """
 
     def __init__(self):
@@ -17,110 +16,60 @@ class GeneratorService:
         }
 
     def generate(self, data: TextGeneratorInput) -> TextGeneratorOutput:
-        """
-        Generate medical text based on template type.
-        """
+        """Genera documentación profesional de EdiCarex."""
         template_func = self.templates.get(data.template_type.lower())
-        
         if not template_func:
-            raise ValueError(f"Unknown template type: {data.template_type}")
-        
-        generated_text = template_func(data.patient_data, data.additional_notes)
+            raise ValueError(f"Tipo de plantilla no soportado: {data.template_type}")
         
         return TextGeneratorOutput(
-            generated_text=generated_text,
+            generated_text=template_func(data.patient_data, data.additional_notes),
             template_type=data.template_type
         )
 
     def _prescription_template(self, patient_data: dict, notes: str) -> str:
-        """Generate prescription document."""
-        patient_name = patient_data.get("name", "Patient")
-        age = patient_data.get("age", "N/A")
-        diagnosis = patient_data.get("diagnosis", "N/A")
-        medications = patient_data.get("medications", [])
-        
-        text = f"""MEDICAL PRESCRIPTION
+        """Plantilla de Receta Médica EdiCarex."""
+        return f"""
+=========================================
+      RECETA MÉDICA - EDICAREX AI
+=========================================
+Fecha: {datetime.now().strftime("%d/%m/%Y")}
+Paciente: {patient_data.get("name", "N/A")}
+Edad: {patient_data.get("age", "N/A")}
 
-Date: {datetime.now().strftime("%Y-%m-%d")}
-Patient: {patient_name}
-Age: {age}
-Diagnosis: {diagnosis}
+INDICACIONES TERAPÉUTICAS:
+{notes if notes else "Siga las instrucciones del médico tratante."}
 
-PRESCRIBED MEDICATIONS:
+Firma: ________________________
+Sistema de Gestión Hospitalaria EdiCarex
 """
-        
-        for i, med in enumerate(medications, 1):
-            text += f"\n{i}. {med.get('name', 'Medication')} - {med.get('dosage', 'As directed')}"
-            text += f"\n   Frequency: {med.get('frequency', 'As directed')}"
-            text += f"\n   Duration: {med.get('duration', 'As directed')}\n"
-        
-        if notes:
-            text += f"\nAdditional Notes:\n{notes}\n"
-        
-        text += "\n\nPhysician Signature: ___________________"
-        
-        return text
 
     def _referral_template(self, patient_data: dict, notes: str) -> str:
-        """Generate referral document."""
-        patient_name = patient_data.get("name", "Patient")
-        age = patient_data.get("age", "N/A")
-        reason = patient_data.get("reason", "Further evaluation")
-        specialist = patient_data.get("specialist", "Specialist")
-        
-        text = f"""MEDICAL REFERRAL
+        """Plantilla de Referencia Médica EdiCarex."""
+        return f"""
+=========================================
+    ORDEN DE REFERENCIA - EDICAREX
+=========================================
+Fecha: {datetime.now().strftime("%d/%m/%Y")}
+Paciente: {patient_data.get("name", "N/A")}
 
-Date: {datetime.now().strftime("%Y-%m-%d")}
-Patient: {patient_name}
-Age: {age}
+MOTIVO DE REFERENCIA:
+{notes if notes else "Evaluación por especialista."}
 
-REFERRAL TO: {specialist}
-
-REASON FOR REFERRAL:
-{reason}
-
-CLINICAL SUMMARY:
-{notes if notes else "Patient requires specialist consultation."}
-
-Please evaluate and provide recommendations.
-
-Referring Physician: ___________________
+Atentamente,
+Cuerpo Médico EdiCarex
 """
-        
-        return text
 
     def _discharge_template(self, patient_data: dict, notes: str) -> str:
-        """Generate discharge summary."""
-        patient_name = patient_data.get("name", "Patient")
-        age = patient_data.get("age", "N/A")
-        admission_date = patient_data.get("admission_date", "N/A")
-        discharge_date = datetime.now().strftime("%Y-%m-%d")
-        diagnosis = patient_data.get("diagnosis", "N/A")
-        treatment = patient_data.get("treatment", "N/A")
-        
-        text = f"""DISCHARGE SUMMARY
+        """Plantilla de Alta Médica EdiCarex."""
+        return f"""
+=========================================
+    RESUMEN DE ALTA - EDICAREX
+=========================================
+Paciente: {patient_data.get("name", "N/A")}
+Fecha de Alta: {datetime.now().strftime("%d/%m/%Y")}
 
-Patient: {patient_name}
-Age: {age}
-Admission Date: {admission_date}
-Discharge Date: {discharge_date}
+INSTRUCCIONES DE SEGUIMIENTO:
+{notes if notes else "Reposo absoluto y control en 7 días."}
 
-DIAGNOSIS:
-{diagnosis}
-
-TREATMENT PROVIDED:
-{treatment}
-
-DISCHARGE INSTRUCTIONS:
-{notes if notes else "Follow up with primary care physician in 1-2 weeks."}
-
-MEDICATIONS ON DISCHARGE:
-{patient_data.get('discharge_medications', 'As prescribed')}
-
-FOLLOW-UP:
-{patient_data.get('follow_up', 'Schedule appointment in 2 weeks')}
-
-Attending Physician: ___________________
+EdiCarex: Tecnología al servicio de la salud.
 """
-        
-        return text

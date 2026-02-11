@@ -9,17 +9,17 @@ chat_service = ChatService()
 @router.post("/chat", response_model=ChatOutput)
 async def medical_chat(data: ChatInput):
     """
-    Medical AI Chat endpoint.
+    Endpoint del Chat Médico IA.
     
-    Processes user messages and returns intelligent medical responses.
+    Procesa mensajes del usuario y retorna respuestas médicas inteligentes.
     
-    Returns:
-        - response: AI assistant response
-        - confidence: Response confidence level
-        - suggestions: Follow-up suggestions
+    Retorna:
+        - response: Respuesta del asistente IA
+        - confidence: Nivel de confianza de la respuesta
+        - suggestions: Sugerencias de seguimiento
     """
     try:
         result = await chat_service.chat(data)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error en el chat: {str(e)}")

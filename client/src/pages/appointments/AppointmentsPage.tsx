@@ -213,7 +213,7 @@ export default function AppointmentsPage() {
     // Exportar a PDF
     const exportToPDF = () => {
         const doc = new jsPDF()
-        doc.text('Reporte de Citas - MediSync', 14, 15)
+        doc.text('Reporte de Citas - EdiCarex', 14, 15)
         doc.setFontSize(10)
         doc.text(`Generado: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 22)
 
@@ -254,6 +254,27 @@ export default function AppointmentsPage() {
             LOW: 'bg-blue-100 text-blue-800',
         }
         return colors[priority] || colors.MEDIUM
+    }
+
+    const getAppointmentTypeLabel = (type: string) => {
+        const types: Record<string, string> = {
+            'CHECKUP': 'Chequeo General',
+            'FOLLOW_UP': 'Seguimiento',
+            'EMERGENCY': 'Emergencia',
+            'CONSULTATION': 'Consulta Médica',
+            'SURGERY': 'Cirugía',
+            'ROUTINE': 'Rutina',
+            'TELEMEDICINE': 'Telemedicina',
+            'THERAPY': 'Terapia / Rehabilitación',
+            'PROCEDURE': 'Procedimiento Especial',
+            'LABORATORY': 'Laboratorio / Examen',
+            'IMAGING': 'Imagenología (Rayos X, etc.)',
+            'DENTISTRY': 'Odontología',
+            'NUTRITION': 'Nutrición',
+            'MENTAL_HEALTH': 'Salud Mental',
+            'VACCINATION': 'Vacunación'
+        };
+        return types[type] || type
     }
 
     if (loading) {
@@ -444,6 +465,7 @@ export default function AppointmentsPage() {
                                     <TableHead>Doctor</TableHead>
                                     <TableHead>Fecha</TableHead>
                                     <TableHead>Hora</TableHead>
+                                    <TableHead>Tipo</TableHead>
                                     <TableHead>Estado</TableHead>
                                     <TableHead>Motivo</TableHead>
                                     <TableHead>Prioridad</TableHead>
@@ -480,6 +502,11 @@ export default function AppointmentsPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     {apt.appointmentDate ? format(new Date(apt.appointmentDate), 'HH:mm', { locale: es }) : 'N/A'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                                        {getAppointmentTypeLabel(apt.type)}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell>
                                                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(apt.status)}`}>

@@ -62,7 +62,7 @@ export const generateInvoicePDF = (invoice: Invoice) => {
     doc.setTextColor(primaryColor);
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('MEDISYNC CLINIC', 32, 21);
+    doc.text('EDICAREX CLINIC', 32, 21);
 
     // Company Subtitle
     doc.setTextColor(grayColor);

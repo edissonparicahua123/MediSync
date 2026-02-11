@@ -1,8 +1,12 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
 
 @ApiTags('Analytics')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
 @Controller('analytics')
 export class AnalyticsController {
     constructor(private readonly analyticsService: AnalyticsService) { }
@@ -28,25 +32,25 @@ export class AnalyticsController {
 
     @Get('patients/stats')
     @ApiOperation({ summary: 'Get patient statistics' })
-    getPatientStats() {
-        return this.analyticsService.getPatientStats();
+    getPatientStats(@Query('range') range?: string) {
+        return this.analyticsService.getPatientStats(range);
     }
 
     @Get('revenue/stats')
     @ApiOperation({ summary: 'Get revenue statistics' })
-    getRevenueStats() {
-        return this.analyticsService.getRevenueStats();
+    getRevenueStats(@Query('range') range?: string) {
+        return this.analyticsService.getRevenueStats(range);
     }
 
     @Get('dashboard')
     @ApiOperation({ summary: 'Get dashboard analytics data' })
-    getDashboardData() {
-        return this.analyticsService.getDashboardData();
+    getDashboardData(@Query('range') range?: string) {
+        return this.analyticsService.getDashboardData(range);
     }
 
     @Get('heatmap')
-    getHeatmapData() {
-        return this.analyticsService.getHeatmapData();
+    getHeatmapData(@Query('range') range?: string) {
+        return this.analyticsService.getHeatmapData(range);
     }
 
     @Get('saturation')
@@ -55,22 +59,42 @@ export class AnalyticsController {
     }
 
     @Get('area-comparison')
-    getAreaComparison() {
-        return this.analyticsService.getAreaComparison();
+    getAreaComparison(@Query('range') range?: string) {
+        return this.analyticsService.getAreaComparison(range);
     }
 
     @Get('patient-cycle')
-    getPatientCycle() {
-        return this.analyticsService.getPatientCycle();
+    getPatientCycle(@Query('range') range?: string) {
+        return this.analyticsService.getPatientCycle(range);
     }
 
     @Get('capacity')
-    getCapacityStats() {
-        return this.analyticsService.getCapacityStats();
+    getCapacityStats(@Query('range') range?: string) {
+        return this.analyticsService.getCapacityStats(range);
     }
 
     @Get('historical')
-    getHistoricalTrends() {
-        return this.analyticsService.getHistoricalTrends();
+    getHistoricalTrends(@Query('range') range?: string) {
+        return this.analyticsService.getHistoricalTrends(range);
+    }
+
+    @Get('appointments/types')
+    getAppointmentTypes(@Query('range') range?: string) {
+        return this.analyticsService.getAppointmentTypes(range);
+    }
+
+    @Get('lab/stats')
+    getLabStats(@Query('range') range?: string) {
+        return this.analyticsService.getLabCategoryDistribution(range);
+    }
+
+    @Get('pharmacy/top-meds')
+    getTopMeds(@Query('range') range?: string) {
+        return this.analyticsService.getTopMedications(range);
+    }
+
+    @Get('patients/age-distribution')
+    getAgeDistribution(@Query('range') range?: string) {
+        return this.analyticsService.getAgeDistribution(range);
     }
 }

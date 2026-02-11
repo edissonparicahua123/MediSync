@@ -11,7 +11,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { FilesService } from './files.service';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Files')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
 @Controller('files')
 export class FilesController {
     constructor(private readonly filesService: FilesService) { }

@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto, RegisterDto } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +12,7 @@ export class AuthService {
         private usersService: UsersService,
         private jwtService: JwtService,
         private prisma: PrismaService,
+        private auditService: AuditService,
     ) { }
 
     async validateUser(rawEmail: string, password: string): Promise<any> {
@@ -44,7 +46,7 @@ export class AuthService {
 
         if (user.deletedAt) {
             // EMERGENCY RECOVERY: If main admin is deleted, restore them automatically
-            if (email === 'admin@medisync.com') {
+            if (email === 'admin@edicarex.com') {
                 console.log('🚨 EMERGENCY: Resurrecting soft-deleted Admin user');
                 await this.prisma.user.update({
                     where: { id: user.id },
@@ -70,6 +72,14 @@ export class AuthService {
         };
 
         const accessToken = this.jwtService.sign(payload);
+
+        // [AUDIT] Manual log for LOGIN
+        await this.auditService.createLog({
+            userId: user.id,
+            action: 'LOGIN',
+            resource: 'auth',
+            changes: { email: user.email },
+        }).catch(err => console.error('Failed to log login:', err));
 
         return {
             accessToken,

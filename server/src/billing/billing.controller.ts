@@ -1,8 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { BillingService } from './billing.service';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 
 @ApiTags('Billing')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
+@UseInterceptors(AuditInterceptor)
 @Controller('billing')
 export class BillingController {
     constructor(private readonly billingService: BillingService) { }

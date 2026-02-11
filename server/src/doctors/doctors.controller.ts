@@ -1,8 +1,15 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseInterceptors, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { DoctorsService } from './doctors.service';
+import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
+import { Audit } from '../common/decorators/audit.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
 
 @ApiTags('Doctors')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
+@UseInterceptors(AuditInterceptor)
 @Controller('doctors')
 export class DoctorsController {
     constructor(private readonly doctorsService: DoctorsService) { }
@@ -18,6 +25,12 @@ export class DoctorsController {
         );
     }
 
+    @Get('specialties')
+    @ApiOperation({ summary: 'Get all specialties' })
+    findSpecialties() {
+        return this.doctorsService.findSpecialties();
+    }
+
     @Get(':id')
     @ApiOperation({ summary: 'Get doctor by ID' })
     findOne(@Param('id') id: string) {
@@ -26,18 +39,21 @@ export class DoctorsController {
 
     @Post()
     @ApiOperation({ summary: 'Create doctor' })
+    @Audit('CREATE_DOCTOR', 'doctors')
     create(@Body() data: any) {
         return this.doctorsService.create(data);
     }
 
     @Patch(':id')
     @ApiOperation({ summary: 'Update doctor' })
+    @Audit('UPDATE_DOCTOR', 'doctors')
     update(@Param('id') id: string, @Body() data: any) {
         return this.doctorsService.update(id, data);
     }
 
     @Delete(':id')
     @ApiOperation({ summary: 'Delete doctor' })
+    @Audit('DELETE_DOCTOR', 'doctors')
     remove(@Param('id') id: string) {
         return this.doctorsService.remove(id);
     }

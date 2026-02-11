@@ -25,7 +25,7 @@ export class HealthController {
             api: 'online',
             uptime: process.uptime(),
             timestamp: new Date().toISOString(),
-            service: 'MediSync Enterprise API',
+            service: 'EdiCarex Enterprise API',
             version: '1.0.0',
         };
     }

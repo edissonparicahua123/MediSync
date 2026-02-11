@@ -44,8 +44,8 @@ async function bootstrap() {
 
     // Swagger documentation
     const config = new DocumentBuilder()
-        .setTitle('MediSync Enterprise API')
-        .setDescription('Comprehensive Hospital Management System API')
+        .setTitle('EdiCarex Enterprise API')
+        .setDescription('Comprehensive Hospital Management System API by EdiCarex')
         .setVersion('1.0')
         .addBearerAuth()
         .addTag('Authentication', 'User authentication and authorization')
@@ -64,7 +64,7 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document, {
-        customSiteTitle: 'MediSync API Docs',
+        customSiteTitle: 'EdiCarex API Docs',
         customCss: '.swagger-ui .topbar { display: none }',
     });
 
@@ -73,7 +73,7 @@ async function bootstrap() {
 
     logger.log(`🚀 Application is running on: http://localhost:${port}`);
     logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
-    logger.log(`🏥 MediSync Enterprise Backend Started Successfully`);
+    logger.log(`🏥 EdiCarex Enterprise Backend Started Successfully`);
 }
 
 bootstrap();

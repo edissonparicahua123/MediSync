@@ -14,12 +14,13 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { PatientsService } from './patients.service';
 import { CreatePatientDto, UpdatePatientDto, SearchPatientsDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
 import { AuditInterceptor } from '../common/interceptors/audit.interceptor';
 import { Audit } from '../common/decorators/audit.decorator';
 
 @ApiTags('Patients')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
 @UseInterceptors(AuditInterceptor)
 @Controller('patients')
 export class PatientsController {
@@ -41,6 +42,7 @@ export class PatientsController {
 
     @Post(':id/enable-portal')
     @ApiOperation({ summary: 'Enable portal access for patient' })
+    @Audit('ENABLE_PORTAL', 'patients')
     enablePortal(@Param('id') id: string) {
         return this.patientsService.enablePortalAccess(id);
     }
@@ -115,6 +117,7 @@ export class PatientsController {
 
     @Post(':id/allergies')
     @ApiOperation({ summary: 'Add patient allergy' })
+    @Audit('ADD_ALLERGY', 'patients')
     addAllergy(@Param('id') id: string, @Body() data: any) {
         return this.patientsService.addAllergy(id, data);
     }
@@ -142,6 +145,7 @@ export class PatientsController {
 
     @Post(':id/vital-signs')
     @ApiOperation({ summary: 'Add patient vital sign record' })
+    @Audit('ADD_VITAL_SIGNS', 'patients')
     addVitalSign(@Param('id') id: string, @Body() data: any) {
         return this.patientsService.addVitalSign(id, data);
     }
@@ -164,6 +168,7 @@ export class PatientsController {
 
     @Post(':id/medications')
     @ApiOperation({ summary: 'Add patient medication' })
+    @Audit('ADD_MEDICATION', 'patients')
     addMedication(@Param('id') id: string, @Body() data: any) {
         return this.patientsService.addMedication(id, data);
     }
@@ -185,6 +190,7 @@ export class PatientsController {
 
     @Post(':id/diagnoses')
     @ApiOperation({ summary: 'Add patient diagnosis' })
+    @Audit('ADD_DIAGNOSIS', 'patients')
     addDiagnosis(@Param('id') id: string, @Body() data: any) {
         return this.patientsService.addDiagnosis(id, data);
     }
@@ -206,6 +212,7 @@ export class PatientsController {
 
     @Post(':id/family-members')
     @ApiOperation({ summary: 'Add family member' })
+    @Audit('ADD_FAMILY_MEMBER', 'patients')
     addFamilyMember(@Param('id') id: string, @Body() data: any) {
         return this.patientsService.addFamilyMember(id, data);
     }
@@ -233,6 +240,7 @@ export class PatientsController {
 
     @Post(':id/documents')
     @ApiOperation({ summary: 'Add patient document' })
+    @Audit('ADD_DOCUMENT', 'patients')
     addDocument(@Param('id') id: string, @Body() data: any) {
         return this.patientsService.addDocument(id, data);
     }
@@ -248,6 +256,7 @@ export class PatientsController {
     // ============================================
     @Post(':id/notes')
     @ApiOperation({ summary: 'Add clinical note' })
+    @Audit('ADD_CLINICAL_NOTE', 'patients')
     addNote(@Param('id') id: string, @Body() data: any) {
         return this.patientsService.addNote(id, data);
     }

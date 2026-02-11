@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
@@ -24,6 +25,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { BedsModule } from './beds/beds.module';
 import { ServicesCatalogModule } from './services-catalog/services-catalog.module';
 import { HealthController } from './health/health.controller';
+import { MaintenanceGuard } from './common/guards/maintenance.guard';
 
 @Module({
     imports: [
@@ -68,5 +70,6 @@ import { HealthController } from './health/health.controller';
         ServicesCatalogModule,
     ],
     controllers: [HealthController],
+    providers: [MaintenanceGuard],
 })
 export class AppModule { }

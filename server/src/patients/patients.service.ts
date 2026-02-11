@@ -195,7 +195,7 @@ export class PatientsService {
         // IF NEW USER: CREATE
 
         // Use part of email or name as base, fallback to random if no email
-        const baseEmail = patient.email || `patient${patient.documentNumber || patient.id.substring(0, 6)}@medisync.portal`;
+        const baseEmail = patient.email || `patient${patient.documentNumber || patient.id.substring(0, 6)}@edicarex.portal`;
 
         // Ensure email uniqueness (simple check, improve for prod)
         let email = baseEmail;

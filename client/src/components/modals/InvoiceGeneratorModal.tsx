@@ -116,7 +116,7 @@ export default function InvoiceGeneratorModal({ open, onOpenChange, onSuccess }:
     const generateQR = async () => {
         try {
             const qrData = JSON.stringify({
-                empresa: "MediSync Clinic SAC",
+                empresa: "EdiCarex Clinic SAC",
                 ruc: "20601234567",
                 fecha: new Date().toISOString().split('T')[0],
                 total: totals.total.toFixed(2),

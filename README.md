@@ -1,8 +1,8 @@
-# 🏥 MediSync Enterprise - Sistema Integral de Gestión Hospitalaria
+# 🏥 EdiCarex Enterprise - Sistema Integral de Gestión Hospitalaria
 
 > **La Solución Definitiva para la Gestión de Hospitales con Inteligencia Artificial Avanzada**
 
-**MediSync Enterprise** es una plataforma SaaS (Software as a Service) de clase mundial, diseñada para revolucionar la administración hospitalaria. Combina una arquitectura robusta y escalable con el poder de la Inteligencia Artificial de Google Gemini, ofreciendo una experiencia sin precedentes para médicos, pacientes y administradores.
+**EdiCarex Enterprise** es una plataforma SaaS (Software as a Service) de clase mundial, diseñada para revolucionar la administración hospitalaria. Combina una arquitectura robusta y escalable con el poder de la Inteligencia Artificial de Groq (Llama 3.3), ofreciendo una experiencia sin precedentes para médicos, pacientes y administradores.
 
 ---
 
@@ -52,9 +52,9 @@
 
 ---
 
-### 🤖 Inteligencia Artificial (Powered by Google Gemini ✨)
+### 🤖 Inteligencia Artificial (Powered by Groq LPU ✨)
 
-MediSync no es solo un software de gestión; es un asistente inteligente activo.
+EdiCarex no es solo un software de gestión; es un asistente inteligente activo.
 
 -   **Asistente Médico Virtual (Chatbot)**: Un chat siempre disponible capaz de responder dudas sobre protocolos médicos, información de medicamentos o navegación por el sistema, manteniendo el contexto de la conversación.
 -   **Resúmenes Clínicos Automáticos**: La IA analiza las notas desestructuradas del médico y genera un resumen clínico conciso y estandarizado, ahorrando horas de documentación.
@@ -88,7 +88,7 @@ El proyecto está construido sobre un stack moderno, robusto y escalable, siguie
 
 ### Servicio de IA (Microservicio)
 -   **Framework**: FastAPI (Python) - El framework de Python más rápido para APIs.
--   **Modelo LLM**: **Google Gemini Pro** - El modelo más capaz de Google.
+-   **Modelo LLM**: **Groq Llama 3.3 70B** - Motor de inferencia ultra-rápido LPU.
 -   **Ciencia de Datos**: Scikit-learn, Pandas, NumPy - Para modelos predictivos locales.
 
 ### Infraestructura y DevOps
@@ -103,7 +103,7 @@ El proyecto está construido sobre un stack moderno, robusto y escalable, siguie
 Entender la estructura es clave para navegar por el código fuente.
 
 ```bash
-medisync/
+edicarex/
 ├── client/                 # 🖥️ Aplicación Frontend (React)
 │   ├── src/
 │   │   ├── components/    # Componentes UI reutilizables (Botones, Modales, Tablas)
@@ -131,7 +131,7 @@ medisync/
 │
 ├── ai/                     # 🧠 Microservicio de Inteligencia Artificial (Python)
 │   ├── app/
-│   │   ├── services/      # Lógica de Gemini y Modelos ML
+│   │   ├── services/      # Lógica de Groq y Modelos ML
 │   │   ├── routers/       # Endpoints de la API de IA
 │   │   └── models/        # Schemas de validación (Pydantic)
 │   ├── requirements.txt   # Dependencias de Python
@@ -151,7 +151,7 @@ Asegúrate de tener instalado:
 1.  **Docker Desktop** (Esencial para ejecutar todo junto).
 2.  **Node.js 20+** (Solo si vas a desarrollar localmente sin Docker).
 3.  **Git**.
-4.  Una **API Key de Google Gemini** (Consíguela en Google AI Studio).
+4.  Una **API Key de Groq** (Consíguela en GroqCloud).
 
 ### 🚀 Opción 1: Despliegue Rápido con Docker (Recomendada)
 
@@ -159,8 +159,8 @@ Esta opción levanta todo el sistema (Base de datos, Backend, Frontend, Redis, I
 
 1.  **Clonar el repositorio**:
     ```bash
-    git clone https://github.com/edissonparicahua123/MediSync.git
-    cd medisync
+    git clone https://github.com/edissonparicahua123/EdiCarex.git
+    cd edicarex
     ```
 
 2.  **Configurar Variables de Entorno**:
@@ -168,7 +168,7 @@ Esta opción levanta todo el sistema (Base de datos, Backend, Frontend, Redis, I
     ```bash
     cp .env.example .env
     ```
-    ⚠️ **IMPORTANTE**: Abre el archivo `.env` y coloca tu `GEMINI_API_KEY`.
+    ⚠️ **IMPORTANTE**: Abre el archivo `.env` y coloca tu `GROQ_API_KEY`.
 
 3.  **Iniciar los Servicios**:
     ```bash
@@ -258,8 +258,8 @@ El sistema utiliza estándares de seguridad empresarial:
 
 ## 📝 Licencia
 
-Este proyecto es software propietario desarrollado por el equipo de MediSync. Todos los derechos reservados.
+Este proyecto es software propietario desarrollado por el equipo de EdiCarex. Todos los derechos reservados.
 
 ---
 
-**Desarrollado con pasión 💙 por el Equipo de MediSync**
+**Desarrollado con pasión 💙 por el Equipo de EdiCarex**

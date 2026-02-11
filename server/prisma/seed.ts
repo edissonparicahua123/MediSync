@@ -130,7 +130,7 @@ async function main() {
         where: { email: 'admin@medisync.com' },
         update: {},
         create: {
-            email: 'admin@medisync.com',
+            email: 'admin@edicarex.com',
             password: hashedPassword,
             firstName: 'Admin',
             lastName: 'User',
@@ -144,11 +144,14 @@ async function main() {
 
     // Create Specialties
     const specialties = [
-        { name: 'Cardiology', description: 'Heart and cardiovascular system' },
-        { name: 'Neurology', description: 'Brain and nervous system' },
-        { name: 'Pediatrics', description: 'Children and infants' },
-        { name: 'Orthopedics', description: 'Bones and joints' },
-        { name: 'General Medicine', description: 'General medical care' },
+        { name: 'Cardiología', description: 'Corazón y sistema cardiovascular' },
+        { name: 'Neurología', description: 'Cerebro y sistema nervioso' },
+        { name: 'Pediatría', description: 'Niños e infantes' },
+        { name: 'Ortopedia', description: 'Huesos y articulaciones' },
+        { name: 'Medicina General', description: 'Atención médica general' },
+        { name: 'Cirugía', description: 'Procedimientos quirúrgicos' },
+        { name: 'Dermatología', description: 'Piel y dermatología' },
+        { name: 'Emergencias', description: 'Atención de urgencias' },
     ];
 
     for (const specialty of specialties) {
@@ -226,7 +229,7 @@ async function main() {
             area: 'Cardiología',
             role: 'Doctor',
             department: 'Medical',
-            email: 'john.smith@medisync.com',
+            email: 'john.smith@edicarex.com',
             salary: 8500,
             contract: 'Tiempo Completo',
             status: 'ACTIVE',
@@ -242,7 +245,7 @@ async function main() {
             area: 'Pediatría',
             role: 'Doctor',
             department: 'Medical',
-            email: 'sarah.johnson@medisync.com',
+            email: 'sarah.johnson@edicarex.com',
             salary: 7800,
             contract: 'Tiempo Completo',
             status: 'ACTIVE',
@@ -258,7 +261,7 @@ async function main() {
             area: 'Emergencia',
             role: 'Nurse',
             department: 'Emergency',
-            email: 'mike.williams@medisync.com',
+            email: 'mike.williams@edicarex.com',
             salary: 4500,
             contract: 'Tiempo Completo',
             status: 'ACTIVE',
@@ -273,7 +276,7 @@ async function main() {
             area: 'Administración',
             role: 'Admin',
             department: 'Administrative',
-            email: 'emma.brown@medisync.com',
+            email: 'emma.brown@edicarex.com',
             salary: 3200,
             contract: 'Medio Tiempo',
             status: 'ACTIVE',

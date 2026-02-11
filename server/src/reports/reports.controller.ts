@@ -1,7 +1,13 @@
-import { Controller, Get, Query, Res, Param } from '@nestjs/common';
+import { Controller, Get, Query, Res, Param, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MaintenanceGuard } from '../common/guards/maintenance.guard';
 import { ReportsService } from './reports.service';
 
+@ApiTags('Reports')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, MaintenanceGuard)
 @Controller('reports')
 export class ReportsController {
     constructor(private readonly reportsService: ReportsService) { }
@@ -65,7 +71,7 @@ export class ReportsController {
 
         res.set({
             'Content-Type': contentType,
-            'Content-Disposition': `attachment; filename=${filename}`,
+            'Content-Disposition': `attachment; filename = ${filename} `,
             'Content-Length': buffer.length,
         });
         res.end(buffer);

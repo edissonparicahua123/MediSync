@@ -222,7 +222,7 @@
 
   /* 6. Cabecera del Reporte (aparece solo al imprimir) */
   body::before {
-    content: "MEDISYNC - REPORTE DE PACIENTES";
+    content: "EDICAREX - REPORTE DE PACIENTES";
     display: block;
     font-size: 24pt;
     font-weight: bold;

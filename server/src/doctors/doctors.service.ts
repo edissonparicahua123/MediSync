@@ -49,8 +49,27 @@ export class DoctorsService {
         return doctor;
     }
 
+    async getSpecialties() {
+        return this.prisma.specialty.findMany({
+            orderBy: { name: 'asc' }
+        });
+    }
+
+    // Explicitly adding findSpecialties to match controller call
+    async findSpecialties() {
+        return this.getSpecialties();
+    }
+
     async create(data: any) {
-        const { firstName, lastName, email, phone, address, avatar, password, schedules, ...doctorData } = data;
+        const { firstName, lastName, email, phone, address, avatar, password, schedules, specialtyId, ...doctorData } = data;
+
+        // If specialtyId is provided, let's also sync specialization string for backward compatibility
+        if (specialtyId) {
+            const specialty = await this.prisma.specialty.findUnique({ where: { id: specialtyId } });
+            if (specialty) {
+                (doctorData as any).specialization = specialty.name;
+            }
+        }
 
         // Check if user exists
         const existingUser = await this.prisma.user.findUnique({
@@ -70,6 +89,7 @@ export class DoctorsService {
             return this.prisma.doctor.create({
                 data: {
                     userId: existingUser.id,
+                    specialtyId,
                     ...doctorData,
                     schedules: schedules && schedules.length > 0 ? {
                         create: schedules.map((s: any) => ({
@@ -102,7 +122,7 @@ export class DoctorsService {
                     phone,
                     address,
                     avatar,
-                    password: password || 'Medisync2024!', // Default password
+                    password: password || 'Edicarex2024!', // Default password
                     roleId: doctorRole?.id || '',
                 },
             });
@@ -111,6 +131,7 @@ export class DoctorsService {
             return prisma.doctor.create({
                 data: {
                     userId: user.id,
+                    specialtyId,
                     ...doctorData,
                     schedules: schedules && schedules.length > 0 ? {
                         create: schedules.map((s: any) => ({
@@ -127,7 +148,15 @@ export class DoctorsService {
     }
 
     async update(id: string, data: any) {
-        const { firstName, lastName, email, phone, address, avatar, schedules, ...doctorData } = data;
+        const { firstName, lastName, email, phone, address, avatar, schedules, specialtyId, ...doctorData } = data;
+
+        // Sync specialization string if specialtyId changed
+        if (specialtyId) {
+            const specialty = await this.prisma.specialty.findUnique({ where: { id: specialtyId } });
+            if (specialty) {
+                (doctorData as any).specialization = specialty.name;
+            }
+        }
 
         // Update doctor and related user info
         const doctor = await this.prisma.doctor.findUnique({ where: { id } });
@@ -166,7 +195,10 @@ export class DoctorsService {
             // Update Doctor
             return prisma.doctor.update({
                 where: { id },
-                data: doctorData, // specialization, yearsExperience, consultationFee, isAvailable, bio
+                data: {
+                    specialtyId,
+                    ...doctorData
+                },
                 include: { user: true, specialty: true },
             });
         });

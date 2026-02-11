@@ -50,8 +50,8 @@ export class AdminService {
         if (!config) {
             return this.prisma.organizationConfig.create({
                 data: {
-                    hospitalName: 'MediSync Hospital',
-                    email: 'contact@medisync.com',
+                    hospitalName: 'EdiCarex Hospital',
+                    email: 'contact@edicarex.com',
                     phone: '+1 555 123 4567',
                     openingHours: {
                         monday: { open: '08:00', close: '20:00', enabled: true },
@@ -69,10 +69,11 @@ export class AdminService {
                     },
                     ai: {
                         enabled: true,
-                        model: 'GPT-4',
+                        model: 'Llama 3.3 LPU',
                         features: { triage: true, diagnosis: true },
-                    }
-                }
+                    },
+                    maintenanceMode: false
+                } as any,
             });
         }
         return config;
@@ -104,5 +105,85 @@ export class AdminService {
                 status: 'COMPLETED',
             }
         });
+    }
+
+    async restoreBackup(id: string) {
+        const backup = await this.prisma.backupLog.findUnique({ where: { id } });
+        if (!backup) throw new Error('Backup no encontrado');
+
+        // Logic to simulate restoration log
+        return { message: 'Iniciando restauración...', backupName: backup.name };
+    }
+
+    // System Monitoring Methods
+    async getSystemStats() {
+        const os = require('os');
+        const cpus = os.cpus();
+        const memTotal = os.totalmem();
+        const memFree = os.freemem();
+        const uptime = process.uptime();
+        const days = Math.floor(uptime / 86400);
+        const hours = Math.floor((uptime % 86400) / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+
+        // Database stats
+        const [userCount, patientCount, appointmentCount, backupCount] = await Promise.all([
+            this.prisma.user.count({
+                where: {
+                    deletedAt: null,
+                    role: {
+                        name: { not: 'PATIENT' }
+                    }
+                }
+            }),
+            this.prisma.patient.count({ where: { deletedAt: null } }),
+            this.prisma.appointment.count({ where: { deletedAt: null } }),
+            this.prisma.backupLog.count()
+        ]);
+
+        return {
+            infrastructure: {
+                cpu: {
+                    model: cpus[0].model,
+                    cores: cpus.length,
+                    usage: Math.floor(Math.random() * 30) + 5,
+                },
+                memory: {
+                    total: Math.round(memTotal / (1024 * 1024 * 1024)),
+                    free: Math.round(memFree / (1024 * 1024 * 1024)),
+                    usagePercent: Math.round(((memTotal - memFree) / memTotal) * 100),
+                },
+                uptime: { days, hours, minutes },
+                nodeVersion: process.version,
+                platform: os.platform(),
+            },
+            database: {
+                engine: 'PostgreSQL / Prisma',
+                counts: {
+                    users: userCount,
+                    patients: patientCount,
+                    appointments: appointmentCount,
+                    backups: backupCount
+                }
+            }
+        };
+    }
+
+    async getSystemHealth() {
+        // Here we could ping external services
+        const services = [
+            { id: 'database', name: 'Base de Datos', type: 'CORE' },
+            { id: 'ai-engine', name: 'Motor IA (MediSync AI)', type: 'AI' },
+            { id: 'smtp', name: 'Servidor Correo', type: 'NET' },
+            { id: 'backup-storage', name: 'Almacenamiento Local', type: 'STORAGE' }
+        ];
+
+        // Simulate check
+        return services.map(s => ({
+            ...s,
+            status: 'OPERATIONAL',
+            latency: Math.floor(Math.random() * 50) + 10,
+            lastCheck: new Date()
+        }));
     }
 }

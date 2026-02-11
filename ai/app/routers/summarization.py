@@ -9,15 +9,15 @@ summarization_service = SummarizationService()
 @router.post("/summarize", response_model=SummarizationOutput)
 async def summarize_text(data: SummarizationInput):
     """
-    Summarize clinical notes and medical records.
+    Resumir notas clínicas y registros médicos.
     
-    Returns:
-        - summary: Summarized text
-        - original_length: Length of original text
-        - summary_length: Length of summary
+    Retorna:
+        - summary: Texto resumido
+        - original_length: Longitud del texto original
+        - summary_length: Longitud del resumen
     """
     try:
-        result = summarization_service.summarize(data)
+        result = await summarization_service.summarize(data)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Fallo en el resumen: {str(e)}")

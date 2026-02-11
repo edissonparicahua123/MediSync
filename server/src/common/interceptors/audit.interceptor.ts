@@ -42,7 +42,7 @@ export class AuditInterceptor implements NestInterceptor {
                     }
 
                     // Calculate details/changes
-                    let resourceId = params.id || null;
+                    let resourceId = params.id || (data && data.id) || null;
                     let details = {
                         method,
                         query,
